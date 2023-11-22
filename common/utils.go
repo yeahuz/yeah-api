@@ -13,6 +13,13 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
+func NewResponse(object Object, data interface{}) Response {
+	return Response{
+		Object: object.Name(),
+		Data:   data,
+	}
+}
+
 func MakeHandlerFunc(fn ApiFunc, method string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {

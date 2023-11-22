@@ -13,3 +13,11 @@ func ErrBadRequest(message string) ApiError {
 		Code:    http.StatusBadRequest,
 	}
 }
+
+func ErrValidation(message string, errors map[string]string) ApiError {
+	return ApiError{
+		Message: message,
+		Code:    http.StatusUnprocessableEntity,
+		Errors:  errors,
+	}
+}
