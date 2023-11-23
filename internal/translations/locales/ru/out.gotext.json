@@ -1,0 +1,10 @@
+{
+    "language": "ru",
+    "messages": [
+        {
+            "id": "Welcome!",
+            "message": "Welcome!",
+            "translation": "Добро пожаловать"
+        }
+    ]
+}
