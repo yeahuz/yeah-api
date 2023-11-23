@@ -2,9 +2,23 @@
     "language": "en",
     "messages": [
         {
-            "id": "Welcome!",
-            "message": "Welcome!",
-            "translation": "Welcome!",
+            "id": "Phone number is invalid",
+            "message": "Phone number is invalid",
+            "translation": "Phone number is invalid",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Internal server error",
+            "message": "Internal server error",
+            "translation": "Internal server error",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Method not allowed",
+            "message": "Method not allowed",
+            "translation": "Method not allowed",
             "translatorComment": "Copied from source.",
             "fuzzy": true
         }

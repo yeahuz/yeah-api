@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/yeahuz/yeah-api/common"
+	c "github.com/yeahuz/yeah-api/common"
+	"github.com/yeahuz/yeah-api/internal/localizer"
 )
 
 func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
@@ -12,17 +13,19 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	err := json.NewDecoder(r.Body).Decode(&phoneCodeData)
 	defer r.Body.Close()
 
+	l := r.Context().Value("localizer").(localizer.Localizer)
+
 	if err != nil {
-		return common.ErrInternal
+		return c.ErrInternal
 	}
 
-	if err := phoneCodeData.validate(); err != nil {
+	if err := phoneCodeData.validate(&l); err != nil {
 		return err
 	}
 
 	result := SentCode{Kind: "SMS", Hash: "hash"}
-	resp := common.Response{Object: result.Name(), Data: result}
-	return common.WriteJSON(w, http.StatusOK, resp)
+	resp := c.Response{Object: result.Name(), Data: result}
+	return c.WriteJSON(w, http.StatusOK, resp)
 }
 
 func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
@@ -30,7 +33,7 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	err := json.NewDecoder(r.Body).Decode(&emailCodeData)
 
 	if err != nil {
-		return common.ErrInternal
+		return c.ErrInternal
 	}
 
 	if err := emailCodeData.validate(); err != nil {

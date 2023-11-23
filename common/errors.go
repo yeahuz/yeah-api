@@ -1,10 +1,15 @@
 package common
 
-import "net/http"
+import (
+	"net/http"
 
+	"github.com/yeahuz/yeah-api/internal/localizer"
+)
+
+var l = localizer.Get("en")
 var (
-	ErrInternal         = ApiError{Message: "Internal server error", Code: http.StatusInternalServerError}
-	ErrMethodNotAllowed = ApiError{Message: "Method not allowed", Code: http.StatusMethodNotAllowed}
+	ErrInternal         = ApiError{Message: l.T("Internal server error"), Code: http.StatusInternalServerError}
+	ErrMethodNotAllowed = ApiError{Message: l.T("Method not allowed"), Code: http.StatusMethodNotAllowed}
 )
 
 func ErrBadRequest(message string) ApiError {

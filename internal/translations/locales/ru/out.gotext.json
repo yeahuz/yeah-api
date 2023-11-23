@@ -2,9 +2,19 @@
     "language": "ru",
     "messages": [
         {
-            "id": "Welcome!",
-            "message": "Welcome!",
-            "translation": "Добро пожаловать"
+            "id": "Phone number is invalid",
+            "message": "Phone number is invalid",
+            "translation": "Неверный номер телефона"
+        },
+        {
+            "id": "Internal server error",
+            "message": "Internal server error",
+            "translation": "Внутренняя ошибка сервера"
+        },
+        {
+            "id": "Method not allowed",
+            "message": "Method not allowed",
+            "translation": "Метод не разрешен"
         }
     ]
 }

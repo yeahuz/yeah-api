@@ -40,25 +40,33 @@ func init() {
 }
 
 var messageKeyToIndex = map[string]int{
-	"Welcome!\n": 0,
+	"Internal server error":   1,
+	"Method not allowed":      2,
+	"Phone number is invalid": 0,
 }
 
-var enIndex = []uint32{ // 2 elements
-	0x00000000, 0x0000000e,
-} // Size: 32 bytes
+var enIndex = []uint32{ // 4 elements
+	0x00000000, 0x00000018, 0x0000002e, 0x00000041,
+} // Size: 40 bytes
 
-const enData string = "\x04\x00\x01\n\t\x02Welcome!"
+const enData string = "" + // Size: 65 bytes
+	"\x02Phone number is invalid\x02Internal server error\x02Method not allow" +
+	"ed"
 
-var ruIndex = []uint32{ // 2 elements
-	0x00000000, 0x00000025,
-} // Size: 32 bytes
+var ruIndex = []uint32{ // 4 elements
+	0x00000000, 0x0000002d, 0x0000005e, 0x0000007f,
+} // Size: 40 bytes
 
-const ruData string = "\x04\x00\x01\n \x02Добро пожаловать"
+const ruData string = "" + // Size: 127 bytes
+	"\x02Неверный номер телефона\x02Внутренняя ошибка сервера\x02Метод не раз" +
+	"решен"
 
-var uzIndex = []uint32{ // 2 elements
-	0x00000000, 0x00000013,
-} // Size: 32 bytes
+var uzIndex = []uint32{ // 4 elements
+	0x00000000, 0x00000018, 0x00000031, 0x00000047,
+} // Size: 40 bytes
 
-const uzData string = "\x04\x00\x01\n\x0e\x02Hush kelibsiz"
+const uzData string = "" + // Size: 71 bytes
+	"\x02Noto'gri telefon raqami\x02Serverdagi ichki xatolik\x02Usul ruxsat e" +
+	"tilmagan"
 
-// Total table size 166 bytes (0KiB); checksum: 6AE4A54C
+	// Total table size 383 bytes (0KiB); checksum: 7BB7E306
