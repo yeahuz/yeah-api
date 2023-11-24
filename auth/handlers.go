@@ -2,8 +2,11 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/yeahuz/yeah-api/auth/otp"
 	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
@@ -32,13 +35,25 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	var emailCodeData EmailCodeData
 	err := json.NewDecoder(r.Body).Decode(&emailCodeData)
 
+	defer r.Body.Close()
+
+	l := r.Context().Value("localizer").(localizer.Localizer)
+
 	if err != nil {
 		return c.ErrInternal
 	}
 
-	if err := emailCodeData.validate(); err != nil {
+	if err := emailCodeData.validate(&l); err != nil {
 		return err
 	}
+
+	otp, err := otp.New(emailCodeData.Email, time.Minute*15)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Code: %s\n", otp.Code)
+	fmt.Printf("Hash: %s\n", otp.Hash)
 
 	return nil
 }

@@ -11,7 +11,7 @@ type PhoneCodeData struct {
 }
 
 type EmailCodeData struct {
-	email string `json:"email"`
+	Email string `json:"email"`
 }
 
 type SentCode struct {

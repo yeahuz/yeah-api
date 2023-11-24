@@ -35,11 +35,22 @@ create table if not exists accounts (
   updated_at timestamp with time zone on update now(),
 
   foreign key (user_id) references users (id) on delete cascade,
-  foreign key (provider) references auth_providers (name) on delete cascade,
+  foreign key (provider) references auth_providers (name) on delete cascade
+);
+
+create table if not exists otps (
+  id bigserial primary key,
+  code varchar(255) not null,
+  hash varchar(255) not null,
+  expires_at timestamp with time zone,
+  used boolean default false,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone on update now()
 );
 
 create index idx_accounts_user_id on accounts(user_id);
 create index idx_accounts_provider_account_id on accounts(provider_account_id);
+create index idx_otps_hash on otps(hash);
 create unique index udx_accounts_provider_account_id_user_id on accounts(provider_account_id, user_id);
 
 commit;
