@@ -60,8 +60,40 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	return c.WriteJSON(w, http.StatusOK, sentCode)
 }
 
-func HandleSignIn(w http.ResponseWriter, r *http.Request) error {
-	return nil
+func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
+	var signInData SignInEmailData
+	err := json.NewDecoder(r.Body).Decode(&signInData)
+	defer r.Body.Close()
+	if err != nil {
+		return c.ErrInternal
+	}
+
+	l := r.Context().Value("localizer").(localizer.Localizer)
+
+	if err := signInData.validate(&l); err != nil {
+		return err
+	}
+
+	authorizationRequired := AuthorizationRequired{TermsOfService: TermsOfService{Text: "Here is our terms of service"}}
+	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
+}
+
+func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
+	var signInData SignInPhoneData
+	err := json.NewDecoder(r.Body).Decode(&signInData)
+	defer r.Body.Close()
+	if err != nil {
+		return c.ErrInternal
+	}
+
+	l := r.Context().Value("localizer").(localizer.Localizer)
+
+	if err := signInData.validate(&l); err != nil {
+		return err
+	}
+
+	authorizationRequired := AuthorizationRequired{TermsOfService: TermsOfService{Text: "Here is our terms of service"}}
+	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
 }
 
 func HandleSignUp(w http.ResponseWriter, r *http.Request) error {

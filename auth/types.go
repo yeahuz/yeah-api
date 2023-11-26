@@ -64,14 +64,52 @@ func (sc SentCode) MarshalJSON() ([]byte, error) {
 }
 
 type SignInData struct {
-	phoneNumber       string
-	phoneCode         string
-	phoneCodeHash     string
-	emailVerification string
+	Code string `json:"code"`
+	Hash string `json:"hash"`
+}
+
+type SignInPhoneData struct {
+	SignInData
+	PhoneNumber string `json:"phone_number"`
+}
+
+type SignInEmailData struct {
+	SignInData
+	Email string `json:"email"`
+}
+
+type TermsOfService struct {
+	Text string `json:"text"`
+}
+
+type AuthorizationRequired struct {
+	TermsOfService TermsOfService `json:"terms_of_service"`
 }
 
 type Authorization struct {
 	user user.User
+}
+
+func (a Authorization) MarshalJSON() ([]byte, error) {
+	type Alias Authorization
+	return json.Marshal(struct {
+		Typ string `json:"_"`
+		Alias
+	}{
+		Typ:   "auth.authorization",
+		Alias: Alias(a),
+	})
+}
+
+func (ar AuthorizationRequired) MarshalJSON() ([]byte, error) {
+	type Alias AuthorizationRequired
+	return json.Marshal(struct {
+		Typ string `json:"_"`
+		Alias
+	}{
+		Typ:   "auth.authorizationSignUpRequired",
+		Alias: Alias(ar),
+	})
 }
 
 type SignUpData struct {
