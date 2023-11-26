@@ -1,6 +1,9 @@
 package common
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 type ApiError struct {
 	Code    int               `json:"code"`
@@ -15,6 +18,10 @@ type Object interface {
 type Response struct {
 	Object string      `json:"_,omitempty"`
 	Data   interface{} `json:"data"`
+}
+
+type CustomJsonEncoder struct {
+	*json.Encoder
 }
 
 func (e ApiError) Error() string {

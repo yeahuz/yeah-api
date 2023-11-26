@@ -5,34 +5,31 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+
+	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yeahuz/yeah-api/auth"
 	c "github.com/yeahuz/yeah-api/common"
+	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
-)
-
-var (
-	POSTGRES_URI = os.Getenv("POSTGRES_URI")
-	ADDR         = c.GetEnvStr("ADDR", ":3000")
 )
 
 func main() {
 	var err error
-	db.Pool, err = pgxpool.New(context.Background(), POSTGRES_URI)
+	config := config.Load()
+	db.Pool, err = pgxpool.New(context.Background(), config.PostgresURI)
 	if err != nil {
 		panic(err)
 	}
 
 	defer db.Pool.Close()
-
 	mux := http.NewServeMux()
 
 	mux.Handle("/auth.sendPhoneCode", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSendPhoneCode, http.MethodPost)))
 	mux.Handle("/auth.sendEmailCode", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSendEmailCode, http.MethodPost)))
 	mux.Handle("/auth.signIn", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignIn, http.MethodPost)))
 	mux.Handle("/auth.signUp", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUp, http.MethodPost)))
-	fmt.Printf("Server started at %s\n", ADDR)
-	log.Fatal(http.ListenAndServe(ADDR, mux))
+	fmt.Printf("Server started at %s\n", config.Addr)
+	log.Fatal(http.ListenAndServe(config.Addr, mux))
 }

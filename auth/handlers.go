@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -26,36 +25,39 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	result := SentCode{Kind: "SMS", Hash: "hash"}
-	resp := c.Response{Object: result.Name(), Data: result}
-	return c.WriteJSON(w, http.StatusOK, resp)
+	otp := otp.New(time.Minute * 15)
+
+	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
+		return err
+	}
+
+	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeSms{Length: otp.CodeLen}}
+	return c.WriteJSON(w, http.StatusOK, sentCode)
 }
 
 func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	var emailCodeData EmailCodeData
 	err := json.NewDecoder(r.Body).Decode(&emailCodeData)
-
 	defer r.Body.Close()
-
-	l := r.Context().Value("localizer").(localizer.Localizer)
 
 	if err != nil {
 		return c.ErrInternal
 	}
 
+	l := r.Context().Value("localizer").(localizer.Localizer)
+
 	if err := emailCodeData.validate(&l); err != nil {
 		return err
 	}
 
-	otp, err := otp.New(emailCodeData.Email, time.Minute*15)
-	if err != nil {
+	otp := otp.New(time.Minute * 15)
+
+	if err := otp.Save(emailCodeData.Email); err != nil {
 		return err
 	}
 
-	fmt.Printf("Code: %s\n", otp.Code)
-	fmt.Printf("Hash: %s\n", otp.Hash)
-
-	return nil
+	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeEmail{Length: otp.CodeLen}}
+	return c.WriteJSON(w, http.StatusOK, sentCode)
 }
 
 func HandleSignIn(w http.ResponseWriter, r *http.Request) error {
