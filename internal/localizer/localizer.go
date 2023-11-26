@@ -26,6 +26,10 @@ var locales = []Localizer{
 	},
 }
 
+func GetDefault() Localizer {
+	return locales[0]
+}
+
 func Get(id string) Localizer {
 	for _, locale := range locales {
 		if id == locale.ID {

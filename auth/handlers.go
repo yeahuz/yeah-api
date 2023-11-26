@@ -2,12 +2,17 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/yeahuz/yeah-api/auth/otp"
 	c "github.com/yeahuz/yeah-api/common"
-	"github.com/yeahuz/yeah-api/internal/localizer"
+)
+
+var (
+	termsOfService        = TermsOfService{Text: "this is a terms of service"}
+	authorizationRequired = AuthorizationRequired{TermsOfService: termsOfService}
 )
 
 func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
@@ -15,17 +20,16 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	err := json.NewDecoder(r.Body).Decode(&phoneCodeData)
 	defer r.Body.Close()
 
-	l := r.Context().Value("localizer").(localizer.Localizer)
-
 	if err != nil {
 		return c.ErrInternal
 	}
 
-	if err := phoneCodeData.validate(&l); err != nil {
+	if err := phoneCodeData.validate(); err != nil {
 		return err
 	}
 
 	otp := otp.New(time.Minute * 15)
+	fmt.Printf("Code: %s\n", otp.Code)
 
 	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
 		return err
@@ -44,9 +48,7 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 		return c.ErrInternal
 	}
 
-	l := r.Context().Value("localizer").(localizer.Localizer)
-
-	if err := emailCodeData.validate(&l); err != nil {
+	if err := emailCodeData.validate(); err != nil {
 		return err
 	}
 
@@ -68,13 +70,20 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return c.ErrInternal
 	}
 
-	l := r.Context().Value("localizer").(localizer.Localizer)
-
-	if err := signInData.validate(&l); err != nil {
+	if err := signInData.validate(); err != nil {
 		return err
 	}
 
-	authorizationRequired := AuthorizationRequired{TermsOfService: TermsOfService{Text: "Here is our terms of service"}}
+	otp, err := otp.GetByHash(signInData.Hash)
+	if err != nil {
+		return err
+	}
+
+	err = otp.Verify(signInData.Code)
+	if err != nil {
+		return err
+	}
+
 	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
 }
 
@@ -86,13 +95,23 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 		return c.ErrInternal
 	}
 
-	l := r.Context().Value("localizer").(localizer.Localizer)
-
-	if err := signInData.validate(&l); err != nil {
+	if err := signInData.validate(); err != nil {
 		return err
 	}
 
-	authorizationRequired := AuthorizationRequired{TermsOfService: TermsOfService{Text: "Here is our terms of service"}}
+	otp, err := otp.GetByHash(signInData.Hash)
+	if err != nil {
+		return err
+	}
+
+	if err := otp.VerifyHash([]byte(signInData.PhoneNumber + otp.Code)); err != nil {
+		return err
+	}
+
+	if err := otp.Verify(signInData.Code); err != nil {
+		return err
+	}
+
 	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
 }
 

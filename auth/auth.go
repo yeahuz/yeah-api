@@ -9,9 +9,10 @@ import (
 
 var (
 	emailRegex = regexp.MustCompile(`(?i)^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$`)
+	l          = localizer.GetDefault()
 )
 
-func (pcd PhoneCodeData) validate(l *localizer.Localizer) error {
+func (pcd PhoneCodeData) validate() error {
 	if len(pcd.PhoneNumber) == 0 {
 		return c.ErrBadRequest(l.T("Phone number is required"))
 	}
@@ -22,7 +23,7 @@ func (pcd PhoneCodeData) validate(l *localizer.Localizer) error {
 	return nil
 }
 
-func (ecd EmailCodeData) validate(l *localizer.Localizer) error {
+func (ecd EmailCodeData) validate() error {
 	if len(ecd.Email) == 0 {
 		return c.ErrBadRequest(l.T("Email is required"))
 	}
@@ -34,7 +35,7 @@ func (ecd EmailCodeData) validate(l *localizer.Localizer) error {
 	return nil
 }
 
-func (sipd SignInPhoneData) validate(l *localizer.Localizer) error {
+func (sipd SignInPhoneData) validate() error {
 	errors := make(map[string]string)
 
 	if len(sipd.PhoneNumber) > 13 {
@@ -60,7 +61,7 @@ func (sipd SignInPhoneData) validate(l *localizer.Localizer) error {
 	return nil
 }
 
-func (sied SignInEmailData) validate(l *localizer.Localizer) error {
+func (sied SignInEmailData) validate() error {
 	errors := make(map[string]string)
 
 	if !emailRegex.MatchString(sied.Email) {

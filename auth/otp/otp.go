@@ -2,6 +2,7 @@ package otp
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"math/rand"
 	"strconv"
@@ -12,7 +13,10 @@ import (
 	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
+	"github.com/yeahuz/yeah-api/internal/localizer"
 )
+
+var l = localizer.GetDefault()
 
 type Otp struct {
 	id        int
@@ -40,25 +44,59 @@ func New(duration time.Duration) *Otp {
 	return otp
 }
 
-func (o *Otp) Save(identifier string) error {
+func genHash(bytes []byte) (string, error) {
 	key, err := hex.DecodeString(config.Config.HighwayHashKey)
-
 	if err != nil {
-		return c.ErrInternal
+		return "", c.ErrInternal
 	}
 
 	hash, err := highwayhash.New(key)
 	if err != nil {
-		return c.ErrInternal
+		return "", c.ErrInternal
+	}
+	hash.Write(bytes)
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (o *Otp) VerifyHash(bytes []byte) error {
+	hash, err := genHash(bytes)
+	if err != nil {
+		return err
+	}
+	if hash != o.Hash {
+		return c.ErrBadRequest(l.T("Hash invalid"))
 	}
 
-	hash.Write([]byte(identifier + o.Code))
-	o.Hash = hex.EncodeToString(hash.Sum(nil))
-	o.Code, err = argon.Hash(o.Code)
+	return nil
+}
 
+func (o *Otp) Verify(code string) error {
+	match, err := argon.Verify(code, o.Code)
 	if err != nil {
 		return c.ErrInternal
 	}
+
+	if !match {
+		return c.ErrBadRequest(l.T("Code is invalid"))
+	}
+
+	return nil
+}
+
+func (o *Otp) Save(identifier string) error {
+	code, err := argon.Hash(o.Code)
+	if err != nil {
+		return c.ErrInternal
+	}
+
+	hash, err := genHash([]byte(identifier + code))
+
+	if err != nil {
+		return err
+	}
+
+	o.Hash = hash
+	o.Code = code
 
 	err = db.Pool.QueryRow(
 		context.Background(),
@@ -81,7 +119,10 @@ func GetByHash(hash string) (*Otp, error) {
 		hash).Scan(&otp.Hash, &otp.Code, &otp.ExpiresAt, &otp.Used)
 
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			return nil, c.ErrNotFound(l.T("Hash not found"))
+		}
+		return nil, c.ErrInternal
 	}
 
 	return &otp, nil

@@ -26,3 +26,10 @@ func ErrValidation(message string, errors map[string]string) ApiError {
 		Errors:  errors,
 	}
 }
+
+func ErrNotFound(message string) ApiError {
+	return ApiError{
+		Message: message,
+		Code:    http.StatusNotFound,
+	}
+}

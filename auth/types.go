@@ -29,6 +29,76 @@ type SentCode struct {
 	Type SentCodeType `json:"type"`
 	Hash string       `json:"hash"`
 }
+type SignInData struct {
+	Code string `json:"code"`
+	Hash string `json:"hash"`
+}
+
+type SignInPhoneData struct {
+	SignInData
+	PhoneNumber string `json:"phone_number"`
+}
+
+type SignInEmailData struct {
+	SignInData
+	Email string `json:"email"`
+}
+
+type TermsOfService struct {
+	Text string `json:"text"`
+}
+
+type AuthorizationRequired struct {
+	TermsOfService TermsOfService `json:"terms_of_service"`
+}
+
+type Authorization struct {
+	user user.User
+}
+
+type SignUpData struct {
+	phoneNumber   string
+	phoneCodeHash string
+	firstName     string
+	lastName      string
+}
+
+type providerName string
+
+const (
+	providerGoogle   providerName = "google"
+	providerTelegram providerName = "telegram"
+)
+
+type Provider struct {
+	name      providerName
+	logoUrl   string
+	active    bool
+	createdAt time.Time
+	updatedAt time.Time
+}
+
+func (a Authorization) MarshalJSON() ([]byte, error) {
+	type Alias Authorization
+	return json.Marshal(struct {
+		Typ string `json:"_"`
+		Alias
+	}{
+		Typ:   "auth.authorization",
+		Alias: Alias(a),
+	})
+}
+
+func (ar AuthorizationRequired) MarshalJSON() ([]byte, error) {
+	type Alias AuthorizationRequired
+	return json.Marshal(struct {
+		Typ string `json:"_"`
+		Alias
+	}{
+		Typ:   "auth.authorizationSignUpRequired",
+		Alias: Alias(ar),
+	})
+}
 
 func (scs SentCodeSms) MarshalJSON() ([]byte, error) {
 	type Alias SentCodeSms
@@ -61,75 +131,4 @@ func (sc SentCode) MarshalJSON() ([]byte, error) {
 		Typ:   "auth.sentCode",
 		Alias: Alias(sc),
 	})
-}
-
-type SignInData struct {
-	Code string `json:"code"`
-	Hash string `json:"hash"`
-}
-
-type SignInPhoneData struct {
-	SignInData
-	PhoneNumber string `json:"phone_number"`
-}
-
-type SignInEmailData struct {
-	SignInData
-	Email string `json:"email"`
-}
-
-type TermsOfService struct {
-	Text string `json:"text"`
-}
-
-type AuthorizationRequired struct {
-	TermsOfService TermsOfService `json:"terms_of_service"`
-}
-
-type Authorization struct {
-	user user.User
-}
-
-func (a Authorization) MarshalJSON() ([]byte, error) {
-	type Alias Authorization
-	return json.Marshal(struct {
-		Typ string `json:"_"`
-		Alias
-	}{
-		Typ:   "auth.authorization",
-		Alias: Alias(a),
-	})
-}
-
-func (ar AuthorizationRequired) MarshalJSON() ([]byte, error) {
-	type Alias AuthorizationRequired
-	return json.Marshal(struct {
-		Typ string `json:"_"`
-		Alias
-	}{
-		Typ:   "auth.authorizationSignUpRequired",
-		Alias: Alias(ar),
-	})
-}
-
-type SignUpData struct {
-	phoneNumber   string
-	phoneCodeHash string
-	firstName     string
-	lastName      string
-}
-
-type providerName string
-
-const (
-	providerGoogle   providerName = "google"
-	providerTelegram providerName = "telegram"
-)
-
-type Provider struct {
-	name      providerName
-	logoUrl   string
-	active    bool
-	createdAt time.Time
-	updatedAt time.Time
 }
