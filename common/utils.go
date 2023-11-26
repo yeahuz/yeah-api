@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
 
@@ -14,13 +15,6 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
-}
-
-func NewResponse(object Object, data interface{}) Response {
-	return Response{
-		Object: object.Name(),
-		Data:   data,
-	}
 }
 
 func LocalizerMiddleware(next http.Handler) http.Handler {
@@ -37,22 +31,23 @@ func MakeHandler(fn ApiFunc, method string) http.Handler {
 		lang := r.Header.Get("Accept-Language")
 		l := localizer.Get(lang)
 		if r.Method != method {
-			ErrMethodNotAllowed.Message = l.T(ErrMethodNotAllowed.Message)
-			WriteJSON(w, http.StatusMethodNotAllowed, ErrMethodNotAllowed)
+			errors.MethodNotAllowed.Message = l.T(errors.MethodNotAllowed.Message)
+			WriteJSON(w, http.StatusMethodNotAllowed, errors.MethodNotAllowed)
 			return
 		}
 
 		if err := fn(w, r); err != nil {
-			if e, ok := err.(ApiError); ok {
-				e.Message = l.T(e.Message)
-				for k, v := range e.Errors {
-					e.Errors[k] = l.T(v)
+			if e, ok := err.(errors.AppError); ok {
+				e.SetError(l.T(e.Error()))
+				errorMap := e.ErrorMap()
+				for k, v := range errorMap {
+					errorMap[k] = l.T(v)
 				}
-				WriteJSON(w, e.Code, e)
+				WriteJSON(w, e.Status(), e)
 				return
 			}
-			ErrInternal.Message = l.T(ErrInternal.Message)
-			WriteJSON(w, ErrInternal.Code, ErrInternal)
+			errors.Internal.Message = l.T(errors.Internal.Message)
+			WriteJSON(w, errors.Internal.StatusCode, errors.Internal)
 		}
 	})
 }

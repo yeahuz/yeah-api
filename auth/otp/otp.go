@@ -2,17 +2,19 @@ package otp
 
 import (
 	"context"
-	"database/sql"
 	"encoding/hex"
+	e "errors"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/minio/highwayhash"
 	"github.com/yeahuz/yeah-api/auth/argon"
-	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
+	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
 
@@ -32,7 +34,7 @@ func randomIn(min, max int) int {
 }
 
 func New(duration time.Duration) *Otp {
-	expiresAt := time.Now().Add(time.Minute * duration)
+	expiresAt := time.Now().Add(duration)
 	code := strconv.Itoa(randomIn(100000, 999999))
 
 	otp := &Otp{
@@ -47,12 +49,12 @@ func New(duration time.Duration) *Otp {
 func genHash(bytes []byte) (string, error) {
 	key, err := hex.DecodeString(config.Config.HighwayHashKey)
 	if err != nil {
-		return "", c.ErrInternal
+		return "", errors.Internal
 	}
 
 	hash, err := highwayhash.New(key)
 	if err != nil {
-		return "", c.ErrInternal
+		return "", errors.Internal
 	}
 	hash.Write(bytes)
 	return hex.EncodeToString(hash.Sum(nil)), nil
@@ -63,21 +65,26 @@ func (o *Otp) VerifyHash(bytes []byte) error {
 	if err != nil {
 		return err
 	}
+
 	if hash != o.Hash {
-		return c.ErrBadRequest(l.T("Hash invalid"))
+		return errors.ErrBadRequest{Message: l.T("Hash invalid"), StatusCode: http.StatusBadRequest}
 	}
 
 	return nil
 }
 
 func (o *Otp) Verify(code string) error {
+	if time.Now().Compare(o.ExpiresAt) > 0 {
+		return errors.ErrBadRequest{Message: l.T("Code expired"), StatusCode: http.StatusBadRequest}
+	}
+
 	match, err := argon.Verify(code, o.Code)
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	if !match {
-		return c.ErrBadRequest(l.T("Code is invalid"))
+		return errors.ErrBadRequest{Message: l.T("Code is invalid"), StatusCode: http.StatusBadRequest}
 	}
 
 	return nil
@@ -86,7 +93,7 @@ func (o *Otp) Verify(code string) error {
 func (o *Otp) Save(identifier string) error {
 	code, err := argon.Hash(o.Code)
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	hash, err := genHash([]byte(identifier + code))
@@ -105,7 +112,7 @@ func (o *Otp) Save(identifier string) error {
 	).Scan(&o.id)
 
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	return nil
@@ -115,14 +122,14 @@ func GetByHash(hash string) (*Otp, error) {
 	var otp Otp
 	err := db.Pool.QueryRow(
 		context.Background(),
-		"select hash, code, expires_at, used from otps where hash = $1",
+		"select hash, code, expires_at, used from otps where hash = $1 and used = false order by id desc limit 1",
 		hash).Scan(&otp.Hash, &otp.Code, &otp.ExpiresAt, &otp.Used)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, c.ErrNotFound(l.T("Hash not found"))
+		if e.Is(err, pgx.ErrNoRows) {
+			return nil, errors.ErrNotFound{Message: l.T("Hash not found"), StatusCode: http.StatusNotFound}
 		}
-		return nil, c.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &otp, nil

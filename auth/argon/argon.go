@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	c "github.com/yeahuz/yeah-api/common"
+	"github.com/yeahuz/yeah-api/internal/errors"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -75,18 +75,18 @@ func decodeHash(encoded string) (p *params, salt, hash []byte, err error) {
 	vals := strings.Split(encoded, "$")
 
 	if len(vals) != 6 {
-		return nil, nil, nil, c.ErrInternal
+		return nil, nil, nil, errors.Internal
 	}
 
 	var version int
 	_, err = fmt.Sscanf(vals[2], "v=%d", &version)
 
 	if err != nil {
-		return nil, nil, nil, c.ErrInternal
+		return nil, nil, nil, errors.Internal
 	}
 
 	if version != argon2.Version {
-		return nil, nil, nil, c.ErrInternal
+		return nil, nil, nil, errors.Internal
 	}
 
 	p = &params{}

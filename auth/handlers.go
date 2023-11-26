@@ -2,12 +2,13 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/yeahuz/yeah-api/auth/otp"
 	c "github.com/yeahuz/yeah-api/common"
+	"github.com/yeahuz/yeah-api/internal/errors"
+	"github.com/yeahuz/yeah-api/user"
 )
 
 var (
@@ -21,7 +22,7 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	if err := phoneCodeData.validate(); err != nil {
@@ -29,7 +30,6 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	otp := otp.New(time.Minute * 15)
-	fmt.Printf("Code: %s\n", otp.Code)
 
 	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
 		return err
@@ -45,7 +45,7 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	if err := emailCodeData.validate(); err != nil {
@@ -67,7 +67,7 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	if err := signInData.validate(); err != nil {
@@ -79,8 +79,11 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	err = otp.Verify(signInData.Code)
-	if err != nil {
+	if err := otp.VerifyHash([]byte(signInData.Email + otp.Code)); err != nil {
+		return err
+	}
+
+	if err := otp.Verify(signInData.Code); err != nil {
 		return err
 	}
 
@@ -92,7 +95,7 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
 	if err != nil {
-		return c.ErrInternal
+		return errors.Internal
 	}
 
 	if err := signInData.validate(); err != nil {
@@ -111,6 +114,12 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	if err := otp.Verify(signInData.Code); err != nil {
 		return err
 	}
+
+	u, err := user.GetByPhone(signInData.PhoneNumber)
+	if err != nil {
+		return err
+	}
+	_ = u
 
 	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
 }

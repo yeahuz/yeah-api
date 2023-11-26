@@ -1,9 +1,10 @@
 package auth
 
 import (
+	"net/http"
 	"regexp"
 
-	c "github.com/yeahuz/yeah-api/common"
+	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
 
@@ -14,10 +15,11 @@ var (
 
 func (pcd PhoneCodeData) validate() error {
 	if len(pcd.PhoneNumber) == 0 {
-		return c.ErrBadRequest(l.T("Phone number is required"))
+		return errors.ErrBadRequest{Message: l.T("Phone number is required"), StatusCode: http.StatusBadRequest}
 	}
-	if len(pcd.PhoneNumber) > 13 {
-		return c.ErrBadRequest(l.T("Phone number is invalid"))
+
+	if len(pcd.PhoneNumber) != 13 {
+		return errors.ErrBadRequest{Message: l.T("Phone number is invalid"), StatusCode: http.StatusBadRequest}
 	}
 
 	return nil
@@ -25,63 +27,63 @@ func (pcd PhoneCodeData) validate() error {
 
 func (ecd EmailCodeData) validate() error {
 	if len(ecd.Email) == 0 {
-		return c.ErrBadRequest(l.T("Email is required"))
+		return errors.ErrBadRequest{Message: l.T("Email is required"), StatusCode: http.StatusBadRequest}
 	}
 
 	if !emailRegex.MatchString(ecd.Email) {
-		return c.ErrBadRequest(l.T("Email is invalid"))
+		return errors.ErrBadRequest{Message: l.T("Email is invalid"), StatusCode: http.StatusBadRequest}
 	}
 
 	return nil
 }
 
 func (sipd SignInPhoneData) validate() error {
-	errors := make(map[string]string)
-
-	if len(sipd.PhoneNumber) > 13 {
-		errors["phone_number"] = l.T("Phone number is invalid")
-	}
+	errs := make(map[string]string)
 
 	if len(sipd.PhoneNumber) == 0 {
-		errors["phone_number"] = l.T("Phone number is required")
+		errs["phone_number"] = l.T("Phone number is required")
+	}
+
+	if len(sipd.PhoneNumber) != 13 {
+		errs["phone_number"] = l.T("Phone number is invalid")
 	}
 
 	if len(sipd.Code) == 0 {
-		errors["code"] = l.T("Phone code is required")
+		errs["code"] = l.T("Phone code is required")
 	}
 
 	if len(sipd.Hash) == 0 {
-		errors["hash"] = l.T("Hash is required")
+		errs["hash"] = l.T("Hash is required")
 	}
 
-	if len(errors) > 0 {
-		return c.ErrValidation(l.T("Validation failed"), errors)
+	if len(errs) > 0 {
+		return errors.ErrValidation{Message: l.T("Validation failed"), Errors: errs, StatusCode: http.StatusUnprocessableEntity}
 	}
 
 	return nil
 }
 
 func (sied SignInEmailData) validate() error {
-	errors := make(map[string]string)
+	errs := make(map[string]string)
 
 	if !emailRegex.MatchString(sied.Email) {
-		errors["email"] = l.T("Email is invalid")
+		errs["email"] = l.T("Email is invalid")
 	}
 
 	if len(sied.Email) == 0 {
-		errors["email"] = l.T("Email is required")
+		errs["email"] = l.T("Email is required")
 	}
 
 	if len(sied.Code) == 0 {
-		errors["code"] = l.T("Email code is required")
+		errs["code"] = l.T("Email code is required")
 	}
 
 	if len(sied.Hash) == 0 {
-		errors["hash"] = l.T("Hash is required")
+		errs["hash"] = l.T("Hash is required")
 	}
 
-	if len(errors) > 0 {
-		return c.ErrValidation(l.T("Validation failed"), errors)
+	if len(errs) > 0 {
+		return errors.ErrValidation{Message: l.T("Validation failed"), Errors: errs, StatusCode: http.StatusUnprocessableEntity}
 	}
 
 	return nil
