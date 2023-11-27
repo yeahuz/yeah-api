@@ -11,7 +11,7 @@ import (
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
 
-func WriteJSON(w http.ResponseWriter, status int, v any) error {
+func JSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
@@ -31,8 +31,7 @@ func MakeHandler(fn ApiFunc, method string) http.Handler {
 		lang := r.Header.Get("Accept-Language")
 		l := localizer.Get(lang)
 		if r.Method != method {
-			errors.MethodNotAllowed.Message = l.T(errors.MethodNotAllowed.Message)
-			WriteJSON(w, http.StatusMethodNotAllowed, errors.MethodNotAllowed)
+			JSON(w, http.StatusMethodNotAllowed, errors.NewMethodNotAllowed(l.T("Method not allowed")))
 			return
 		}
 
@@ -43,11 +42,10 @@ func MakeHandler(fn ApiFunc, method string) http.Handler {
 				for k, v := range errorMap {
 					errorMap[k] = l.T(v)
 				}
-				WriteJSON(w, e.Status(), e)
+				JSON(w, e.Status(), e)
 				return
 			}
-			errors.Internal.Message = l.T(errors.Internal.Message)
-			WriteJSON(w, errors.Internal.StatusCode, errors.Internal)
+			JSON(w, errors.Internal.StatusCode, errors.NewInternal(l.T("Internal server error")))
 		}
 	})
 }

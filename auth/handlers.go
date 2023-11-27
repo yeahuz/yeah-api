@@ -39,7 +39,7 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeSms{Length: otp.CodeLen}}
-	return c.WriteJSON(w, http.StatusOK, sentCode)
+	return c.JSON(w, http.StatusOK, sentCode)
 }
 
 func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
@@ -62,7 +62,7 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeEmail{Length: otp.CodeLen}}
-	return c.WriteJSON(w, http.StatusOK, sentCode)
+	return c.JSON(w, http.StatusOK, sentCode)
 }
 
 func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
@@ -93,13 +93,13 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	u, err := user.GetByEmail(signInData.Email)
 	if err != nil {
 		if e.As(err, &errors.NotFound) {
-			return c.WriteJSON(w, http.StatusOK, authorizationSignUpRequired)
+			return c.JSON(w, http.StatusOK, authorizationSignUpRequired)
 		}
 		return err
 	}
 
 	authorization := Authorization{User: u}
-	return c.WriteJSON(w, http.StatusOK, authorization)
+	return c.JSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
@@ -130,13 +130,13 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	u, err := user.GetByPhone(signInData.PhoneNumber)
 	if err != nil {
 		if e.As(err, &errors.NotFound) {
-			return c.WriteJSON(w, http.StatusOK, authorizationSignUpRequired)
+			return c.JSON(w, http.StatusOK, authorizationSignUpRequired)
 		}
 		return err
 	}
 
 	authorization := Authorization{User: u}
-	return c.WriteJSON(w, http.StatusOK, authorization)
+	return c.JSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignUp(w http.ResponseWriter, r *http.Request) error {

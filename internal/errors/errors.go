@@ -9,8 +9,8 @@ import (
 var l = localizer.Get("en")
 
 var (
-	MethodNotAllowed = NewMethodNotAllowed()
-	Internal         = NewInternal()
+	MethodNotAllowed = NewMethodNotAllowed(l.T("Method not allowed"))
+	Internal         = NewInternal(l.T("Internal server error"))
 	NotFound         = NewNotFound(l.T("Resource not found"))
 )
 
@@ -47,9 +47,9 @@ func (emna errMethodNotAllowed) Status() int {
 	return emna.StatusCode
 }
 
-func NewMethodNotAllowed() errMethodNotAllowed {
+func NewMethodNotAllowed(message string) errMethodNotAllowed {
 	return errMethodNotAllowed{
-		Message:    l.T("Method not allowed"),
+		Message:    message,
 		StatusCode: http.StatusMethodNotAllowed,
 	}
 }
@@ -79,9 +79,9 @@ func (ei errInternal) Status() int {
 	return ei.StatusCode
 }
 
-func NewInternal() errInternal {
+func NewInternal(message string) errInternal {
 	return errInternal{
-		Message:    l.T("Internal server error"),
+		Message:    message,
 		StatusCode: http.StatusInternalServerError,
 	}
 }
