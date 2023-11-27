@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"net/http"
 	"regexp"
 
 	"github.com/yeahuz/yeah-api/internal/errors"
@@ -15,11 +14,11 @@ var (
 
 func (pcd PhoneCodeData) validate() error {
 	if len(pcd.PhoneNumber) == 0 {
-		return errors.ErrBadRequest{Message: l.T("Phone number is required"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Phone number is required"))
 	}
 
 	if len(pcd.PhoneNumber) != 13 {
-		return errors.ErrBadRequest{Message: l.T("Phone number is invalid"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Phone number is invalid"))
 	}
 
 	return nil
@@ -27,11 +26,11 @@ func (pcd PhoneCodeData) validate() error {
 
 func (ecd EmailCodeData) validate() error {
 	if len(ecd.Email) == 0 {
-		return errors.ErrBadRequest{Message: l.T("Email is required"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Email is required"))
 	}
 
 	if !emailRegex.MatchString(ecd.Email) {
-		return errors.ErrBadRequest{Message: l.T("Email is invalid"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Email is invalid"))
 	}
 
 	return nil
@@ -57,7 +56,7 @@ func (sipd SignInPhoneData) validate() error {
 	}
 
 	if len(errs) > 0 {
-		return errors.ErrValidation{Message: l.T("Validation failed"), Errors: errs, StatusCode: http.StatusUnprocessableEntity}
+		return errors.NewValidation(errs)
 	}
 
 	return nil
@@ -83,7 +82,7 @@ func (sied SignInEmailData) validate() error {
 	}
 
 	if len(errs) > 0 {
-		return errors.ErrValidation{Message: l.T("Validation failed"), Errors: errs, StatusCode: http.StatusUnprocessableEntity}
+		return errors.NewValidation(errs)
 	}
 
 	return nil

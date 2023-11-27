@@ -2,6 +2,8 @@ package auth
 
 import (
 	"encoding/json"
+	e "errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -12,8 +14,8 @@ import (
 )
 
 var (
-	termsOfService        = TermsOfService{Text: "this is a terms of service"}
-	authorizationRequired = AuthorizationRequired{TermsOfService: termsOfService}
+	termsOfService              = TermsOfService{Text: "this is a terms of service"}
+	authorizationSignUpRequired = AuthorizationSignUpRequired{TermsOfService: termsOfService}
 )
 
 func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
@@ -30,6 +32,7 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	otp := otp.New(time.Minute * 15)
+	fmt.Printf("Code: %s\n", otp.Code)
 
 	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
 		return err
@@ -87,7 +90,16 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
+	u, err := user.GetByEmail(signInData.Email)
+	if err != nil {
+		if e.As(err, &errors.NotFound) {
+			return c.WriteJSON(w, http.StatusOK, authorizationSignUpRequired)
+		}
+		return err
+	}
+
+	authorization := Authorization{User: u}
+	return c.WriteJSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
@@ -117,11 +129,14 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 
 	u, err := user.GetByPhone(signInData.PhoneNumber)
 	if err != nil {
+		if e.As(err, &errors.NotFound) {
+			return c.WriteJSON(w, http.StatusOK, authorizationSignUpRequired)
+		}
 		return err
 	}
-	_ = u
 
-	return c.WriteJSON(w, http.StatusOK, authorizationRequired)
+	authorization := Authorization{User: u}
+	return c.WriteJSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignUp(w http.ResponseWriter, r *http.Request) error {

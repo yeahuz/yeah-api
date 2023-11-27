@@ -3,10 +3,8 @@ package user
 import (
 	"context"
 	e "errors"
-	"net/http"
 
 	"github.com/jackc/pgx/v5"
-	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
@@ -24,7 +22,7 @@ func GetByPhone(phone string) (*User, error) {
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {
-			return nil, errors.ErrNotFound{Message: l.T("User with phone %s not found", phone), StatusCode: http.StatusNotFound}
+			return nil, errors.NewNotFound(l.T("User with phone %s not found", phone))
 		}
 		return nil, errors.Internal
 	}
@@ -42,7 +40,7 @@ func GetByEmail(email string) (*User, error) {
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {
-			return nil, c.ErrNotFound{Message: l.T("User with email %s not found", email), StatusCode: http.StatusNotFound}
+			return nil, errors.NewNotFound(l.T("User with email %s not found", email))
 		}
 		return nil, errors.Internal
 	}

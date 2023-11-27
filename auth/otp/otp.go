@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	e "errors"
 	"math/rand"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -67,7 +66,7 @@ func (o *Otp) VerifyHash(bytes []byte) error {
 	}
 
 	if hash != o.Hash {
-		return errors.ErrBadRequest{Message: l.T("Hash invalid"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Hash invalid"))
 	}
 
 	return nil
@@ -75,7 +74,7 @@ func (o *Otp) VerifyHash(bytes []byte) error {
 
 func (o *Otp) Verify(code string) error {
 	if time.Now().Compare(o.ExpiresAt) > 0 {
-		return errors.ErrBadRequest{Message: l.T("Code expired"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Code expired"))
 	}
 
 	match, err := argon.Verify(code, o.Code)
@@ -84,7 +83,7 @@ func (o *Otp) Verify(code string) error {
 	}
 
 	if !match {
-		return errors.ErrBadRequest{Message: l.T("Code is invalid"), StatusCode: http.StatusBadRequest}
+		return errors.NewBadRequest(l.T("Code is invalid"))
 	}
 
 	return nil
@@ -127,7 +126,7 @@ func GetByHash(hash string) (*Otp, error) {
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {
-			return nil, errors.ErrNotFound{Message: l.T("Hash not found"), StatusCode: http.StatusNotFound}
+			return nil, errors.NewNotFound(l.T("Hash not found"))
 		}
 		return nil, errors.Internal
 	}

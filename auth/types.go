@@ -48,12 +48,12 @@ type TermsOfService struct {
 	Text string `json:"text"`
 }
 
-type AuthorizationRequired struct {
+type AuthorizationSignUpRequired struct {
 	TermsOfService TermsOfService `json:"terms_of_service"`
 }
 
 type Authorization struct {
-	user user.User
+	User *user.User `json:"user"`
 }
 
 type SignUpData struct {
@@ -89,8 +89,8 @@ func (a Authorization) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (ar AuthorizationRequired) MarshalJSON() ([]byte, error) {
-	type Alias AuthorizationRequired
+func (ar AuthorizationSignUpRequired) MarshalJSON() ([]byte, error) {
+	type Alias AuthorizationSignUpRequired
 	return json.Marshal(struct {
 		Typ string `json:"_"`
 		Alias
