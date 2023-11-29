@@ -12,15 +12,24 @@ import (
 	"github.com/yeahuz/yeah-api/auth"
 	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
+	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/db"
 )
+
+type SendEmailCommand struct {
+	Recv string
+}
 
 func main() {
 	var err error
 	config := config.Load()
+
+	nc := cqrs.Setup(config.NatsURL)
+	defer nc.Drain()
+
 	db.Pool, err = pgxpool.New(context.Background(), config.PostgresURI)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	defer db.Pool.Close()
