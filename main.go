@@ -16,15 +16,17 @@ import (
 	"github.com/yeahuz/yeah-api/db"
 )
 
-type SendEmailCommand struct {
-	Recv string
-}
-
 func main() {
 	var err error
 	config := config.Load()
 
-	nc := cqrs.Setup(config.NatsURL)
+	nc := cqrs.Setup(cqrs.SetupOpts{
+		NatsURL:       config.NatsURL,
+		NatsAuthToken: config.NatsAuthToken,
+		AwsKey:        config.AwsKey,
+		AwsSecret:     config.AwsSecret,
+	})
+
 	defer nc.Drain()
 
 	db.Pool, err = pgxpool.New(context.Background(), config.PostgresURI)

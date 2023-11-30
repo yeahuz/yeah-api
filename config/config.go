@@ -15,6 +15,7 @@ type config struct {
 	AwsKey         string
 	AwsSecret      string
 	NatsURL        string
+	NatsAuthToken  string
 }
 
 var Config *config
@@ -31,6 +32,7 @@ func Load() *config {
 		AwsKey:         os.Getenv("AWS_KEY"),
 		AwsSecret:      os.Getenv("AWS_SECRET"),
 		NatsURL:        c.GetEnvStr("NATS_URL", nats.DefaultURL),
+		NatsAuthToken:  os.Getenv("NATS_AUTH_TOKEN"),
 	}
 
 	return Config

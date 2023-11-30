@@ -39,6 +39,11 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	cmd := cqrs.NewSendPhoneCodeCommand(phoneCodeData.PhoneNumber, otp.Code)
+	if err := cqrs.Send(cmd); err != nil {
+		return errors.Internal
+	}
+
 	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeSms{Length: otp.CodeLen}}
 	return c.JSON(w, http.StatusOK, sentCode)
 }
@@ -57,10 +62,15 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	otp := otp.New(time.Minute * 15)
-	fmt.Printf("Code: %s\n", otp.Code)
 
 	if err := otp.Save(emailCodeData.Email); err != nil {
 		return err
+	}
+
+	cmd := cqrs.NewSendEmailCodeCommand(emailCodeData.Email, otp.Code)
+	if err := cqrs.Send(cmd); err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return errors.Internal
 	}
 
 	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeEmail{Length: otp.CodeLen}}
@@ -95,10 +105,6 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	u, err := user.GetByEmail(signInData.Email)
 	if err != nil {
 		if e.As(err, &errors.NotFound) {
-			cmd := cqrs.NewSendEmailCodeCommand(signInData.Email, signInData.Code)
-			if err := cqrs.Send(cmd); err != nil {
-				return errors.Internal
-			}
 			return c.JSON(w, http.StatusOK, authorizationSignUpRequired)
 		}
 		return err
@@ -136,11 +142,6 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	u, err := user.GetByPhone(signInData.PhoneNumber)
 	if err != nil {
 		if e.As(err, &errors.NotFound) {
-			cmd := cqrs.NewSendPhoneCodeCommand(signInData.PhoneNumber, signInData.Code)
-			if err := cqrs.Send(cmd); err != nil {
-				fmt.Printf("error %s\n", err)
-				return errors.Internal
-			}
 			return c.JSON(w, http.StatusOK, authorizationSignUpRequired)
 		}
 		return err

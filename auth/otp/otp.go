@@ -102,12 +102,11 @@ func (o *Otp) Save(identifier string) error {
 	}
 
 	o.Hash = hash
-	o.Code = code
 
 	err = db.Pool.QueryRow(
 		context.Background(),
 		"insert into otps (code, hash, expires_at) values ($1, $2, $3) returning id",
-		o.Code, o.Hash, o.ExpiresAt,
+		code, o.Hash, o.ExpiresAt,
 	).Scan(&o.id)
 
 	if err != nil {

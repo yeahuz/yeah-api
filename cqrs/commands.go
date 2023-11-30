@@ -5,35 +5,31 @@ const (
 	sendEmailCode = "SendEmailCode"
 )
 
-type Command interface {
-	Name() string
-}
-
 type SendEmailCodeCommand struct {
-	name string
-	Recv string
-	Code string
+	name  string
+	Email string
+	Code  string
 }
 
 type SendPhoneCodeCommand struct {
-	name string
-	Recv string
-	Code string
+	name        string
+	PhoneNumber string
+	Code        string
 }
 
-func NewSendEmailCodeCommand(recv string, code string) SendEmailCodeCommand {
+func NewSendEmailCodeCommand(email string, code string) SendEmailCodeCommand {
 	return SendEmailCodeCommand{
-		name: sendEmailCode,
-		Recv: recv,
-		Code: code,
+		name:  sendEmailCode,
+		Email: email,
+		Code:  code,
 	}
 }
 
-func NewSendPhoneCodeCommand(recv string, code string) SendPhoneCodeCommand {
+func NewSendPhoneCodeCommand(phoneNumber string, code string) SendPhoneCodeCommand {
 	return SendPhoneCodeCommand{
-		name: sendPhoneCode,
-		Recv: recv,
-		Code: code,
+		name:        sendPhoneCode,
+		PhoneNumber: phoneNumber,
+		Code:        code,
 	}
 }
 
