@@ -1,8 +1,8 @@
 package cqrs
 
 const (
-	sendPhoneCode = "SendPhoneCode"
-	sendEmailCode = "SendEmailCode"
+	sendPhoneCode = "auth.sendPhoneCode"
+	sendEmailCode = "auth.sendEmailCode"
 )
 
 type SendEmailCodeCommand struct {

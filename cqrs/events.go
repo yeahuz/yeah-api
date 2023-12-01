@@ -1,8 +1,8 @@
 package cqrs
 
 const (
-	emailCodeSent = "EmailCodeSent"
-	phoneCodeSent = "PhoneCodeSent"
+	emailCodeSent = "auth.emailCodeSent"
+	phoneCodeSent = "auth.phoneCodeSent"
 )
 
 type EmailCodeSentEvent struct {

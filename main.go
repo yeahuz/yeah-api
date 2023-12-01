@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 
@@ -19,15 +20,19 @@ import (
 func main() {
 	var err error
 	config := config.Load()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*60)
+	defer cancel()
 
-	nc := cqrs.Setup(cqrs.SetupOpts{
+	cleanup, err := cqrs.Setup(ctx, cqrs.SetupOpts{
 		NatsURL:       config.NatsURL,
 		NatsAuthToken: config.NatsAuthToken,
 		AwsKey:        config.AwsKey,
 		AwsSecret:     config.AwsSecret,
 	})
-
-	defer nc.Drain()
+	defer cleanup()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	db.Pool, err = pgxpool.New(context.Background(), config.PostgresURI)
 	if err != nil {
