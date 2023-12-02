@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	e "errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -33,7 +32,6 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	otp := otp.New(time.Minute * 15)
-	fmt.Printf("Code: %s\n", otp.Code)
 
 	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
 		return err
@@ -44,7 +42,7 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 		return errors.Internal
 	}
 
-	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeSms{Length: otp.CodeLen}}
+	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeSms{Length: len(otp.Code)}}
 	return c.JSON(w, http.StatusOK, sentCode)
 }
 
@@ -69,11 +67,10 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 
 	cmd := cqrs.NewSendEmailCodeCommand(emailCodeData.Email, otp.Code)
 	if err := cqrs.Send(cmd); err != nil {
-		fmt.Printf("Error: %s\n", err)
 		return errors.Internal
 	}
 
-	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeEmail{Length: otp.CodeLen}}
+	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeEmail{Length: len(otp.Code)}}
 	return c.JSON(w, http.StatusOK, sentCode)
 }
 
@@ -151,6 +148,21 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	return c.JSON(w, http.StatusOK, authorization)
 }
 
-func HandleSignUp(w http.ResponseWriter, r *http.Request) error {
+func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
+	var signUpData SignUpEmailData
+	err := json.NewDecoder(r.Body).Decode(&signUpData)
+	defer r.Body.Close()
+	if err != nil {
+		return errors.Internal
+	}
+
+	if err := signUpData.validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }

@@ -29,6 +29,7 @@ func main() {
 		AwsKey:        config.AwsKey,
 		AwsSecret:     config.AwsSecret,
 	})
+
 	defer cleanup()
 	if err != nil {
 		log.Fatal(err)
@@ -45,7 +46,8 @@ func main() {
 	mux.Handle("/auth.sendEmailCode", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSendEmailCode, http.MethodPost)))
 	mux.Handle("/auth.signInWithEmail", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignInWithEmail, http.MethodPost)))
 	mux.Handle("/auth.signInWithPhone", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignInWithPhone, http.MethodPost)))
-	mux.Handle("/auth.signUp", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUp, http.MethodPost)))
+	mux.Handle("/auth.signUpWithEmail", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithEmail, http.MethodPost)))
+	mux.Handle("/auth.signUpWithPhone", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithPhone, http.MethodPost)))
 	fmt.Printf("Server started at %s\n", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, mux))
 }

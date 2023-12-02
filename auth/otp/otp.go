@@ -22,7 +22,6 @@ var l = localizer.GetDefault()
 type Otp struct {
 	id        int
 	Code      string
-	CodeLen   int
 	Hash      string
 	Used      bool
 	ExpiresAt time.Time
@@ -39,7 +38,6 @@ func New(duration time.Duration) *Otp {
 	otp := &Otp{
 		Code:      code,
 		ExpiresAt: expiresAt,
-		CodeLen:   len(code),
 	}
 
 	return otp

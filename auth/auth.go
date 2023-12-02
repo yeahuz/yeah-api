@@ -87,3 +87,63 @@ func (sied SignInEmailData) validate() error {
 
 	return nil
 }
+
+func (sued SignUpEmailData) validate() error {
+	errs := make(map[string]string)
+
+	if !emailRegex.MatchString(sued.Email) {
+		errs["email"] = l.T("Email is invalid")
+	}
+
+	if len(sued.Email) == 0 {
+		errs["email"] = l.T("Email is required")
+	}
+
+	if len(sued.Hash) == 0 {
+		errs["hash"] = l.T("Hash is required")
+	}
+
+	if len(sued.FirstName) == 0 {
+		errs["first_name"] = l.T("First name is required")
+	}
+
+	if len(sued.LastName) == 0 {
+		errs["last_name"] = l.T("Last name is required")
+	}
+
+	if len(errs) > 0 {
+		return errors.NewValidation(errs)
+	}
+
+	return nil
+}
+
+func (supd SignUpPhoneData) validate() error {
+	errs := make(map[string]string)
+
+	if len(supd.PhoneNumber) == 0 {
+		errs["phone_number"] = l.T("Phone number is required")
+	}
+
+	if len(supd.PhoneNumber) != 13 {
+		errs["phone_number"] = l.T("Phone number is invalid")
+	}
+
+	if len(supd.Hash) == 0 {
+		errs["hash"] = l.T("Hash is required")
+	}
+
+	if len(supd.FirstName) == 0 {
+		errs["first_name"] = l.T("First name is required")
+	}
+
+	if len(supd.LastName) == 0 {
+		errs["last_name"] = l.T("Last name is required")
+	}
+
+	if len(errs) > 0 {
+		return errors.NewValidation(errs)
+	}
+
+	return nil
+}

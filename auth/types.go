@@ -29,9 +29,16 @@ type SentCode struct {
 	Type SentCodeType `json:"type"`
 	Hash string       `json:"hash"`
 }
+
 type SignInData struct {
 	Code string `json:"code"`
 	Hash string `json:"hash"`
+}
+
+type SignUpData struct {
+	Hash      string `json:"hash"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }
 
 type SignInPhoneData struct {
@@ -56,11 +63,14 @@ type Authorization struct {
 	User *user.User `json:"user"`
 }
 
-type SignUpData struct {
-	phoneNumber   string
-	phoneCodeHash string
-	firstName     string
-	lastName      string
+type SignUpEmailData struct {
+	SignUpData
+	Email string `json:"email"`
+}
+
+type SignUpPhoneData struct {
+	SignUpData
+	PhoneNumber string `json:"email"`
 }
 
 type providerName string
