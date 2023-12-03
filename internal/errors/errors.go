@@ -164,7 +164,7 @@ func (ev errValidation) Error() string {
 	return ev.Message
 }
 
-func (ev errValidation) ErrorsMap() map[string]string {
+func (ev errValidation) ErrorMap() map[string]string {
 	return ev.Errors
 }
 

@@ -23,7 +23,7 @@ type Otp struct {
 	id        int
 	Code      string
 	Hash      string
-	Used      bool
+	Confirmed bool
 	ExpiresAt time.Time
 }
 
@@ -87,6 +87,15 @@ func (o *Otp) Verify(code string) error {
 	return nil
 }
 
+func (o *Otp) Confirm() error {
+	err := db.Pool.QueryRow(context.Background(), "update otps set confirmed = true where id = $1 returning confirmed", o.id).Scan(&o.Confirmed)
+	if err != nil {
+		return errors.Internal
+	}
+
+	return nil
+}
+
 func (o *Otp) Save(identifier string) error {
 	code, err := argon.Hash(o.Code)
 	if err != nil {
@@ -114,12 +123,12 @@ func (o *Otp) Save(identifier string) error {
 	return nil
 }
 
-func GetByHash(hash string) (*Otp, error) {
+func GetByHash(hash string, confirmed bool) (*Otp, error) {
 	var otp Otp
 	err := db.Pool.QueryRow(
 		context.Background(),
-		"select hash, code, expires_at, used from otps where hash = $1 and used = false order by id desc limit 1",
-		hash).Scan(&otp.Hash, &otp.Code, &otp.ExpiresAt, &otp.Used)
+		"select id, hash, code, expires_at, confirmed from otps where hash = $1 and confirmed = $2 order by id desc limit 1",
+		hash, confirmed).Scan(&otp.id, &otp.Hash, &otp.Code, &otp.ExpiresAt, &otp.Confirmed)
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {

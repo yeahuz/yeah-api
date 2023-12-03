@@ -99,6 +99,10 @@ func (sued SignUpEmailData) validate() error {
 		errs["email"] = l.T("Email is required")
 	}
 
+	if len(sued.Code) == 0 {
+		errs["code"] = l.T("Email code is required")
+	}
+
 	if len(sued.Hash) == 0 {
 		errs["hash"] = l.T("Hash is required")
 	}
@@ -127,6 +131,10 @@ func (supd SignUpPhoneData) validate() error {
 
 	if len(supd.PhoneNumber) != 13 {
 		errs["phone_number"] = l.T("Phone number is invalid")
+	}
+
+	if len(supd.Code) == 0 {
+		errs["code"] = l.T("Phone code is required")
 	}
 
 	if len(supd.Hash) == 0 {

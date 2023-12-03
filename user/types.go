@@ -3,21 +3,18 @@ package user
 import "time"
 
 type User struct {
-	id            int       `json:"id"`
-	phone         string    `json:"phone"`
-	phoneVerified bool      `json:"phone_verified"`
-	name          string    `json:"name"`
-	username      string    `json:"username"`
-	bio           string    `json:"bio"`
-	websiteUrl    string    `json:"website_url"`
-	photoUrl      string    `json:"photo_url"`
-	email         string    `json:"email"`
-	emailVerified bool      `json:"email_verified"`
-	password      string    `json:"password"`
-	profileUrl    string    `json:"profile_url"`
-	verified      bool      `json:"verified"`
-	createdAt     time.Time `json:"created_at"`
-	updatedAt     time.Time `json:"updated_at"`
+	ID          int    `json:"id"`
+	PhoneNumber string `json:"phone_number"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Email       string `json:"email"`
+}
+
+type NewUserOpts struct {
+	PhoneNumber string
+	Email       string
+	FirstName   string
+	LastName    string
 }
 
 type Account struct {

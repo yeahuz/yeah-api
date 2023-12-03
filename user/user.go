@@ -12,13 +12,34 @@ import (
 
 var l = localizer.GetDefault()
 
+func New(opts NewUserOpts) *User {
+	return &User{
+		FirstName:   opts.FirstName,
+		LastName:    opts.LastName,
+		Email:       opts.Email,
+		PhoneNumber: opts.PhoneNumber,
+	}
+}
+
+func (u *User) Save() error {
+	err := db.Pool.QueryRow(context.Background(), "insert into users (first_name, last_name, email, phone) values ($1, $2, nullif($3, ''), nullif($4, '')) returning id",
+		u.FirstName, u.LastName, u.Email, u.PhoneNumber,
+	).Scan(&u.ID)
+
+	if err != nil {
+		return errors.Internal
+	}
+
+	return nil
+}
+
 func GetByPhone(phone string) (*User, error) {
 	var user User
 	err := db.Pool.QueryRow(
 		context.Background(),
 		"select id from users where phone = $1",
 		phone,
-	).Scan(&user.id)
+	).Scan(&user.ID)
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {
@@ -36,7 +57,7 @@ func GetByEmail(email string) (*User, error) {
 		context.Background(),
 		"select id from users where email = $1",
 		email,
-	).Scan(&user.id)
+	).Scan(&user.ID)
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {

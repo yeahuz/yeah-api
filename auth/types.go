@@ -36,7 +36,7 @@ type SignInData struct {
 }
 
 type SignUpData struct {
-	Hash      string `json:"hash"`
+	SignInData
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 }

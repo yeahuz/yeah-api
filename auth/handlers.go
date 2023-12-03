@@ -36,7 +36,6 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
 		return err
 	}
-
 	cmd := cqrs.NewSendPhoneCodeCommand(phoneCodeData.PhoneNumber, otp.Code)
 	if err := cqrs.Send(cmd); err != nil {
 		return errors.Internal
@@ -86,7 +85,7 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	otp, err := otp.GetByHash(signInData.Hash)
+	otp, err := otp.GetByHash(signInData.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -96,6 +95,10 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := otp.Verify(signInData.Code); err != nil {
+		return err
+	}
+
+	if err := otp.Confirm(); err != nil {
 		return err
 	}
 
@@ -123,7 +126,7 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	otp, err := otp.GetByHash(signInData.Hash)
+	otp, err := otp.GetByHash(signInData.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -133,6 +136,10 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := otp.Verify(signInData.Code); err != nil {
+		return err
+	}
+
+	if err := otp.Confirm(); err != nil {
 		return err
 	}
 
@@ -160,9 +167,68 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return nil
+	otp, err := otp.GetByHash(signUpData.Hash, true)
+	if err != nil {
+		return err
+	}
+
+	if err := otp.VerifyHash([]byte(signUpData.Email + otp.Code)); err != nil {
+		return err
+	}
+
+	if err := otp.Verify(signUpData.Code); err != nil {
+		return err
+	}
+
+	u := user.New(user.NewUserOpts{
+		FirstName: signUpData.FirstName,
+		LastName:  signUpData.LastName,
+		Email:     signUpData.Email,
+	})
+
+	if err := u.Save(); err != nil {
+		return err
+	}
+
+	authorization := Authorization{User: u}
+	return c.JSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	var signUpData SignUpPhoneData
+	err := json.NewDecoder(r.Body).Decode(&signUpData)
+	defer r.Body.Close()
+	if err != nil {
+		return errors.Internal
+	}
+
+	if err := signUpData.validate(); err != nil {
+		return err
+	}
+
+	otp, err := otp.GetByHash(signUpData.Hash, true)
+	if err != nil {
+		return err
+	}
+
+	if err := otp.VerifyHash([]byte(signUpData.PhoneNumber + otp.Code)); err != nil {
+		return err
+	}
+
+	if err := otp.Verify(signUpData.Code); err != nil {
+		return err
+	}
+
+	u := user.New(user.NewUserOpts{
+		FirstName:   signUpData.FirstName,
+		LastName:    signUpData.LastName,
+		PhoneNumber: signUpData.PhoneNumber,
+	})
+
+	if err := u.Save(); err != nil {
+		return err
+	}
+
+	authorization := Authorization{User: u}
+	return c.JSON(w, http.StatusOK, authorization)
 }
