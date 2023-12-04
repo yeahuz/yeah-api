@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -49,8 +50,8 @@ type smsClient struct {
 	baseUrl         string
 	timeoutDuration time.Duration
 	token           string
-	mu              sync.RWMutex
-	wg              sync.WaitGroup
+	refreshing      atomic.Bool
+	cond            *sync.Cond
 }
 
 type requestOpts struct {
@@ -69,11 +70,11 @@ type TokenResponse struct {
 	TokenType string    `json:"token_type"`
 }
 
-func (sc *smsClient) getToken(wg *sync.WaitGroup) error {
+func (sc *smsClient) getToken(ctx context.Context) error {
 	form := url.Values{}
 	form.Add("email", sc.email)
 	form.Add("password", sc.password)
-	req, err := http.NewRequest("PATCH", sc.baseUrl+"/auth/login", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", sc.baseUrl+"/auth/login", strings.NewReader(form.Encode()))
 	if err != nil {
 		return err
 	}
@@ -84,14 +85,16 @@ func (sc *smsClient) getToken(wg *sync.WaitGroup) error {
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
+
 	var tokenResponse TokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return err
 	}
 
 	sc.token = tokenResponse.Data.Token
-	wg.Done()
+	sc.cond.Signal()
 
 	return nil
 }
@@ -105,17 +108,34 @@ func (sc *smsClient) request(opts requestOpts) error {
 		return err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", sc.token))
 
 	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
 
-	if resp.StatusCode == 401 {
-		sc.wg.Add(1)
+	if resp.StatusCode == http.StatusUnauthorized {
+		if !sc.refreshing.Load() {
+			sc.refreshing.Store(true)
+			sc.cond.L.Lock()
+			go sc.getToken(ctx)
+		}
+		sc.cond.Wait()
+		sc.cond.L.Unlock()
+		sc.refreshing.Store(false)
+		return sc.request(opts)
 	}
 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	//TODO: properly handle errors
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request(): Request failed with status code: %d", resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -125,10 +145,12 @@ func (sc *smsClient) send(to, message string) error {
 	form.Add("from", "4546")
 	form.Add("mobile_phone", to)
 
+	encoded := form.Encode()
+
 	err := sc.request(requestOpts{
 		url:        "/message/sms/send",
 		method:     "POST",
-		dataReader: strings.NewReader(form.Encode()),
+		dataReader: strings.NewReader(encoded),
 	})
 
 	if err != nil {
@@ -155,6 +177,7 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 		email:           opts.SmsApiEmail,
 		password:        opts.SmsApiPassword,
 		baseUrl:         opts.SmsApiBaseUrl,
+		cond:            sync.NewCond(&sync.Mutex{}),
 	}
 
 	nc, err := nats.Connect(opts.NatsURL, nats.Token(opts.NatsAuthToken))
@@ -217,9 +240,28 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 					})
 					if err != nil {
 						m.NakWithDelay(time.Second * 5)
+						return
 					}
 					m.Ack()
 					Send(NewEmailCodeSentEvent(cmd.Email))
+					break
+				}
+			case "auth.sendPhoneCode":
+				{
+					var cmd SendPhoneCodeCommand
+
+					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&cmd); err != nil {
+						fmt.Printf("Error decoding: %s\n", err)
+					}
+
+					err := smsClient.send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
+					if err != nil {
+						fmt.Printf("Error: %s\n", err)
+						m.NakWithDelay(time.Second * 5)
+						return
+					}
+					m.Ack()
+					Send(NewPhoneCodeSentEvent(cmd.PhoneNumber))
 					break
 				}
 			case "auth.emailCodeSent":
@@ -230,6 +272,16 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 					}
 					//TODO: here you can increment counters for realtime, fast analytics
 					fmt.Printf("Email sent to: %s\n", ev.Email)
+					break
+				}
+			case "auth.phoneCodeSent":
+				{
+					var ev PhoneCodeSentEvent
+					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&ev); err != nil {
+						fmt.Printf("Error decoding: %s\n", err)
+					}
+					//TODO: here you can increment counters for realtime, fast analytics
+					fmt.Printf("Phone code sent to: %s\n", ev.PhoneNumber)
 					break
 				}
 			default:
