@@ -16,6 +16,9 @@ type config struct {
 	AwsSecret      string
 	NatsURL        string
 	NatsAuthToken  string
+	SmsApiEmail    string
+	SmsApiPassword string
+	SmsApiBaseUrl  string
 }
 
 var Config *config
@@ -33,6 +36,9 @@ func Load() *config {
 		AwsSecret:      os.Getenv("AWS_SECRET"),
 		NatsURL:        c.GetEnvStr("NATS_URL", nats.DefaultURL),
 		NatsAuthToken:  os.Getenv("NATS_AUTH_TOKEN"),
+		SmsApiEmail:    os.Getenv("SMS_API_EMAIL"),
+		SmsApiPassword: os.Getenv("SMS_API_PASSWORD"),
+		SmsApiBaseUrl:  os.Getenv("SMS_API_URL"),
 	}
 
 	return Config

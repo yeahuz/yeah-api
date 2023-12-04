@@ -5,6 +5,7 @@ import (
 	e "errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
@@ -27,6 +28,10 @@ func (u *User) Save() error {
 	).Scan(&u.ID)
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if e.As(err, &pgErr) && pgErr.Code == "23505" {
+			return errors.NewBadRequest(l.T("User already exists"))
+		}
 		return errors.Internal
 	}
 

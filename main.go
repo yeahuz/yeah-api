@@ -24,10 +24,13 @@ func main() {
 	defer cancel()
 
 	cleanup, err := cqrs.Setup(ctx, cqrs.SetupOpts{
-		NatsURL:       config.NatsURL,
-		NatsAuthToken: config.NatsAuthToken,
-		AwsKey:        config.AwsKey,
-		AwsSecret:     config.AwsSecret,
+		NatsURL:        config.NatsURL,
+		NatsAuthToken:  config.NatsAuthToken,
+		AwsKey:         config.AwsKey,
+		AwsSecret:      config.AwsSecret,
+		SmsApiBaseUrl:  config.SmsApiBaseUrl,
+		SmsApiEmail:    config.SmsApiEmail,
+		SmsApiPassword: config.SmsApiPassword,
 	})
 
 	defer cleanup()
