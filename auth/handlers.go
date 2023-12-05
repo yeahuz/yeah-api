@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	e "errors"
 	"net/http"
 	"time"
 
+	"github.com/yeahuz/yeah-api/auth/credential"
 	"github.com/yeahuz/yeah-api/auth/otp"
 	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/cqrs"
@@ -233,4 +235,27 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 
 	authorization := Authorization{User: u}
 	return c.JSON(w, http.StatusOK, authorization)
+}
+
+func HandleGetCredentials(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	credentials, err := credential.GetAll(ctx)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, credentials)
+}
+
+func HandleCredentialCreateRequest(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func HandleCredentialGetRequest(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func HandleCredentialVerify(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
