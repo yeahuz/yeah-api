@@ -4,24 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"net/url"
-	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/aws/aws-sdk-go-v2/service/ses/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/yeahuz/yeah-api/smsclient"
 )
 
 var jstream jetstream.JetStream
@@ -35,150 +27,13 @@ type Message interface {
 }
 
 type SetupOpts struct {
-	NatsURL        string
-	NatsAuthToken  string
-	AwsKey         string
-	AwsSecret      string
-	SmsApiBaseUrl  string
-	SmsApiEmail    string
-	SmsApiPassword string
-}
-
-type smsClient struct {
-	email           string
-	password        string
-	baseUrl         string
-	timeoutDuration time.Duration
-	token           string
-	refreshing      atomic.Bool
-	cond            *sync.Cond
-}
-
-type requestOpts struct {
-	url        string
-	method     string
-	dataReader io.Reader
-}
-
-type tokenData struct {
-	Token string `json:"token"`
-}
-
-type TokenResponse struct {
-	Message   string    `json:"message"`
-	Data      tokenData `json:"data"`
-	TokenType string    `json:"token_type"`
-}
-
-func (sc *smsClient) getToken(ctx context.Context) error {
-	form := url.Values{}
-	form.Add("email", sc.email)
-	form.Add("password", sc.password)
-	req, err := http.NewRequest("POST", sc.baseUrl+"/auth/login", strings.NewReader(form.Encode()))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	var tokenResponse TokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return err
-	}
-
-	sc.token = tokenResponse.Data.Token
-	sc.cond.Signal()
-
-	return nil
-}
-
-func (sc *smsClient) request(opts requestOpts) error {
-	ctx, cancel := context.WithTimeout(context.Background(), sc.timeoutDuration)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, opts.method, sc.baseUrl+opts.url, opts.dataReader)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", sc.token))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		if !sc.refreshing.Load() {
-			sc.refreshing.Store(true)
-			sc.cond.L.Lock()
-			go sc.getToken(ctx)
-		}
-		sc.cond.Wait()
-		sc.cond.L.Unlock()
-		sc.refreshing.Store(false)
-		return sc.request(opts)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	//TODO: properly handle errors
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("request(): Request failed with status code: %d", resp.StatusCode)
-	}
-
-	return nil
-}
-
-func (sc *smsClient) send(to, message string) error {
-	form := url.Values{}
-	form.Add("message", message)
-	form.Add("from", "4546")
-	form.Add("mobile_phone", to)
-
-	encoded := form.Encode()
-
-	err := sc.request(requestOpts{
-		url:        "/message/sms/send",
-		method:     "POST",
-		dataReader: strings.NewReader(encoded),
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	NatsURL       string
+	NatsAuthToken string
+	SmsClient     *smsclient.Client
+	SesClient     *ses.Client
 }
 
 func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
-	cfg, err := config.LoadDefaultConfig(
-		context.Background(),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(opts.AwsKey, opts.AwsSecret, "")),
-		config.WithRegion("eu-north-1"),
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sesClient := ses.NewFromConfig(cfg)
-	smsClient := smsClient{
-		timeoutDuration: time.Second * 30,
-		email:           opts.SmsApiEmail,
-		password:        opts.SmsApiPassword,
-		baseUrl:         opts.SmsApiBaseUrl,
-		cond:            sync.NewCond(&sync.Mutex{}),
-	}
 
 	nc, err := nats.Connect(opts.NatsURL, nats.Token(opts.NatsAuthToken))
 
@@ -191,6 +46,9 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	smsClient := opts.SmsClient
+	sesClient := opts.SesClient
 
 	consumeContexts := []jetstream.ConsumeContext{}
 
@@ -254,7 +112,7 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 						fmt.Printf("Error decoding: %s\n", err)
 					}
 
-					err := smsClient.send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
+					err := smsClient.Send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
 					if err != nil {
 						fmt.Printf("Error: %s\n", err)
 						m.NakWithDelay(time.Second * 5)

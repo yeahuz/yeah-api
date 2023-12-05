@@ -15,6 +15,11 @@ import (
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/db"
+	"github.com/yeahuz/yeah-api/smsclient"
+
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ses"
 )
 
 func main() {
@@ -23,14 +28,26 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*60)
 	defer cancel()
 
+	smsClient := smsclient.New(smsclient.Opts{
+		SmsApiBaseUrl:   config.SmsApiBaseUrl,
+		SmsApiEmail:     config.SmsApiEmail,
+		SmsApiPassword:  config.SmsApiPassword,
+		TimeoutDuration: time.Second * 30,
+	})
+
+	cfg, err := awsconfig.LoadDefaultConfig(
+		context.Background(),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.AwsKey, config.AwsSecret, "")),
+		awsconfig.WithRegion("eu-north-1"),
+	)
+
+	sesClient := ses.NewFromConfig(cfg)
+
 	cleanup, err := cqrs.Setup(ctx, cqrs.SetupOpts{
-		NatsURL:        config.NatsURL,
-		NatsAuthToken:  config.NatsAuthToken,
-		AwsKey:         config.AwsKey,
-		AwsSecret:      config.AwsSecret,
-		SmsApiBaseUrl:  config.SmsApiBaseUrl,
-		SmsApiEmail:    config.SmsApiEmail,
-		SmsApiPassword: config.SmsApiPassword,
+		NatsURL:       config.NatsURL,
+		NatsAuthToken: config.NatsAuthToken,
+		SmsClient:     smsClient,
+		SesClient:     sesClient,
 	})
 
 	defer cleanup()
