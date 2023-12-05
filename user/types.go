@@ -2,8 +2,7 @@ package user
 
 import "time"
 
-type User struct {
-	ID            int    `json:"id"`
+type NewUserOpts struct {
 	PhoneNumber   string `json:"phone_number"`
 	FirstName     string `json:"first_name"`
 	LastName      string `json:"last_name"`
@@ -13,13 +12,9 @@ type User struct {
 	PhoneVerified bool   `json:"-"`
 }
 
-type NewUserOpts struct {
-	PhoneNumber   string
-	Email         string
-	FirstName     string
-	LastName      string
-	EmailVerified bool
-	PhoneVerified bool
+type User struct {
+	ID int `json:"id"`
+	NewUserOpts
 }
 
 type Account struct {

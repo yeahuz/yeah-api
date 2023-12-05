@@ -3,6 +3,7 @@ module github.com/yeahuz/yeah-api
 go 1.20
 
 require (
+	github.com/aws/aws-sdk-go v1.48.9
 	github.com/aws/aws-sdk-go-v2/config v1.25.10
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.8
 	github.com/aws/aws-sdk-go-v2/service/ses v1.19.1
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.48.9 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.23.4 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.8 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.7 // indirect
@@ -34,8 +34,6 @@ require (
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/nats-io/nkeys v0.4.5 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/quicktemplate v1.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 )

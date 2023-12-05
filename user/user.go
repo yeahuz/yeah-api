@@ -15,12 +15,7 @@ var l = localizer.GetDefault()
 
 func New(opts NewUserOpts) *User {
 	return &User{
-		FirstName:     opts.FirstName,
-		LastName:      opts.LastName,
-		Email:         opts.Email,
-		PhoneNumber:   opts.PhoneNumber,
-		EmailVerified: opts.EmailVerified,
-		PhoneVerified: opts.PhoneVerified,
+		NewUserOpts: opts,
 	}
 }
 

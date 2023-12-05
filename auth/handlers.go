@@ -249,7 +249,13 @@ func HandleGetCredentials(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleCredentialCreateRequest(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	createRequest, err := credential.NewCreateRequest(200, "Avazbek", "Avazbek")
+
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, createRequest)
 }
 
 func HandleCredentialGetRequest(w http.ResponseWriter, r *http.Request) error {
