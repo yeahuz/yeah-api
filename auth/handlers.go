@@ -181,9 +181,10 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	u := user.New(user.NewUserOpts{
-		FirstName: signUpData.FirstName,
-		LastName:  signUpData.LastName,
-		Email:     signUpData.Email,
+		FirstName:     signUpData.FirstName,
+		LastName:      signUpData.LastName,
+		Email:         signUpData.Email,
+		EmailVerified: true,
 	})
 
 	if err := u.Save(); err != nil {
@@ -220,9 +221,10 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	u := user.New(user.NewUserOpts{
-		FirstName:   signUpData.FirstName,
-		LastName:    signUpData.LastName,
-		PhoneNumber: signUpData.PhoneNumber,
+		FirstName:     signUpData.FirstName,
+		LastName:      signUpData.LastName,
+		PhoneNumber:   signUpData.PhoneNumber,
+		PhoneVerified: true,
 	})
 
 	if err := u.Save(); err != nil {

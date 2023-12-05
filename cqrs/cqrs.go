@@ -114,7 +114,6 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 
 					err := smsClient.Send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
 					if err != nil {
-						fmt.Printf("Error: %s\n", err)
 						m.NakWithDelay(time.Second * 5)
 						return
 					}
@@ -128,8 +127,9 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&ev); err != nil {
 						fmt.Printf("Error decoding: %s\n", err)
 					}
-					//TODO: here you can increment counters for realtime, fast analytics
-					fmt.Printf("Email sent to: %s\n", ev.Email)
+					if err := m.Ack(); err != nil {
+						m.NakWithDelay(time.Second * 5)
+					}
 					break
 				}
 			case "auth.phoneCodeSent":
@@ -138,8 +138,9 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&ev); err != nil {
 						fmt.Printf("Error decoding: %s\n", err)
 					}
-					//TODO: here you can increment counters for realtime, fast analytics
-					fmt.Printf("Phone code sent to: %s\n", ev.PhoneNumber)
+					if err := m.Ack(); err != nil {
+						m.NakWithDelay(time.Second * 5)
+					}
 					break
 				}
 			default:

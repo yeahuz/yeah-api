@@ -70,7 +70,7 @@ type SignUpEmailData struct {
 
 type SignUpPhoneData struct {
 	SignUpData
-	PhoneNumber string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
 }
 
 type providerName string

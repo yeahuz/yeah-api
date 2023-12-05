@@ -15,16 +15,18 @@ var l = localizer.GetDefault()
 
 func New(opts NewUserOpts) *User {
 	return &User{
-		FirstName:   opts.FirstName,
-		LastName:    opts.LastName,
-		Email:       opts.Email,
-		PhoneNumber: opts.PhoneNumber,
+		FirstName:     opts.FirstName,
+		LastName:      opts.LastName,
+		Email:         opts.Email,
+		PhoneNumber:   opts.PhoneNumber,
+		EmailVerified: opts.EmailVerified,
+		PhoneVerified: opts.PhoneVerified,
 	}
 }
 
 func (u *User) Save() error {
-	err := db.Pool.QueryRow(context.Background(), "insert into users (first_name, last_name, email, phone) values ($1, $2, nullif($3, ''), nullif($4, '')) returning id",
-		u.FirstName, u.LastName, u.Email, u.PhoneNumber,
+	err := db.Pool.QueryRow(context.Background(), "insert into users (first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6) returning id",
+		u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.EmailVerified, u.PhoneVerified,
 	).Scan(&u.ID)
 
 	if err != nil {
@@ -40,11 +42,9 @@ func (u *User) Save() error {
 
 func GetByPhone(phone string) (*User, error) {
 	var user User
-	err := db.Pool.QueryRow(
-		context.Background(),
-		"select id from users where phone = $1",
-		phone,
-	).Scan(&user.ID)
+	err := db.Pool.QueryRow(context.Background(),
+		`select id, first_name, last_name, phone, email, coalesce(username, '') from users where phone = $1`,
+		phone).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {
@@ -60,9 +60,8 @@ func GetByEmail(email string) (*User, error) {
 	var user User
 	err := db.Pool.QueryRow(
 		context.Background(),
-		"select id from users where email = $1",
-		email,
-	).Scan(&user.ID)
+		`select id, first_name, last_name, phone, email, coalesce(username, '') from users where email = $1`,
+		email).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 
 	if err != nil {
 		if e.Is(err, pgx.ErrNoRows) {
