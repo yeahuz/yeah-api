@@ -13,14 +13,14 @@ type NewUserOpts struct {
 }
 
 type User struct {
-	ID int `json:"id"`
+	ID string `json:"id"`
 	NewUserOpts
 }
 
 type Account struct {
 	id                int
 	provider          string
-	userID            int
+	userID            string
 	providerAccountId string
 	createdAt         time.Time
 	updatedAt         time.Time

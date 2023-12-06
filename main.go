@@ -69,9 +69,10 @@ func main() {
 	mux.Handle("/auth.signUpWithEmail", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithEmail, http.MethodPost)))
 	mux.Handle("/auth.signUpWithPhone", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithPhone, http.MethodPost)))
 	mux.Handle("/credentials.get", c.LocalizerMiddleware(c.MakeHandler(auth.HandleGetCredentials, http.MethodGet)))
-	mux.Handle("/credentials.createRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialCreateRequest, http.MethodGet)))
-	mux.Handle("/credentials.getRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialGetRequest, http.MethodGet)))
+	mux.Handle("/credentials.createRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialCreateRequest, http.MethodPost)))
+	mux.Handle("/credentials.getRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialGetRequest, http.MethodPost)))
 	mux.Handle("/credentials.verify", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialVerify, http.MethodPost)))
+	mux.Handle("/credentials.create", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreateCredential, http.MethodPost)))
 	fmt.Printf("Server started at %s\n", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, mux))
 }

@@ -1,75 +1,21 @@
 package credential
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"strconv"
+	"encoding/json"
 
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
+	"github.com/yeahuz/yeah-api/internal/localizer"
 )
 
-type AttestationType string
+var l = localizer.GetDefault()
 
-const (
-	AttestationDirect   AttestationType = "direct"
-	AttestationIndirect                 = "indirect"
-	AttestationNone                     = "none"
-)
-
-type PubKeyCredParam struct {
-	Alg  int    `json:"alg"`
-	Kind string `json:"type"`
-}
-type Opts struct {
-	CredentialID string
-	Title        string
-	PubKey       string
-	Counter      int
-	UserID       int
-	Transports   []string
-}
-
-type Rp struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
-
-type User struct {
-	ID          string `json:"id"`
-	DisplayName string `json:"displayName"`
-	Name        string `json:"name"`
-}
-
-type CreateRequest struct {
-	Challenge        string            `json:"challenge"`
-	Rp               Rp                `json:"rp"`
-	User             User              `json:"user"`
-	Timeout          int               `json:"timeout"`
-	Attestation      AttestationType   `json:"attestation"`
-	PubKeyCredParams []PubKeyCredParam `json:"pubKeyCredParams"`
-}
-
-type Credential struct {
-	ID int
-	Opts
-}
-
-func generateChallenge() (string, error) {
-	b := make([]byte, 32)
-
-	_, err := rand.Read(b)
-
-	if err != nil {
-		return "", err
-	}
-
-	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
-func NewCreateRequest(id int, display, name string) (*CreateRequest, error) {
+func NewCreateRequest(userID string, display, name string) (*CreateRequest, error) {
 	challenge, err := generateChallenge()
 	if err != nil {
 		return nil, err
@@ -82,18 +28,34 @@ func NewCreateRequest(id int, display, name string) (*CreateRequest, error) {
 			Name: config.Config.RpName,
 		},
 		User: User{
-			ID:          base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(id))),
+			ID:          base64.RawURLEncoding.EncodeToString([]byte(userID)),
 			DisplayName: display,
 			Name:        name,
 		},
 		Timeout:     60000,
 		Attestation: AttestationNone,
 		PubKeyCredParams: []PubKeyCredParam{
-			{Kind: "public-key", Alg: -7},
+			{Type: PubKeyCredPubKey, Alg: -7},
 		},
 	}
 
 	return createRequest, nil
+}
+
+func NewGetRequest(credentials []allowedCredential) (*GetRequest, error) {
+	challenge, err := generateChallenge()
+	if err != nil {
+		return nil, err
+	}
+
+	getRequest := &GetRequest{
+		Challenge:        challenge,
+		RpID:             config.Config.RpID,
+		Timeout:          60000,
+		AllowCredentials: credentials,
+	}
+
+	return getRequest, nil
 }
 
 func New(opts Opts) *Credential {
@@ -129,8 +91,32 @@ func GetById(ctx context.Context, credId string) (*Credential, error) {
 	return &credential, nil
 }
 
-func GetAll(ctx context.Context) ([]Credential, error) {
-	credentials := make([]Credential, 0)
+func GetAllowedCredentials(ctx context.Context, userID string) ([]allowedCredential, error) {
+	credentials := make([]allowedCredential, 0)
+	rows, err := db.Pool.Query(ctx, "select credential_id, transports type from credentials where user_id = $1", userID)
+	defer rows.Close()
+	if err != nil {
+		return nil, errors.Internal
+	}
+
+	for rows.Next() {
+		var crd allowedCredential
+		if err := rows.Scan(&crd.ID, &crd.Transports, &crd.Type); err != nil {
+			return nil, errors.Internal
+		}
+
+		credentials = append(credentials, crd)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Internal
+	}
+
+	return credentials, nil
+}
+
+func GetAll(ctx context.Context) (*Credentials, error) {
+	creds := make([]Credential, 0)
 
 	rows, err := db.Pool.Query(ctx, "select id, credential_id, title, transports, user_id from credentials order by id desc")
 
@@ -146,7 +132,7 @@ func GetAll(ctx context.Context) ([]Credential, error) {
 			// TODO: handle errors properly
 			return nil, errors.Internal
 		}
-		credentials = append(credentials, crd)
+		creds = append(creds, crd)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -154,5 +140,87 @@ func GetAll(ctx context.Context) ([]Credential, error) {
 		return nil, errors.Internal
 	}
 
-	return credentials, nil
+	list := &Credentials{Credentials: creds, Count: len(creds)}
+
+	return list, nil
+}
+
+func (cr *CreateRequest) Save(ctx context.Context) error {
+	err := db.Pool.QueryRow(ctx,
+		"insert into credential_requests (challenge, type) values ($1, $2) returning id",
+		cr.Challenge, "create",
+	).Scan(&cr.ID)
+
+	if err != nil {
+		return errors.Internal
+	}
+
+	return nil
+}
+
+func (gr *GetRequest) Save(ctx context.Context) error {
+	err := db.Pool.QueryRow(ctx,
+		"insert into credential_requests (challenge, type) values ($1, $2) returning id",
+		gr.Challenge, "get",
+	).Scan(&gr.ID)
+
+	if err != nil {
+		return errors.Internal
+	}
+
+	return nil
+}
+
+func GetRequestById(ctx context.Context, id string) (*Request, error) {
+	var request Request
+
+	err := db.Pool.QueryRow(ctx,
+		"select type, challenge, used from credential_requests where id = $1",
+		id,
+	).Scan(&request.Type, &request.Challenge, &request.Used)
+
+	if err != nil {
+		return nil, errors.Internal
+	}
+
+	return &request, nil
+}
+
+func (r Request) VerifyClientData(data string) (*clientData, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(data)
+	if err != nil {
+		return nil, errors.Internal
+	}
+
+	var clientData clientData
+
+	if err := json.NewDecoder(bytes.NewReader(decoded)).Decode(&clientData); err != nil {
+		return nil, errors.Internal
+	}
+
+	if clientData.typ != r.Type {
+		return nil, errors.NewBadRequest(l.T("Invalid credential type"))
+	}
+
+	if clientData.challenge != r.Challenge {
+		return nil, errors.NewBadRequest(l.T("Challenges don't match"))
+	}
+
+	if clientData.origin != config.Config.RpID {
+		return nil, errors.NewBadRequest(l.T("Origin is invalid"))
+	}
+
+	return &clientData, nil
+}
+
+func generateChallenge() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

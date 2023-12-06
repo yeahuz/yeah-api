@@ -49,24 +49,37 @@ create table if not exists otps (
   updated_at timestamp with time zone
 );
 
-create if not exists credentials (
+create table if not exists credential_requests (
+  id bigserial primary key,
+  type varchar(255) not null,
+  challenge varchar(255) not null,
+  used boolean default false
+);
+
+create table if not exists credentials (
   id bigserial primary key,
   credential_id varchar(1024) default '',
   title varchar(255) not null,
   pubkey text default '',
+  type varchar(255) default 'public-key',
   counter int default 0,
   transports text[] default '{}',
   user_id bigint not null,
+  credential_request_id bigint not null,
   created_at timestamp with time zone default now() not null,
   updated_at timestamp with time zone,
 
-  foreign key(user_id) references users(id) on delete cascade
+  foreign key(user_id) references users(id) on delete cascade,
+  foreign key(credential_request_id) references credential_requests(id) on delete cascade
 );
 
 create index idx_credentials_user_id on credentials(user_id);
 create index idx_credentials_credential_id on credentials(credential_id);
+create index idx_credentials_credential_request_id on credentials(credential_request_id);
+
 create index idx_accounts_user_id on accounts(user_id);
 create index idx_accounts_provider_account_id on accounts(provider_account_id);
+
 create index idx_otps_hash on otps(hash);
 create unique index udx_accounts_provider_account_id_user_id on accounts(provider_account_id, user_id);
 

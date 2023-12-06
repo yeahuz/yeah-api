@@ -249,9 +249,15 @@ func HandleGetCredentials(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleCredentialCreateRequest(w http.ResponseWriter, r *http.Request) error {
-	createRequest, err := credential.NewCreateRequest(200, "Avazbek", "Avazbek")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	createRequest, err := credential.NewCreateRequest("200", "Avazbek", "Avazbek")
 
 	if err != nil {
+		return err
+	}
+
+	if err := createRequest.Save(ctx); err != nil {
 		return err
 	}
 
@@ -259,9 +265,48 @@ func HandleCredentialCreateRequest(w http.ResponseWriter, r *http.Request) error
 }
 
 func HandleCredentialGetRequest(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	allowedCredentials, err := credential.GetAllowedCredentials(ctx, "10")
+	if err != nil {
+		return err
+	}
+
+	getRequest, err := credential.NewGetRequest(allowedCredentials)
+	if err != nil {
+		return err
+	}
+
+	if err := getRequest.Save(ctx); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, getRequest)
 }
 
 func HandleCredentialVerify(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func HandleCreateCredential(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	var credentialData credential.CreateCredentialData
+	err := json.NewDecoder(r.Body).Decode(&credentialData)
+	defer r.Body.Close()
+	if err != nil {
+		return errors.Internal
+	}
+
+	request, err := credential.GetRequestById(ctx, credentialData.ReqID)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := request.VerifyClientData(credentialData.Credential.Response.ClientDataJSON); err != nil {
+		return err
+	}
+
 	return nil
 }

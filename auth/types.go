@@ -91,10 +91,10 @@ type Provider struct {
 func (a Authorization) MarshalJSON() ([]byte, error) {
 	type Alias Authorization
 	return json.Marshal(struct {
-		Typ string `json:"_"`
+		Type string `json:"_"`
 		Alias
 	}{
-		Typ:   "auth.authorization",
+		Type:  "auth.authorization",
 		Alias: Alias(a),
 	})
 }
@@ -102,10 +102,10 @@ func (a Authorization) MarshalJSON() ([]byte, error) {
 func (ar AuthorizationSignUpRequired) MarshalJSON() ([]byte, error) {
 	type Alias AuthorizationSignUpRequired
 	return json.Marshal(struct {
-		Typ string `json:"_"`
+		Type string `json:"_"`
 		Alias
 	}{
-		Typ:   "auth.authorizationSignUpRequired",
+		Type:  "auth.authorizationSignUpRequired",
 		Alias: Alias(ar),
 	})
 }
@@ -113,10 +113,10 @@ func (ar AuthorizationSignUpRequired) MarshalJSON() ([]byte, error) {
 func (scs SentCodeSms) MarshalJSON() ([]byte, error) {
 	type Alias SentCodeSms
 	return json.Marshal(struct {
-		Typ string `json:"_"`
+		Type string `json:"_"`
 		Alias
 	}{
-		Typ:   "auth.sentCodeSms",
+		Type:  "auth.sentCodeSms",
 		Alias: Alias(scs),
 	})
 }
@@ -124,10 +124,10 @@ func (scs SentCodeSms) MarshalJSON() ([]byte, error) {
 func (sce SentCodeEmail) MarshalJSON() ([]byte, error) {
 	type Alias SentCodeEmail
 	return json.Marshal(struct {
-		Typ string `json:"_"`
+		Type string `json:"_"`
 		Alias
 	}{
-		Typ:   "auth.sentCodeEmail",
+		Type:  "auth.sentCodeEmail",
 		Alias: Alias(sce),
 	})
 }
@@ -135,10 +135,10 @@ func (sce SentCodeEmail) MarshalJSON() ([]byte, error) {
 func (sc SentCode) MarshalJSON() ([]byte, error) {
 	type Alias SentCode
 	return json.Marshal(struct {
-		Typ string `json:"_"`
+		Type string `json:"_"`
 		Alias
 	}{
-		Typ:   "auth.sentCode",
+		Type:  "auth.sentCode",
 		Alias: Alias(sc),
 	})
 }
