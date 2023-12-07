@@ -13,6 +13,7 @@ import (
 
 func JSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
 }
@@ -30,6 +31,12 @@ func MakeHandler(fn ApiFunc, method string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang := r.Header.Get("Accept-Language")
 		l := localizer.Get(lang)
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		if r.Method != method {
 			JSON(w, http.StatusMethodNotAllowed, errors.NewMethodNotAllowed(l.T("Method not allowed")))
 			return

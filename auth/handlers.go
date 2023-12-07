@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	e "errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -289,6 +291,7 @@ func HandleCredentialVerify(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleCreateCredential(w http.ResponseWriter, r *http.Request) error {
+	fmt.Printf("HERE\n")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	var credentialData credential.CreateCredentialData
@@ -304,9 +307,22 @@ func HandleCreateCredential(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	fmt.Printf("CLIENTDATA: %s\n", credentialData.Credential.Response.ClientDataJSON)
 	if _, err := request.VerifyClientData(credentialData.Credential.Response.ClientDataJSON); err != nil {
 		return err
 	}
 
+	b, err := base64.RawURLEncoding.DecodeString(credentialData.Credential.Response.AttestationObject)
+
+	if err != nil {
+		return errors.Internal
+	}
+
+	p, err := credential.ParseAttestation(b)
+	if err != nil {
+		return errors.Internal
+	}
+
+	_ = p
 	return nil
 }

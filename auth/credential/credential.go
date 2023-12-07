@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
@@ -148,7 +149,7 @@ func GetAll(ctx context.Context) (*Credentials, error) {
 func (cr *CreateRequest) Save(ctx context.Context) error {
 	err := db.Pool.QueryRow(ctx,
 		"insert into credential_requests (challenge, type) values ($1, $2) returning id",
-		cr.Challenge, "create",
+		cr.Challenge, "webauthn.create",
 	).Scan(&cr.ID)
 
 	if err != nil {
@@ -161,7 +162,7 @@ func (cr *CreateRequest) Save(ctx context.Context) error {
 func (gr *GetRequest) Save(ctx context.Context) error {
 	err := db.Pool.QueryRow(ctx,
 		"insert into credential_requests (challenge, type) values ($1, $2) returning id",
-		gr.Challenge, "get",
+		gr.Challenge, "webauthn.get",
 	).Scan(&gr.ID)
 
 	if err != nil {
@@ -186,31 +187,46 @@ func GetRequestById(ctx context.Context, id string) (*Request, error) {
 	return &request, nil
 }
 
-func (r Request) VerifyClientData(data string) (*clientData, error) {
+func (r Request) VerifyClientData(data string) (*parsedClientData, error) {
 	decoded, err := base64.RawURLEncoding.DecodeString(data)
 	if err != nil {
 		return nil, errors.Internal
 	}
 
-	var clientData clientData
+	var clientData parsedClientData
 
 	if err := json.NewDecoder(bytes.NewReader(decoded)).Decode(&clientData); err != nil {
 		return nil, errors.Internal
 	}
 
-	if clientData.typ != r.Type {
+	if clientData.Type != r.Type {
 		return nil, errors.NewBadRequest(l.T("Invalid credential type"))
 	}
 
-	if clientData.challenge != r.Challenge {
+	decodedChallenge, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
+	if err != nil {
+		return nil, errors.Internal
+	}
+
+	if string(decodedChallenge) != r.Challenge {
 		return nil, errors.NewBadRequest(l.T("Challenges don't match"))
 	}
 
-	if clientData.origin != config.Config.RpID {
+	if clientData.Origin != config.Config.RpID {
 		return nil, errors.NewBadRequest(l.T("Origin is invalid"))
 	}
 
 	return &clientData, nil
+}
+
+func ParseAttestation(b []byte) (*parsedAttestationObject, error) {
+	var p parsedAttestationObject
+	err := cbor.NewDecoder(bytes.NewReader(b)).Decode(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &p, nil
 }
 
 func generateChallenge() (string, error) {
