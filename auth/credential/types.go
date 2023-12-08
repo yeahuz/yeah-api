@@ -1,79 +1,71 @@
 package credential
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"strconv"
 )
 
-type AttestationType string
-type PubKeyCredType string
-type authFlag byte
+// type authFlag byte
 
-const (
-	AttestationDirect   AttestationType = "direct"
-	AttestationIndirect AttestationType = "indirect"
-	AttestationNone     AttestationType = "none"
+// // https://github.com/go-webauthn/webauthn/blob/master/protocol/authenticator.go#L175
+// const (
+// 	// FlagUserPresent Bit 00000001 in the byte sequence. Tells us if user is present. Also referred to as the UP flag.
+// 	FlagUserPresent authFlag = 1 << iota
 
-	PubKeyCredPubKey   PubKeyCredType = "public-key"
-	PubKeyCredPassword PubKeyCredType = "password"
-)
+// 	// FlagRFU1 is a reserved for future use flag.
+// 	FlagRFU1
+// 	// FlagUserVerified Bit 00000100 in the byte sequence. Tells us if user is verified
+// 	// by the authenticator using a biometric or PIN. Also referred to as the UV flag.
+// 	FlagUserVerified
 
-// https://github.com/go-webauthn/webauthn/blob/master/protocol/authenticator.go#L175
-const (
-	// FlagUserPresent Bit 00000001 in the byte sequence. Tells us if user is present. Also referred to as the UP flag.
-	FlagUserPresent authFlag = 1 << iota
+// 	// FlagBackupEligible Bit 00001000 in the byte sequence. Tells us if a backup is eligible for device. Also referred
+// 	// to as the BE flag.
+// 	FlagBackupEligible // Referred to as BE
 
-	// FlagRFU1 is a reserved for future use flag.
-	FlagRFU1
-	// FlagUserVerified Bit 00000100 in the byte sequence. Tells us if user is verified
-	// by the authenticator using a biometric or PIN. Also referred to as the UV flag.
-	FlagUserVerified
+// 	// FlagBackupState Bit 00010000 in the byte sequence. Tells us if a backup state for device. Also referred to as the
+// 	// BS flag.
+// 	FlagBackupState
 
-	// FlagBackupEligible Bit 00001000 in the byte sequence. Tells us if a backup is eligible for device. Also referred
-	// to as the BE flag.
-	FlagBackupEligible // Referred to as BE
+// 	// FlagRFU2 is a reserved for future use flag.
+// 	FlagRFU2
 
-	// FlagBackupState Bit 00010000 in the byte sequence. Tells us if a backup state for device. Also referred to as the
-	// BS flag.
-	FlagBackupState
+// 	// FlagAttestedCredentialData Bit 01000000 in the byte sequence. Indicates whether
+// 	// the authenticator added attested credential data. Also referred to as the AT flag.
+// 	FlagAttestedCredentialData
 
-	// FlagRFU2 is a reserved for future use flag.
-	FlagRFU2
+// 	// FlagHasExtensions Bit 10000000 in the byte sequence. Indicates if the authenticator data has extensions. Also
+// 	// referred to as the ED flag.
+// 	FlagHasExtensions
+// )
 
-	// FlagAttestedCredentialData Bit 01000000 in the byte sequence. Indicates whether
-	// the authenticator added attested credential data. Also referred to as the AT flag.
-	FlagAttestedCredentialData
+// type urlEncodedB64 []byte
 
-	// FlagHasExtensions Bit 10000000 in the byte sequence. Indicates if the authenticator data has extensions. Also
-	// referred to as the ED flag.
-	FlagHasExtensions
-)
+// type PubKeyCredParam struct {
+// 	Alg  int            `json:"alg"`
+// 	Type PubKeyCredType `json:"type"`
+// }
 
-type urlEncodedB64 []byte
+// type Opts struct {
+// 	CredentialID string
+// 	Title        string
+// 	PubKey       string
+// 	Counter      int
+// 	UserID       string
+// 	Transports   []string
+// }
 
-type PubKeyCredParam struct {
-	Alg  int            `json:"alg"`
-	Type PubKeyCredType `json:"type"`
-}
+// type Rp struct {
+// 	Name string `json:"name"`
+// 	ID   string `json:"id"`
+// }
 
-type Opts struct {
-	CredentialID string
-	Title        string
-	PubKey       string
-	Counter      int
-	UserID       string
-	Transports   []string
-}
-
-type Rp struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
-
-type User struct {
-	ID          string `json:"id"`
-	DisplayName string `json:"display_name"`
-	Name        string `json:"name"`
-}
+// type User struct {
+// 	ID          string `json:"id"`
+// 	DisplayName string `json:"display_name"`
+// 	Name        string `json:"name"`
+// }
 
 type Request struct {
 	Type      string
@@ -81,128 +73,366 @@ type Request struct {
 	Used      bool
 }
 
-type CreateRequest struct {
-	ID               string            `json:"id"`
-	Challenge        string            `json:"challenge"`
-	Rp               Rp                `json:"rp"`
-	User             User              `json:"user"`
-	Timeout          int               `json:"timeout"`
-	Attestation      AttestationType   `json:"attestation"`
-	PubKeyCredParams []PubKeyCredParam `json:"pubkey_cred_params"`
+// type CreateRequest struct {
+// 	ID               string            `json:"id"`
+// 	Challenge        string            `json:"challenge"`
+// 	Rp               Rp                `json:"rp"`
+// 	User             User              `json:"user"`
+// 	Timeout          int               `json:"timeout"`
+// 	Attestation      AttestationType   `json:"attestation"`
+// 	PubKeyCredParams []PubKeyCredParam `json:"pubkey_cred_params"`
+// }
+
+// type allowedCredential struct {
+// 	ID         string   `json:"id"`
+// 	Type       string   `json:"type"`
+// 	Transports []string `json:"transports"`
+// }
+
+// type GetRequest struct {
+// 	ID               string              `json:"id"`
+// 	Challenge        string              `json:"challenge"`
+// 	RpID             string              `json:"rpId"`
+// 	Timeout          int                 `json:"timeout"`
+// 	AllowCredentials []allowedCredential `json:"allow_credentials"`
+// }
+
+// type Credential struct {
+// 	ID string
+// 	Opts
+// }
+
+// type parsedClientData struct {
+// 	Challenge string `json:"challenge"`
+// 	Type      string `json:"type"`
+// 	Origin    string `json:"origin"`
+// }
+
+// type attestedCredentialData struct {
+// 	aaguid           []byte
+// 	credentialID     []byte
+// 	credentialPubkey []byte
+// }
+
+// type authenticatorData struct {
+// 	RpIDHash     []byte
+// 	UserPresent  bool
+// 	UserVerified bool
+// 	Counter      uint32
+// 	AAGUID       []byte
+// 	CredentialID []byte
+// }
+
+// type parsedAttestationObject struct {
+// 	AuthnData []byte          `cbor:"authData"`
+// 	Fmt       string          `cbor:"fmt"`
+// 	AttStmt   cbor.RawMessage `cbor:"attStmt"`
+// }
+
+// type AttestationResponse struct {
+// 	ClientDataJSON    string `json:"client_data_json"`
+// 	AttestationObject string `json:"attestation_object"`
+// }
+
+// type parsedAttestationResponse struct {
+// 	clientData        parsedClientData
+// 	attestationObject parsedAttestationObject
+// }
+
+// type CreateResponse struct {
+// 	ID         string               `json:"id"`
+// 	RawID      string               `json:"raw_id"`
+// 	Response   *AttestationResponse `json:"response"`
+// 	Type       PubKeyCredType       `json:"type"`
+// 	Transports []string             `json:"transports"`
+// }
+
+// type CreateCredentialData struct {
+// 	ReqID      string          `json:"req_id"`
+// 	Credential *CreateResponse `json:"credential"`
+// 	Title      string          `json:"title"`
+// }
+
+// type Credentials struct {
+// 	Credentials []Credential `json:"credentials"`
+// 	Count       int          `json:"count"`
+// }
+
+// func (gr GetRequest) MarshalJSON() ([]byte, error) {
+// 	type Alias GetRequest
+// 	return json.Marshal(struct {
+// 		Type string `json:"_"`
+// 		Alias
+// 	}{
+// 		Type:  "auth.credentialGetRequest",
+// 		Alias: Alias(gr),
+// 	})
+// }
+
+// func (cr CreateRequest) MarshalJSON() ([]byte, error) {
+// 	type Alias CreateRequest
+// 	return json.Marshal(struct {
+// 		Type string `json:"_"`
+// 		Alias
+// 	}{
+// 		Type:  "auth.credentialCreateRequest",
+// 		Alias: Alias(cr),
+// 	})
+// }
+
+// func (c Credential) MarshalJSON() ([]byte, error) {
+// 	type Alias Credential
+// 	return json.Marshal(struct {
+// 		Type string `json:"_"`
+// 		Alias
+// 	}{
+// 		Type:  "auth.credential",
+// 		Alias: Alias(c),
+// 	})
+// }
+
+// func (cs Credentials) MarshalJSON() ([]byte, error) {
+// 	type Alias Credentials
+// 	return json.Marshal(struct {
+// 		Type string `json:"_"`
+// 		Alias
+// 	}{
+// 		Type:  "auth.credentials",
+// 		Alias: Alias(cs),
+// 	})
+// }
+
+type AuthenticatorTransport string
+
+const (
+	Authenticatorusb      AuthenticatorTransport = "usb"
+	Authenticatornfc      AuthenticatorTransport = "nfc"
+	Authenticatorble      AuthenticatorTransport = "ble"
+	Authenticatorinternal AuthenticatorTransport = "internal"
+)
+
+type AuthenticatorAttachment string
+
+const (
+	AuthenticatorPlatform      AuthenticatorAttachment = "platform"
+	AuthenticatorCrossPlatform AuthenticatorAttachment = "cross-platform"
+)
+
+type ResidentKeyRequirement string
+
+const (
+	ResidentKeyDiscouraged ResidentKeyRequirement = "discouraged"
+	ResidentKeyPreferred   ResidentKeyRequirement = "preferred"
+	ResidentKeyRequired    ResidentKeyRequirement = "required"
+)
+
+type UserVerificationRequirement string
+
+const (
+	UserVerificationRequired    UserVerificationRequirement = "required"
+	UserVerificationPreferred   UserVerificationRequirement = "preferred"
+	UserVerificationDiscouraged UserVerificationRequirement = "discouraged"
+)
+
+type AttestationConveyancePreference string
+
+const (
+	AttestationNone       AttestationConveyancePreference = "none"
+	AttestationIndirect   AttestationConveyancePreference = "indirect"
+	AttestationDirect     AttestationConveyancePreference = "direct"
+	AttestationEnterprise AttestationConveyancePreference = "enterprise"
+)
+
+type COSEAlgorithmIdentifier int
+
+const (
+	COSEAlgorithmES256 COSEAlgorithmIdentifier = -7
+	COSEAlgorithmES384 COSEAlgorithmIdentifier = -35
+	COSEAlgorithmES512 COSEAlgorithmIdentifier = -36
+	COSEAlgorithmEdDSA COSEAlgorithmIdentifier = -8
+)
+
+type b64URLEncoded []byte
+
+type PubKeyCreateRequest struct {
+	ID     string                           `json:"id"`
+	PubKey *PublicKeyCredentialCreationOpts `json:"pubkey"`
+	kind   string
 }
 
-type allowedCredential struct {
-	ID         string   `json:"id"`
-	Type       string   `json:"type"`
-	Transports []string `json:"transports"`
+type PubKeyGetRequest struct {
+	ID     string
+	PubKey *PublicKeyCredentialRequestOpts `json:"pubkey"`
+	kind   string
 }
 
-type GetRequest struct {
-	ID               string              `json:"id"`
-	Challenge        string              `json:"challenge"`
-	RpID             string              `json:"rpId"`
-	Timeout          int                 `json:"timeout"`
-	AllowCredentials []allowedCredential `json:"allow_credentials"`
+type AuthenticatorResponse struct {
+	ClientData *CollectedClientData
+	// ClientDataJSON b64URLEncoded `json:"client_data_json"`
 }
 
-type Credential struct {
-	ID string
-	Opts
+type AuthenticatorData struct {
+	RpIDHash     []byte
+	UserPresent  bool
+	UserVerified bool
+	Counter      uint32
+	AAGUID       []byte
+	CredentialID []byte
 }
 
-type parsedClientData struct {
-	Challenge string `json:"challenge"`
-	Type      string `json:"type"`
-	Origin    string `json:"origin"`
+type AuthenticatorAttestationResponse struct {
+	AuthenticatorResponse
+	AuthenticatorData *AuthenticatorData       `json:"authenticator_data"`
+	Transports        []AuthenticatorTransport `json:"transports"`
+	PubKey            b64URLEncoded            `json:"pubkey"`
+	PubKeyAlgo        int                      `json:"pubkey_algo"`
 }
 
-type attestedCredentialData struct {
-	aaguid           []byte
-	credentialID     []byte
-	credentialPubkey []byte
+type AuthenticatorAssertionResponse struct {
+	AuthenticatorResponse
+	AuthenticatorData *AuthenticatorData `json:"authenticator_data"`
+	Signature         b64URLEncoded      `json:"signature"`
+	UserHandle        b64URLEncoded      `json:"user_handle"`
 }
 
-type authenticatorData struct {
-	rpIdHash []byte
-	flags    authFlag
-	counter  uint32
-	attData  attestedCredentialData
-	extData  []byte
+type PublicKeyCredential struct {
+	ID       string                           `json:"id"`
+	RawID    b64URLEncoded                    `json:"raw_id"`
+	Response AuthenticatorAttestationResponse `json:"response"`
 }
 
-type parsedAttestationObject struct {
-	authData authenticatorData
+type CreatePubKeyData struct {
+	ReqID      string              `json:"req_id"`
+	Credential PublicKeyCredential `json:"credential"`
 }
 
-type AttestationResponse struct {
-	ClientDataJSON    string `json:"client_data_json"`
-	AttestationObject string `json:"attestation_object"`
+type AssertPubKeyData struct {
+	ReqID     string                         `json:"req_id"`
+	Assertion AuthenticatorAssertionResponse `json:"assertion"`
 }
 
-type parsedAttestationResponse struct {
-	clientData        parsedClientData
-	attestationObject parsedAttestationObject
+type PublicKeyCredentialRpEntity struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
-type CreateResponse struct {
-	ID         string               `json:"id"`
-	RawID      string               `json:"raw_id"`
-	Response   *AttestationResponse `json:"response"`
-	Type       PubKeyCredType       `json:"type"`
-	Transports []string             `json:"transports"`
+type PublicKeyCredentialUserEntity struct {
+	ID          b64URLEncoded `json:"id"`
+	DisplayName string        `json:"display_name"`
 }
 
-type CreateCredentialData struct {
-	ReqID      string          `json:"req_id"`
-	Credential *CreateResponse `json:"credential"`
-	Title      string          `json:"title"`
+type AuthenticatorSelectionCriteria struct {
+	AuthenticatorAttachment AuthenticatorAttachment     `json:"authenticator_attachment,omitempty"`
+	ResidentKey             ResidentKeyRequirement      `json:"resident_key,omitempty"`
+	RequireResidentKey      bool                        `json:"require_resident_key,omitempty"`
+	UserVerification        UserVerificationRequirement `json:"user_verification,omitempty"`
 }
 
-type Credentials struct {
-	Credentials []Credential `json:"credentials"`
-	Count       int          `json:"count"`
+type PublicKeyCredentialDescriptor struct {
+	Type       string                   `json:"type"`
+	ID         b64URLEncoded            `json:"id"`
+	Transports []AuthenticatorTransport `json:"transports"`
 }
 
-func (gr GetRequest) MarshalJSON() ([]byte, error) {
-	type Alias GetRequest
+type PublicKeyCredentialParameters struct {
+	Type string                  `json:"type"`
+	Alg  COSEAlgorithmIdentifier `json:"alg"`
+}
+
+type PublicKeyCredentialCreationOpts struct {
+	Rp                     PublicKeyCredentialRpEntity     `json:"rp"`
+	User                   PublicKeyCredentialUserEntity   `json:"user"`
+	Challenge              b64URLEncoded                   `json:"challenge"`
+	PubKeyCredParams       []PublicKeyCredentialParameters `json:"pubkey_cred_params"`
+	Timeout                int                             `json:"timeout"`
+	ExcludeCredentials     []PublicKeyCredentialDescriptor `json:"exclude_credentials,omitempty"`
+	AuthenticatorSelection AuthenticatorSelectionCriteria  `json:"authenticator_selection,omitempty"`
+	Attestation            AttestationConveyancePreference `json:"attestation"`
+}
+
+type PublicKeyCredentialRequestOpts struct {
+	Challenge        b64URLEncoded                   `json:"challenge"`
+	Timeout          int                             `json:"timeout"`
+	RpID             string                          `json:"rp_id"`
+	AllowCredentials []PublicKeyCredentialDescriptor `json:"allow_credentials"`
+	UserVerification UserVerificationRequirement     `json:"user_verification"`
+}
+
+type CollectedClientData struct {
+	Type      string        `json:"type"`
+	Challenge b64URLEncoded `json:"challenge"`
+	Origin    string        `json:"origin"`
+}
+
+func (b b64URLEncoded) String() string {
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func (b b64URLEncoded) MarshalJSON() ([]byte, error) {
+	s := base64.RawURLEncoding.EncodeToString(b)
+	return []byte("\"" + s + "\""), nil
+}
+
+func (b *b64URLEncoded) UnmarshalJSON(data []byte) (err error) {
+	if len(data) < 2 {
+		return errors.New("json: illegal data: " + string(data))
+	}
+
+	if data[0] != '"' {
+		return errors.New("json: illegal at input byte 0")
+	}
+
+	if data[len(data)-1] != '"' {
+		return errors.New("json: illegal data at input byte " + strconv.Itoa(len(data)-1))
+	}
+
+	*b, err = base64.RawURLEncoding.DecodeString(string(data[1 : len(data)-1]))
+	return err
+}
+
+func (r PubKeyCreateRequest) MarshalJSON() ([]byte, error) {
+	type Alias PubKeyCreateRequest
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
 	}{
-		Type:  "auth.credentialGetRequest",
-		Alias: Alias(gr),
+		Type:  "credentials.pubKeyCreateRequest",
+		Alias: Alias(r),
 	})
 }
 
-func (cr CreateRequest) MarshalJSON() ([]byte, error) {
-	type Alias CreateRequest
+func (r PubKeyGetRequest) MarshalJSON() ([]byte, error) {
+	type Alias PubKeyGetRequest
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
 	}{
-		Type:  "auth.credentialCreateRequest",
-		Alias: Alias(cr),
+		Type:  "credentials.pubKeyGetRequest",
+		Alias: Alias(r),
 	})
 }
 
-func (c Credential) MarshalJSON() ([]byte, error) {
-	type Alias Credential
+func (o PublicKeyCredentialCreationOpts) MarshalJSON() ([]byte, error) {
+	type Alias PublicKeyCredentialCreationOpts
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
 	}{
-		Type:  "auth.credential",
-		Alias: Alias(c),
+		Type:  "credentials.pubKeyCreateOpts",
+		Alias: Alias(o),
 	})
 }
 
-func (cs Credentials) MarshalJSON() ([]byte, error) {
-	type Alias Credentials
+func (o PublicKeyCredentialRequestOpts) MarshalJSON() ([]byte, error) {
+	type Alias PublicKeyCredentialRequestOpts
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
 	}{
-		Type:  "auth.credentials",
-		Alias: Alias(cs),
+		Type:  "credentials.pubKeyGetOpts",
+		Alias: Alias(o),
 	})
+}
+
+func (r AuthenticatorResponse) UnmarshalJSON(data []byte) error {
 }

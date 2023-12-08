@@ -21,6 +21,7 @@ type config struct {
 	SmsApiBaseUrl  string
 	RpName         string
 	RpID           string
+	Origin         string
 }
 
 var Config *config
@@ -43,6 +44,7 @@ func Load() *config {
 		SmsApiBaseUrl:  os.Getenv("SMS_API_URL"),
 		RpID:           c.GetEnvStr("RP_ID", "localhost"),
 		RpName:         c.GetEnvStr("RP_NAME", "Yeah Dev"),
+		Origin:         c.GetEnvStr("ORIGIN", "http://localhost:3000"),
 	}
 
 	return Config
