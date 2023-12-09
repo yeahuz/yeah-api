@@ -72,6 +72,7 @@ func main() {
 	mux.Handle("/credentials.pubKeyCreateRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandlePubKeyCreateRequest, http.MethodPost)))
 	mux.Handle("/credentials.pubKeyGetRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandlePubKeyGetRequest, http.MethodPost)))
 	mux.Handle("/credentials.createPubKey", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreatePubKey, http.MethodPost)))
+	mux.Handle("/credentials.verifyPubKey", c.LocalizerMiddleware(c.MakeHandler(auth.HandleVerifyPubKey, http.MethodPost)))
 	// mux.Handle("/credentials.verify", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialVerify, http.MethodPost)))
 	// mux.Handle("/credentials.create", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreateCredential, http.MethodPost)))
 	fmt.Printf("Server started at %s\n", config.Addr)

@@ -53,7 +53,10 @@ create table if not exists credential_requests (
   id bigserial primary key,
   type varchar(255) not null,
   challenge varchar(255) not null,
-  used boolean default false
+  user_id bigint not null,
+  used boolean default false,
+
+  foreign key(user_id) references users(id) on delete cascade
 );
 
 create table if not exists credentials (
@@ -61,6 +64,7 @@ create table if not exists credentials (
   credential_id varchar(1024) default '',
   title varchar(255) not null,
   pubkey text default '',
+  pubkey_algo int default -7,
   type varchar(255) default 'public-key',
   counter int default 0,
   transports text[] default '{}',
@@ -72,6 +76,8 @@ create table if not exists credentials (
   foreign key(user_id) references users(id) on delete cascade,
   foreign key(credential_request_id) references credential_requests(id) on delete cascade
 );
+
+create index idx_credential_requests_user_id on credential_requests(user_id);
 
 create index idx_credentials_user_id on credentials(user_id);
 create index idx_credentials_credential_id on credentials(credential_id);

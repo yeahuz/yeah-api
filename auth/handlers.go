@@ -18,6 +18,7 @@ import (
 var (
 	termsOfService              = TermsOfService{Text: "this is a terms of service"}
 	authorizationSignUpRequired = AuthorizationSignUpRequired{TermsOfService: termsOfService}
+	userId                      = "10"
 )
 
 func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
@@ -251,7 +252,17 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 func HandlePubKeyCreateRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	request, err := credential.NewPubKeyCreateRequest("200", "Avazbek")
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		return errors.NewBadRequest(l.T("user_id is required"))
+	}
+
+	u, err := user.GetById(userID)
+	if err != nil {
+		return err
+	}
+
+	request, err := credential.NewPubKeyCreateRequest(u.ID, u.FirstName)
 
 	if err != nil {
 		return err
@@ -267,11 +278,29 @@ func HandlePubKeyCreateRequest(w http.ResponseWriter, r *http.Request) error {
 func HandlePubKeyGetRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	request, err := credential.NewPubKeyGetRequest([]credential.PublicKeyCredentialDescriptor{})
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		return errors.NewBadRequest(l.T("user_id is required"))
+	}
 
-	_ = ctx
+	u, err := user.GetById(userID)
+	if err != nil {
+		return err
+	}
+
+	credentials, err := credential.GetAll(ctx, u.ID)
+	if err != nil {
+		return err
+	}
+
+	request, err := credential.NewPubKeyGetRequest(u.ID, credentials)
+
 	if err != nil {
 		return errors.Internal
+	}
+
+	if err := request.Save(ctx); err != nil {
+		return err
 	}
 
 	return c.JSON(w, http.StatusOK, request)
@@ -292,82 +321,57 @@ func HandleCreatePubKey(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
+	if err := credential.ValidateClientData(createData.Credential.Response.ClientDataJSON, request); err != nil {
+		return err
+	}
+
+	authnData, err := credential.ValidateAuthenticatorData(createData.Credential.Response.AuthenticatorData)
+	if err != nil {
+		return err
+	}
+
+	pubKeyCredential := &credential.PubKeyCredential{
+		CredentialID:        createData.Credential.ID,
+		Counter:             authnData.Counter,
+		UserID:              request.UserID,
+		PubKey:              createData.Credential.Response.PubKey,
+		PubKeyAlg:           createData.Credential.Response.PubKeyAlg,
+		Transports:          createData.Credential.Response.Transports,
+		CredentialRequestID: createData.ReqID,
+		Title:               createData.Title,
+	}
+
+	if err := pubKeyCredential.Save(ctx); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, nil)
 }
 
-// func HandleCredentialCreateRequest(w http.ResponseWriter, r *http.Request) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-// 	defer cancel()
-// 	createRequest, err := credential.NewCreateRequest("200", "Avazbek", "Avazbek")
+func HandleVerifyPubKey(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	var assertData credential.AssertPubKeyData
+	err := json.NewDecoder(r.Body).Decode(&assertData)
+	defer r.Body.Close()
+	if err != nil {
+		return errors.Internal
+	}
 
-// 	if err != nil {
-// 		return err
-// 	}
+	request, err := credential.GetRequestById(ctx, assertData.ReqID)
 
-// 	if err := createRequest.Save(ctx); err != nil {
-// 		return err
-// 	}
+	if err != nil {
+		return err
+	}
 
-// 	return c.JSON(w, http.StatusOK, createRequest)
-// }
+	if err := credential.ValidateClientData(assertData.Credential.Response.ClientDataJSON, request); err != nil {
+		return err
+	}
 
-// func HandleCredentialGetRequest(w http.ResponseWriter, r *http.Request) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-// 	defer cancel()
-// 	allowedCredentials, err := credential.GetAllowedCredentials(ctx, "10")
-// 	if err != nil {
-// 		return err
-// 	}
+	if _, err := credential.ValidateAuthenticatorData(assertData.Credential.Response.AuthenticatorData); err != nil {
+		return err
+	}
 
-// 	getRequest, err := credential.NewGetRequest(allowedCredentials)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err := getRequest.Save(ctx); err != nil {
-// 		return err
-// 	}
-
-// 	return c.JSON(w, http.StatusOK, getRequest)
-// }
-
-func HandleCredentialVerify(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	return c.JSON(w, http.StatusOK, request)
 }
-
-// func HandleCreateCredential(w http.ResponseWriter, r *http.Request) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-// 	defer cancel()
-// 	var credentialData credential.CreateCredentialData
-// 	err := json.NewDecoder(r.Body).Decode(&credentialData)
-// 	defer r.Body.Close()
-// 	if err != nil {
-// 		return errors.Internal
-// 	}
-
-// 	request, err := credential.GetRequestById(ctx, credentialData.ReqID)
-
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if _, err := request.VerifyClientData(credentialData.Credential.Response.ClientDataJSON); err != nil {
-// 		return err
-// 	}
-
-// 	b, err := base64.RawURLEncoding.DecodeString(credentialData.Credential.Response.AttestationObject)
-
-// 	if err != nil {
-// 		fmt.Printf("Decode error: %s\n", err)
-// 		return errors.Internal
-// 	}
-
-// 	p, err := credential.ParseAttestation(b)
-// 	if err != nil {
-// 		fmt.Printf("Parse error: %s\n", err)
-// 		return errors.Internal
-// 	}
-// 	fmt.Println(p)
-
-// 	_ = p
-// 	return nil
-// }
