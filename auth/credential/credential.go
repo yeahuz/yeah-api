@@ -2,13 +2,18 @@ package credential
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/sha512"
+	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
+	"hash"
 	"math/big"
 
 	"github.com/yeahuz/yeah-api/config"
@@ -18,6 +23,12 @@ import (
 )
 
 var l = localizer.GetDefault()
+
+var hashers = map[COSEAlgorithmIdentifier]func() hash.Hash{
+	COSEAlgES256: sha256.New,
+	COSEAlgEdDSA: sha512.New,
+	COSEAlgRS256: sha256.New,
+}
 
 func NewPubKeyCreateRequest(userID, displayName string) (*PubKeyCreateRequest, error) {
 	challenge, err := generateChallenge()
@@ -45,6 +56,8 @@ func NewPubKeyCreateRequest(userID, displayName string) (*PubKeyCreateRequest, e
 			Attestation: AttestationNone,
 			PubKeyCredParams: []pubKeyCredentialParameters{
 				{Type: "public-key", Alg: COSEAlgES256},
+				{Type: "public-key", Alg: COSEAlgEdDSA},
+				{Type: "public-key", Alg: COSEAlgRS256},
 			},
 		},
 	}
@@ -77,8 +90,8 @@ func NewPubKeyGetRequest(userID string, allowCredentials []pubKeyCredentialDescr
 func GetById(ctx context.Context, credId string) (*PubKeyCredential, error) {
 	var credential PubKeyCredential
 	err := db.Pool.QueryRow(ctx,
-		"select id, credential_id, title, transports, user_id from credentials where credential_id = $1", credId).Scan(
-		&credential.ID, &credential.Title, &credential.Transports, &credential.UserID)
+		"select id, credential_id, title, transports, user_id, pubkey, pubkey_alg from credentials where credential_id = $1", credId).Scan(
+		&credential.ID, &credential.CredentialID, &credential.Title, &credential.Transports, &credential.UserID, &credential.PubKey, &credential.PubKeyAlg)
 
 	if err != nil {
 		// TODO: handle errors properly
@@ -119,7 +132,7 @@ func (r *PubKeyCreateRequest) Save(ctx context.Context) error {
 	).Scan(&r.ID)
 
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
+		//TODO: handle errors properly
 		return errors.Internal
 	}
 
@@ -141,7 +154,7 @@ func (r *pubKeyGetRequest) Save(ctx context.Context) error {
 
 func (k *PubKeyCredential) Save(ctx context.Context) error {
 	err := db.Pool.QueryRow(ctx,
-		`insert into credentials (credential_id, title, pubkey, pubkey_algo, transports, user_id, counter, credential_request_id)
+		`insert into credentials (credential_id, title, pubkey, pubkey_alg, transports, user_id, counter, credential_request_id)
 		 values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
 		k.CredentialID, k.Title, k.PubKey, k.PubKeyAlg, k.Transports, k.UserID, k.Counter, k.CredentialRequestID,
 	).Scan(&k.ID)
@@ -185,31 +198,31 @@ func ValidateAuthenticatorData(data string) (*authenticatorData, error) {
 	return authnData, err
 }
 
-func ValidateClientData(rawClientData string, req *Request) error {
+func ValidateClientData(rawClientData string, req *Request) (*collectedClientData, error) {
 	decoded, err := base64.RawURLEncoding.DecodeString(rawClientData)
 	if err != nil {
-		return errors.Internal
+		return nil, errors.Internal
 	}
 
-	clientData := &collectedClientData{}
+	clientData := &collectedClientData{Raw: decoded}
 
 	if err := json.Unmarshal(decoded, &clientData); err != nil {
-		return errors.Internal
+		return nil, errors.Internal
 	}
 
 	if clientData.Challenge != req.Challenge {
-		return errors.NewBadRequest(l.T("Challenges don't match"))
+		return nil, errors.NewBadRequest(l.T("Challenges don't match"))
 	}
 
 	if clientData.Origin != config.Config.Origin {
-		return errors.NewBadRequest(l.T("Invalid origin"))
+		return nil, errors.NewBadRequest(l.T("Invalid origin"))
 	}
 
 	if clientData.Type != req.Type {
-		return errors.NewBadRequest(l.T("Invalid credential type"))
+		return nil, errors.NewBadRequest(l.T("Invalid credential type"))
 	}
 
-	return nil
+	return clientData, nil
 }
 
 func generateChallenge() (string, error) {
@@ -223,37 +236,72 @@ func generateChallenge() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func parsePubKey(pubKey string) (string, error) {
-	keyBytes, err := base64.RawURLEncoding.DecodeString(pubKey)
+func (c *PubKeyCredential) Verify(cdata []byte, authnData []byte, sig string) error {
+	sigbytes, err := base64.RawURLEncoding.DecodeString(sig)
 	if err != nil {
-		return "", err
+		return errors.Internal
 	}
-	_ = keyBytes
 
-	return "", nil
+	clientDataHash := sha256.Sum256(cdata)
+	message := make([]byte, len(authnData)+len(clientDataHash))
+	copy(message, authnData)
+	copy(message[len(authnData):], clientDataHash[:])
+
+	return c.verifySignature(message, sigbytes)
 }
 
-func (k *ec2PubKeyData) verify(data []byte, sig []byte) (bool, error) {
-	var curve elliptic.Curve
-	switch COSEAlgorithmIdentifier(k.Alg) {
-	case COSEAlgES256:
-		curve = elliptic.P256()
-	case COSEAlgES384:
-		curve = elliptic.P384()
-	case COSEAlgES512:
-		curve = elliptic.P521()
+func (c *PubKeyCredential) verifySignature(message []byte, sig []byte) error {
+	bytes, err := base64.RawURLEncoding.DecodeString(c.PubKey)
+	if err != nil {
+		return errors.NewInternal(l.T("Couldn't decode pubkey"))
+	}
+
+	parsed, err := x509.ParsePKIXPublicKey(bytes)
+
+	if err != nil {
+		return errors.NewInternal(l.T("Unable to parse pubkey"))
+	}
+
+	hasher := hashers[COSEAlgorithmIdentifier(c.PubKeyAlg)]
+	if hasher == nil {
+		return errors.NewInternal(l.T("Unsupported hashing algorithm"))
+	}
+
+	h := hasher()
+	_, err = h.Write(message)
+	if err != nil {
+		return errors.NewInternal(l.T("Couldn't hash the data"))
+	}
+
+	digest := h.Sum(nil)
+
+	switch pk := parsed.(type) {
+	case *ecdsa.PublicKey:
+		type ecdsaSignature struct {
+			R, S *big.Int
+		}
+		var ecdsaSig ecdsaSignature
+		if rest, err := asn1.Unmarshal(sig, &ecdsaSig); err != nil {
+			return errors.Internal
+		} else if len(rest) != 0 {
+			return errors.NewBadRequest(l.T("Trailing data after ECDSA signature"))
+		}
+		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
+			return errors.NewBadRequest(l.T("ECDSA signature contained zero or negative values"))
+		}
+		if !ecdsa.Verify(pk, digest, ecdsaSig.R, ecdsaSig.S) {
+			return errors.NewBadRequest(l.T("ECDSA signature verification failed"))
+		}
+	case *rsa.PublicKey:
+		if err := rsa.VerifyPKCS1v15(pk, crypto.SHA256, digest, sig); err != nil {
+			return errors.NewBadRequest(l.T("RSA signature verification failed"))
+		}
 	default:
-		return false, fmt.Errorf("Unsupported")
+		return errors.NewInternal("Unsupported key type")
+
 	}
 
-	pubKey := &ecdsa.PublicKey{
-		Curve: curve,
-		X:     big.NewInt(0).SetBytes(k.xcoord),
-		Y:     big.NewInt(0).SetBytes(k.ycoord),
-	}
-	_ = pubKey
-
-	return false, nil
+	return nil
 }
 
 func parseAuthenticatorData(authnData string) (*authenticatorData, error) {
@@ -266,7 +314,7 @@ func parseAuthenticatorData(authnData string) (*authenticatorData, error) {
 		return nil, errors.NewBadRequest("authenticator data: unexpected EOF")
 	}
 
-	r := &authenticatorData{}
+	r := &authenticatorData{Raw: data}
 	r.RpIDHash = make([]byte, 32)
 	copy(r.RpIDHash, data)
 

@@ -69,53 +69,9 @@ type COSEAlgorithmIdentifier int
 
 const (
 	COSEAlgES256 COSEAlgorithmIdentifier = -7
-	COSEAlgES384 COSEAlgorithmIdentifier = -35
-	COSEAlgES512 COSEAlgorithmIdentifier = -36
 	COSEAlgEdDSA COSEAlgorithmIdentifier = -8
+	COSEAlgRS256 COSEAlgorithmIdentifier = -257
 )
-
-type COSEKeyType int
-
-const (
-	COSEKeyTypeReserved COSEKeyType = iota
-	COSEOctetKey
-	COSEEllipticKey
-	COSERSAKey
-	COSESymmetricKey
-	COSEHSSLMS
-)
-
-type COSEEllipticCurve int
-
-const (
-	COSEEllipticCurveReserved COSEEllipticCurve = iota
-	COSEP256
-	COSEP384
-	COSEP521
-	COSEX25519
-	COSEX448
-	COSEEd25519
-	COSEEd448
-	COSESecp256k1
-)
-
-type pubKeyData struct {
-	Kty int `cbor:"1,keyasint"`
-	Alg int `cbor:"3,keyasint"`
-}
-
-type ec2PubKeyData struct {
-	pubKeyData
-	curve  int    `cbor:"-1,keyasint,omitempty"`
-	xcoord []byte `cbor:"-2,keyasint,omityempty"`
-	ycoord []byte `cbor:"-3,keyasint,omitempty"`
-}
-
-type rsaPubKeyData struct {
-	pubKeyData
-	modulus  []byte `cbor:"-1,keyasint,omitempty"`
-	exponent []byte `cbor:"-2,keyasint,omitempty"`
-}
 
 type PubKeyCreateRequest struct {
 	ID     string                        `json:"id"`
@@ -131,6 +87,7 @@ type pubKeyGetRequest struct {
 }
 
 type collectedClientData struct {
+	Raw       []byte
 	Type      string `json:"type"`
 	Challenge string `json:"challenge"`
 	Origin    string `json:"origin"`
@@ -141,6 +98,7 @@ type authenticatorResponse struct {
 }
 
 type authenticatorData struct {
+	Raw          []byte
 	RpIDHash     []byte
 	UserPresent  bool
 	UserVerified bool

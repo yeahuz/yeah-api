@@ -322,7 +322,7 @@ func HandleCreatePubKey(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if err := credential.ValidateClientData(createData.Credential.Response.ClientDataJSON, request); err != nil {
+	if _, err := credential.ValidateClientData(createData.Credential.Response.ClientDataJSON, request); err != nil {
 		return err
 	}
 
@@ -365,13 +365,25 @@ func HandleVerifyPubKey(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if err := credential.ValidateClientData(assertData.Credential.Response.ClientDataJSON, request); err != nil {
+	clientData, err := credential.ValidateClientData(assertData.Credential.Response.ClientDataJSON, request)
+
+	if err != nil {
 		return err
 	}
 
-	if _, err := credential.ValidateAuthenticatorData(assertData.Credential.Response.AuthenticatorData); err != nil {
+	authnData, err := credential.ValidateAuthenticatorData(assertData.Credential.Response.AuthenticatorData)
+
+	if err != nil {
+		return err
+	}
+	credential, err := credential.GetById(ctx, assertData.Credential.ID)
+	if err != nil {
 		return err
 	}
 
-	return c.JSON(w, http.StatusOK, request)
+	if err := credential.Verify(clientData.Raw, authnData.Raw, assertData.Credential.Response.Signature); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, nil)
 }

@@ -64,7 +64,7 @@ create table if not exists credentials (
   credential_id varchar(1024) default '',
   title varchar(255) not null,
   pubkey text default '',
-  pubkey_algo int default -7,
+  pubkey_alg int default -7,
   type varchar(255) default 'public-key',
   counter int default 0,
   transports text[] default '{}',
