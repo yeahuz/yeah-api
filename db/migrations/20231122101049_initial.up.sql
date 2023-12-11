@@ -77,6 +77,17 @@ create table if not exists credentials (
   foreign key(credential_request_id) references credential_requests(id) on delete cascade
 );
 
+create table if not exists clients (
+  id bigserial primary key,
+  name varchar(255) not null,
+  secret varchar(255) default '',
+  type varchar(255) not null check (type in ('confidential', 'public')) default 'confidential',
+  active boolean default true,
+
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone
+);
+
 create index idx_credential_requests_user_id on credential_requests(user_id);
 
 create index idx_credentials_user_id on credentials(user_id);

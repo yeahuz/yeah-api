@@ -68,13 +68,15 @@ func main() {
 	mux.Handle("/auth.signInWithPhone", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignInWithPhone, http.MethodPost)))
 	mux.Handle("/auth.signUpWithEmail", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithEmail, http.MethodPost)))
 	mux.Handle("/auth.signUpWithPhone", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithPhone, http.MethodPost)))
-	// mux.Handle("/credentials.get", c.LocalizerMiddleware(c.MakeHandler(auth.HandleGetCredentials, http.MethodGet)))
+	mux.Handle("/auth.createLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreateLoginToken, http.MethodPost)))
+	mux.Handle("/auth.acceptLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleAcceptLoginToken, http.MethodPost)))
+	mux.Handle("/auth.verifyLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleVerifyLoginToken, http.MethodPost)))
+
 	mux.Handle("/credentials.pubKeyCreateRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandlePubKeyCreateRequest, http.MethodPost)))
 	mux.Handle("/credentials.pubKeyGetRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandlePubKeyGetRequest, http.MethodPost)))
 	mux.Handle("/credentials.createPubKey", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreatePubKey, http.MethodPost)))
 	mux.Handle("/credentials.verifyPubKey", c.LocalizerMiddleware(c.MakeHandler(auth.HandleVerifyPubKey, http.MethodPost)))
-	// mux.Handle("/credentials.verify", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCredentialVerify, http.MethodPost)))
-	// mux.Handle("/credentials.create", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreateCredential, http.MethodPost)))
+
 	fmt.Printf("Server started at %s\n", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, mux))
 }

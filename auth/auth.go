@@ -1,8 +1,18 @@
 package auth
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"fmt"
 	"regexp"
+	"strings"
+	"time"
 
+	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
@@ -11,6 +21,64 @@ var (
 	emailRegex = regexp.MustCompile(`(?i)^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$`)
 	l          = localizer.GetDefault()
 )
+
+func newLoginToken() (*LoginToken, error) {
+	b := make([]byte, 16)
+
+	_, err := rand.Read(b)
+
+	if err != nil {
+		return nil, err
+	}
+
+	expiresAt := time.Now().Add(time.Second * 30)
+	payload := make([]byte, 24)
+	copy(payload, b)
+	binary.BigEndian.PutUint64(payload[16:], uint64(expiresAt.Unix()))
+	h := hmac.New(sha256.New, []byte(config.Config.JwtSecret))
+	h.Write(payload)
+	sig := h.Sum(nil)
+
+	loginToken := &LoginToken{
+		Token:     fmt.Sprintf("%s.%s", base64.RawURLEncoding.EncodeToString(payload), base64.RawURLEncoding.EncodeToString(sig)),
+		ExpiresAt: expiresAt,
+	}
+
+	return loginToken, nil
+}
+
+func parseLoginToken(tok string) (*LoginToken, error) {
+	parts := strings.Split(tok, ".")
+	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, err
+	}
+	sig, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	token := &LoginToken{
+		payload: payload,
+		sig:     sig,
+	}
+
+	return token, nil
+}
+
+func (t *LoginToken) verify() bool {
+	h := hmac.New(sha256.New, []byte(config.Config.JwtSecret))
+	h.Write(t.payload)
+	checksum := h.Sum(nil)
+
+	var expiresAt int64
+	binary.Read(bytes.NewReader(t.payload[16:]), binary.BigEndian, &expiresAt)
+	if time.Now().After(time.Unix(expiresAt, 0)) {
+		return false
+	}
+
+	return bytes.Equal(checksum, t.sig)
+}
 
 func (pcd PhoneCodeData) validate() error {
 	if len(pcd.PhoneNumber) == 0 {

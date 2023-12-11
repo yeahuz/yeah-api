@@ -9,6 +9,13 @@ import (
 
 type SentCodeType interface{}
 
+type LoginToken struct {
+	sig       []byte
+	payload   []byte
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type PhoneCodeData struct {
 	PhoneNumber string `json:"phone_number"`
 }
@@ -140,5 +147,16 @@ func (sc SentCode) MarshalJSON() ([]byte, error) {
 	}{
 		Type:  "auth.sentCode",
 		Alias: Alias(sc),
+	})
+}
+
+func (lt LoginToken) MarshalJSON() ([]byte, error) {
+	type Alias LoginToken
+	return json.Marshal(struct {
+		Type string `json:"_"`
+		Alias
+	}{
+		Type:  "auth.loginToken",
+		Alias: Alias(lt),
 	})
 }

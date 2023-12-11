@@ -387,3 +387,36 @@ func HandleVerifyPubKey(w http.ResponseWriter, r *http.Request) error {
 
 	return c.JSON(w, http.StatusOK, nil)
 }
+
+func HandleCreateLoginToken(w http.ResponseWriter, r *http.Request) error {
+	loginToken, err := newLoginToken()
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, loginToken)
+}
+
+func HandleAcceptLoginToken(w http.ResponseWriter, r *http.Request) error {
+	type data struct {
+		Token string `json:"token"`
+	}
+
+	var d data
+	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+		return err
+	}
+
+	token, err := parseLoginToken(d.Token)
+	if err != nil {
+		return err
+	}
+
+	valid := token.verify()
+
+	return c.JSON(w, http.StatusOK, valid)
+}
+
+func HandleVerifyLoginToken(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}

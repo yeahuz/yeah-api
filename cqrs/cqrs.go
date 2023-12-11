@@ -3,7 +3,7 @@ package cqrs
 import (
 	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -76,8 +76,8 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 			case "auth.sendEmailCode":
 				{
 					var cmd SendEmailCodeCommand
-					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&cmd); err != nil {
-						fmt.Printf("Error decoding: %s\n", err)
+					if err := json.Unmarshal(m.Data(), &cmd); err != nil {
+						fmt.Printf("Error unmarshalling: %s\n", err)
 					}
 
 					_, err := sesClient.SendEmail(ctx, &ses.SendEmailInput{
@@ -107,9 +107,8 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 			case "auth.sendPhoneCode":
 				{
 					var cmd SendPhoneCodeCommand
-
-					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&cmd); err != nil {
-						fmt.Printf("Error decoding: %s\n", err)
+					if err := json.Unmarshal(m.Data(), &cmd); err != nil {
+						fmt.Printf("Error unmarshalling: %s\n", err)
 					}
 
 					err := smsClient.Send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
@@ -124,8 +123,8 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 			case "auth.emailCodeSent":
 				{
 					var ev EmailCodeSentEvent
-					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&ev); err != nil {
-						fmt.Printf("Error decoding: %s\n", err)
+					if err := json.Unmarshal(m.Data(), &ev); err != nil {
+						fmt.Printf("Error unmarshalling: %s\n", err)
 					}
 					if err := m.Ack(); err != nil {
 						m.NakWithDelay(time.Second * 5)
@@ -135,8 +134,8 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 			case "auth.phoneCodeSent":
 				{
 					var ev PhoneCodeSentEvent
-					if err := gob.NewDecoder(bytes.NewBuffer(m.Data())).Decode(&ev); err != nil {
-						fmt.Printf("Error decoding: %s\n", err)
+					if err := json.Unmarshal(m.Data(), &ev); err != nil {
+						fmt.Printf("Error unmarshalling: %s\n", err)
 					}
 					if err := m.Ack(); err != nil {
 						m.NakWithDelay(time.Second * 5)
@@ -163,7 +162,7 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 
 func Send(message Message) error {
 	buf := &bytes.Buffer{}
-	if err := gob.NewEncoder(buf).Encode(message); err != nil {
+	if err := json.NewEncoder(buf).Encode(message); err != nil {
 		return err
 	}
 
