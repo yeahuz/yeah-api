@@ -22,7 +22,7 @@ var (
 	l          = localizer.GetDefault()
 )
 
-func newLoginToken() (*LoginToken, error) {
+func newLoginToken() (*loginToken, error) {
 	b := make([]byte, 16)
 
 	_, err := rand.Read(b)
@@ -35,11 +35,11 @@ func newLoginToken() (*LoginToken, error) {
 	payload := make([]byte, 24)
 	copy(payload, b)
 	binary.BigEndian.PutUint64(payload[16:], uint64(expiresAt.Unix()))
-	h := hmac.New(sha256.New, []byte(config.Config.JwtSecret))
+	h := hmac.New(sha256.New, []byte(config.Config.SigningSecret))
 	h.Write(payload)
 	sig := h.Sum(nil)
 
-	loginToken := &LoginToken{
+	loginToken := &loginToken{
 		Token:     fmt.Sprintf("%s.%s", base64.RawURLEncoding.EncodeToString(payload), base64.RawURLEncoding.EncodeToString(sig)),
 		ExpiresAt: expiresAt,
 	}
@@ -47,7 +47,7 @@ func newLoginToken() (*LoginToken, error) {
 	return loginToken, nil
 }
 
-func parseLoginToken(tok string) (*LoginToken, error) {
+func parseLoginToken(tok string) (*loginToken, error) {
 	parts := strings.Split(tok, ".")
 	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
@@ -58,29 +58,34 @@ func parseLoginToken(tok string) (*LoginToken, error) {
 		return nil, err
 	}
 
-	token := &LoginToken{
-		payload: payload,
-		sig:     sig,
+	var expiresAt int64
+	binary.Read(bytes.NewReader(payload[16:]), binary.BigEndian, &expiresAt)
+	token := &loginToken{
+		payload:   payload,
+		sig:       sig,
+		ExpiresAt: time.Unix(expiresAt, 0),
 	}
 
 	return token, nil
 }
 
-func (t *LoginToken) verify() bool {
-	h := hmac.New(sha256.New, []byte(config.Config.JwtSecret))
+func (t *loginToken) verify() error {
+	h := hmac.New(sha256.New, []byte(config.Config.SigningSecret))
 	h.Write(t.payload)
 	checksum := h.Sum(nil)
 
-	var expiresAt int64
-	binary.Read(bytes.NewReader(t.payload[16:]), binary.BigEndian, &expiresAt)
-	if time.Now().After(time.Unix(expiresAt, 0)) {
-		return false
+	if time.Now().After(t.ExpiresAt) {
+		return errors.NewBadRequest(l.T("Login token expired"))
 	}
 
-	return bytes.Equal(checksum, t.sig)
+	if !bytes.Equal(checksum, t.sig) {
+		return errors.NewBadRequest(l.T("Login token is invalid"))
+	}
+
+	return nil
 }
 
-func (pcd PhoneCodeData) validate() error {
+func (pcd phoneCodeData) validate() error {
 	if len(pcd.PhoneNumber) == 0 {
 		return errors.NewBadRequest(l.T("Phone number is required"))
 	}
@@ -92,7 +97,7 @@ func (pcd PhoneCodeData) validate() error {
 	return nil
 }
 
-func (ecd EmailCodeData) validate() error {
+func (ecd emailCodeData) validate() error {
 	if len(ecd.Email) == 0 {
 		return errors.NewBadRequest(l.T("Email is required"))
 	}
@@ -130,7 +135,7 @@ func (sipd SignInPhoneData) validate() error {
 	return nil
 }
 
-func (sied SignInEmailData) validate() error {
+func (sied signInEmailData) validate() error {
 	errs := make(map[string]string)
 
 	if !emailRegex.MatchString(sied.Email) {
@@ -156,7 +161,7 @@ func (sied SignInEmailData) validate() error {
 	return nil
 }
 
-func (sued SignUpEmailData) validate() error {
+func (sued signUpEmailData) validate() error {
 	errs := make(map[string]string)
 
 	if !emailRegex.MatchString(sued.Email) {
@@ -190,7 +195,7 @@ func (sued SignUpEmailData) validate() error {
 	return nil
 }
 
-func (supd SignUpPhoneData) validate() error {
+func (supd signUpPhoneData) validate() error {
 	errs := make(map[string]string)
 
 	if len(supd.PhoneNumber) == 0 {

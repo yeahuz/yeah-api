@@ -7,76 +7,80 @@ import (
 	"github.com/yeahuz/yeah-api/user"
 )
 
-type SentCodeType interface{}
+type sentCodeType interface{}
 
-type LoginToken struct {
+type loginToken struct {
 	sig       []byte
 	payload   []byte
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-type PhoneCodeData struct {
+type loginTokenData struct {
+	Token string `json:"token"`
+}
+
+type phoneCodeData struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-type EmailCodeData struct {
+type emailCodeData struct {
 	Email string `json:"email"`
 }
 
-type SentCodeSms struct {
-	Length int `json:"length"`
-}
-
-type SentCodeEmail struct {
-	Length int `json:"length"`
-}
-
-type SentCode struct {
-	Type SentCodeType `json:"type"`
+type sentCode struct {
+	Type sentCodeType `json:"type"`
 	Hash string       `json:"hash"`
 }
 
-type SignInData struct {
+type sentCodeSms struct {
+	Length int `json:"length"`
+}
+
+type sentCodeEmail struct {
+	Length int `json:"length"`
+}
+
+type signInData struct {
 	Code string `json:"code"`
 	Hash string `json:"hash"`
 }
 
-type SignUpData struct {
-	SignInData
+type signUpData struct {
+	signInData
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 }
 
 type SignInPhoneData struct {
-	SignInData
+	signInData
 	PhoneNumber string `json:"phone_number"`
 }
 
-type SignInEmailData struct {
-	SignInData
+type signInEmailData struct {
+	signInData
 	Email string `json:"email"`
 }
 
-type TermsOfService struct {
+type termsOfService struct {
 	Text string `json:"text"`
 }
 
-type AuthorizationSignUpRequired struct {
-	TermsOfService TermsOfService `json:"terms_of_service"`
+type authorizationSignUpRequired struct {
+	TermsOfService termsOfService `json:"terms_of_service"`
 }
 
-type Authorization struct {
+type authorization struct {
 	User *user.User `json:"user"`
 }
 
-type SignUpEmailData struct {
-	SignUpData
+type signUpEmailData struct {
+	signUpData
 	Email string `json:"email"`
 }
 
-type SignUpPhoneData struct {
-	SignUpData
+type signUpPhoneData struct {
+	signUpData
 	PhoneNumber string `json:"phone_number"`
 }
 
@@ -87,7 +91,7 @@ const (
 	providerTelegram providerName = "telegram"
 )
 
-type Provider struct {
+type provider struct {
 	name      providerName
 	logoUrl   string
 	active    bool
@@ -95,8 +99,8 @@ type Provider struct {
 	updatedAt time.Time
 }
 
-func (a Authorization) MarshalJSON() ([]byte, error) {
-	type Alias Authorization
+func (a authorization) MarshalJSON() ([]byte, error) {
+	type Alias authorization
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
@@ -106,8 +110,8 @@ func (a Authorization) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (ar AuthorizationSignUpRequired) MarshalJSON() ([]byte, error) {
-	type Alias AuthorizationSignUpRequired
+func (ar authorizationSignUpRequired) MarshalJSON() ([]byte, error) {
+	type Alias authorizationSignUpRequired
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
@@ -117,8 +121,8 @@ func (ar AuthorizationSignUpRequired) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (scs SentCodeSms) MarshalJSON() ([]byte, error) {
-	type Alias SentCodeSms
+func (scs sentCodeSms) MarshalJSON() ([]byte, error) {
+	type Alias sentCodeSms
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
@@ -128,8 +132,8 @@ func (scs SentCodeSms) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (sce SentCodeEmail) MarshalJSON() ([]byte, error) {
-	type Alias SentCodeEmail
+func (sce sentCodeEmail) MarshalJSON() ([]byte, error) {
+	type Alias sentCodeEmail
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
@@ -139,8 +143,8 @@ func (sce SentCodeEmail) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (sc SentCode) MarshalJSON() ([]byte, error) {
-	type Alias SentCode
+func (sc sentCode) MarshalJSON() ([]byte, error) {
+	type Alias sentCode
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias
@@ -150,8 +154,8 @@ func (sc SentCode) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (lt LoginToken) MarshalJSON() ([]byte, error) {
-	type Alias LoginToken
+func (lt loginToken) MarshalJSON() ([]byte, error) {
+	type Alias loginToken
 	return json.Marshal(struct {
 		Type string `json:"_"`
 		Alias

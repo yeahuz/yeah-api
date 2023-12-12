@@ -19,7 +19,10 @@ import (
 var jstream jetstream.JetStream
 
 var streamNames = map[string][]string{
-	"auth": {"auth.sendEmailCode", "auth.sendPhoneCode", "auth.emailCodeSent", "auth.phoneCodeSent", "auth.emailCodeSendFailed", "auth.phoneCodeSendFailed"},
+	"auth": {
+		"auth.sendEmailCode", "auth.sendPhoneCode", "auth.emailCodeSent", "auth.phoneCodeSent", "auth.emailCodeSendFailed", "auth.phoneCodeSendFailed",
+		"auth.loginTokenRejected", "auth.loginTokenAccepted",
+	},
 }
 
 type Message interface {

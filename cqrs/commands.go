@@ -7,14 +7,14 @@ const (
 
 type SendEmailCodeCommand struct {
 	name  string
-	Email string
-	Code  string
+	Email string `json:"email"`
+	Code  string `json:"code"`
 }
 
 type SendPhoneCodeCommand struct {
 	name        string
-	PhoneNumber string
-	Code        string
+	PhoneNumber string `json:"phone_number"`
+	Code        string `json:"code"`
 }
 
 func NewSendEmailCodeCommand(email string, code string) SendEmailCodeCommand {

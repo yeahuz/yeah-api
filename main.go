@@ -70,7 +70,8 @@ func main() {
 	mux.Handle("/auth.signUpWithPhone", c.LocalizerMiddleware(c.MakeHandler(auth.HandleSignUpWithPhone, http.MethodPost)))
 	mux.Handle("/auth.createLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleCreateLoginToken, http.MethodPost)))
 	mux.Handle("/auth.acceptLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleAcceptLoginToken, http.MethodPost)))
-	mux.Handle("/auth.verifyLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleVerifyLoginToken, http.MethodPost)))
+	mux.Handle("/auth.rejectLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleRejectLoginToken, http.MethodPost)))
+	mux.Handle("/auth.scanLoginToken", c.LocalizerMiddleware(c.MakeHandler(auth.HandleScanLoginToken, http.MethodPost)))
 
 	mux.Handle("/credentials.pubKeyCreateRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandlePubKeyCreateRequest, http.MethodPost)))
 	mux.Handle("/credentials.pubKeyGetRequest", c.LocalizerMiddleware(c.MakeHandler(auth.HandlePubKeyGetRequest, http.MethodPost)))

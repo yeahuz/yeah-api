@@ -16,13 +16,13 @@ import (
 )
 
 var (
-	termsOfService              = TermsOfService{Text: "this is a terms of service"}
-	authorizationSignUpRequired = AuthorizationSignUpRequired{TermsOfService: termsOfService}
-	userId                      = "10"
+	tos            = termsOfService{Text: "this is a terms of service"}
+	signupRequired = authorizationSignUpRequired{TermsOfService: tos}
+	userId         = "10"
 )
 
 func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
-	var phoneCodeData PhoneCodeData
+	var phoneCodeData phoneCodeData
 	err := json.NewDecoder(r.Body).Decode(&phoneCodeData)
 	defer r.Body.Close()
 
@@ -44,12 +44,12 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 		return errors.Internal
 	}
 
-	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeSms{Length: len(otp.Code)}}
+	sentCode := sentCode{Hash: otp.Hash, Type: sentCodeSms{Length: len(otp.Code)}}
 	return c.JSON(w, http.StatusOK, sentCode)
 }
 
 func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
-	var emailCodeData EmailCodeData
+	var emailCodeData emailCodeData
 	err := json.NewDecoder(r.Body).Decode(&emailCodeData)
 	defer r.Body.Close()
 
@@ -72,12 +72,12 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 		return errors.Internal
 	}
 
-	sentCode := SentCode{Hash: otp.Hash, Type: SentCodeEmail{Length: len(otp.Code)}}
+	sentCode := sentCode{Hash: otp.Hash, Type: sentCodeEmail{Length: len(otp.Code)}}
 	return c.JSON(w, http.StatusOK, sentCode)
 }
 
 func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
-	var signInData SignInEmailData
+	var signInData signInEmailData
 	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
 	if err != nil {
@@ -108,12 +108,12 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	u, err := user.GetByEmail(signInData.Email)
 	if err != nil {
 		if e.As(err, &errors.NotFound) {
-			return c.JSON(w, http.StatusOK, authorizationSignUpRequired)
+			return c.JSON(w, http.StatusOK, signupRequired)
 		}
 		return err
 	}
 
-	authorization := Authorization{User: u}
+	authorization := authorization{User: u}
 	return c.JSON(w, http.StatusOK, authorization)
 }
 
@@ -149,17 +149,17 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	u, err := user.GetByPhone(signInData.PhoneNumber)
 	if err != nil {
 		if e.As(err, &errors.NotFound) {
-			return c.JSON(w, http.StatusOK, authorizationSignUpRequired)
+			return c.JSON(w, http.StatusOK, signupRequired)
 		}
 		return err
 	}
 
-	authorization := Authorization{User: u}
+	authorization := authorization{User: u}
 	return c.JSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
-	var signUpData SignUpEmailData
+	var signUpData signUpEmailData
 	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	defer r.Body.Close()
 	if err != nil {
@@ -194,12 +194,12 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	authorization := Authorization{User: u}
+	authorization := authorization{User: u}
 	return c.JSON(w, http.StatusOK, authorization)
 }
 
 func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
-	var signUpData SignUpPhoneData
+	var signUpData signUpPhoneData
 	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	defer r.Body.Close()
 	if err != nil {
@@ -234,20 +234,9 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	authorization := Authorization{User: u}
+	authorization := authorization{User: u}
 	return c.JSON(w, http.StatusOK, authorization)
 }
-
-// func HandleGetCredentials(w http.ResponseWriter, r *http.Request) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-// 	defer cancel()
-// 	credentials, err := credential.GetAll(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return c.JSON(w, http.StatusOK, credentials)
-// }
 
 func HandlePubKeyCreateRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -398,25 +387,54 @@ func HandleCreateLoginToken(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleAcceptLoginToken(w http.ResponseWriter, r *http.Request) error {
-	type data struct {
-		Token string `json:"token"`
-	}
-
-	var d data
-	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+	var loginTokenData loginTokenData
+	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
 		return err
 	}
 
-	token, err := parseLoginToken(d.Token)
+	token, err := parseLoginToken(loginTokenData.Token)
 	if err != nil {
 		return err
 	}
 
-	valid := token.verify()
+	if err := token.verify(); err != nil {
+		return err
+	}
 
-	return c.JSON(w, http.StatusOK, valid)
+	if err := cqrs.Send(cqrs.NewLoginTokenAcceptedEvent(loginTokenData.Token)); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, nil)
 }
 
-func HandleVerifyLoginToken(w http.ResponseWriter, r *http.Request) error {
-	return nil
+func HandleRejectLoginToken(w http.ResponseWriter, r *http.Request) error {
+	var loginTokenData loginTokenData
+	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
+		return err
+	}
+
+	if err := cqrs.Send(cqrs.NewLoginTokenRejectedEvent(loginTokenData.Token)); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, nil)
+}
+
+func HandleScanLoginToken(w http.ResponseWriter, r *http.Request) error {
+	var loginTokenData loginTokenData
+	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
+		return err
+	}
+
+	token, err := parseLoginToken(loginTokenData.Token)
+	if err != nil {
+		return err
+	}
+
+	if err := token.verify(); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, nil)
 }

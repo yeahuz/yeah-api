@@ -22,7 +22,7 @@ type config struct {
 	RpName         string
 	RpID           string
 	Origin         string
-	JwtSecret      string
+	SigningSecret  string
 }
 
 var Config *config
@@ -46,7 +46,7 @@ func Load() *config {
 		RpID:           c.GetEnvStr("RP_ID", "localhost"),
 		RpName:         c.GetEnvStr("RP_NAME", "Yeah Dev"),
 		Origin:         c.GetEnvStr("ORIGIN", "http://localhost:3000"),
-		JwtSecret:      os.Getenv("JWT_SECRET"),
+		SigningSecret:  os.Getenv("SIGNING_SECRET"),
 	}
 
 	return Config
