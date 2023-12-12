@@ -8,10 +8,12 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
@@ -227,4 +229,12 @@ func (supd signUpPhoneData) validate() error {
 	}
 
 	return nil
+}
+
+func Middleware(next http.Handler) http.Handler {
+	return c.HandleError(func(w http.ResponseWriter, r *http.Request) error {
+		fmt.Printf("TODO: auth.middleware() not implemented yet!\n")
+		next.ServeHTTP(w, r)
+		return nil
+	})
 }

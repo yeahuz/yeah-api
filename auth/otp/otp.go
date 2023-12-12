@@ -75,16 +75,7 @@ func (o *Otp) Verify(code string) error {
 		return errors.NewBadRequest(l.T("Code expired"))
 	}
 
-	match, err := argon.Verify(code, o.Code)
-	if err != nil {
-		return errors.Internal
-	}
-
-	if !match {
-		return errors.NewBadRequest(l.T("Code is invalid"))
-	}
-
-	return nil
+	return argon.Verify(code, o.Code)
 }
 
 func (o *Otp) Confirm() error {

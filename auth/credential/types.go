@@ -27,10 +27,10 @@ type Request struct {
 type AuthenticatorTransport string
 
 const (
-	Authenticatorusb      AuthenticatorTransport = "usb"
-	Authenticatornfc      AuthenticatorTransport = "nfc"
-	Authenticatorble      AuthenticatorTransport = "ble"
-	Authenticatorinternal AuthenticatorTransport = "internal"
+	AuthenticatorUSB      AuthenticatorTransport = "usb"
+	AuthenticatorNFC      AuthenticatorTransport = "nfc"
+	AuthenticatorBLE      AuthenticatorTransport = "ble"
+	AuthenticatorInternal AuthenticatorTransport = "internal"
 )
 
 type AuthenticatorAttachment string

@@ -81,12 +81,29 @@ create table if not exists clients (
   id bigserial primary key,
   name varchar(255) not null,
   secret varchar(255) default '',
-  type varchar(255) not null check (type in ('confidential', 'public')) default 'confidential',
+  type varchar(255) not null check (type in ('confidential', 'public', 'internal')) default 'confidential',
   active boolean default true,
 
   created_at timestamp with time zone default now() not null,
   updated_at timestamp with time zone
 );
+
+create table if not exists sessions (
+  id uuid DEFAULT gen_random_uuid() primary key,
+  active boolean default true,
+  ip inet,
+  user_id bigint not null,
+  client_id bigint not null,
+  user_agent varchar(255),
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone,
+
+  foreign key(user_id) references users(id) on delete cascade,
+  foreign key(client_id) references clients(id) on delete cascade
+);
+
+create index idx_sessions_user_id on sessions(user_id);
+create index idx_sessions_client_id on sessions(client_id);
 
 create index idx_credential_requests_user_id on credential_requests(user_id);
 

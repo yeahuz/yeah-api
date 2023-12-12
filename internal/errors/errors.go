@@ -12,6 +12,7 @@ var (
 	MethodNotAllowed = NewMethodNotAllowed(l.T("Method not allowed"))
 	Internal         = NewInternal(l.T("Internal server error"))
 	NotFound         = NewNotFound(l.T("Resource not found"))
+	Unauthorized     = NewUnauthorized(l.T("Not authorized"))
 )
 
 type AppError interface {
@@ -51,6 +52,70 @@ func NewMethodNotAllowed(message string) errMethodNotAllowed {
 	return errMethodNotAllowed{
 		Message:    message,
 		StatusCode: http.StatusMethodNotAllowed,
+	}
+}
+
+type errUnauthorized struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
+}
+
+func (e errUnauthorized) Name() string {
+	return "error.internal"
+}
+
+func (e errUnauthorized) Error() string {
+	return e.Message
+}
+
+func (e errUnauthorized) ErrorMap() map[string]string {
+	return nil
+}
+
+func (e errUnauthorized) SetError(message string) {
+	e.Message = message
+}
+
+func (e errUnauthorized) Status() int {
+	return e.StatusCode
+}
+
+func NewUnauthorized(message string) errUnauthorized {
+	return errUnauthorized{
+		Message:    message,
+		StatusCode: http.StatusUnauthorized,
+	}
+}
+
+type errForbidden struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
+}
+
+func (e errForbidden) Name() string {
+	return "error.internal"
+}
+
+func (e errForbidden) Error() string {
+	return e.Message
+}
+
+func (e errForbidden) ErrorMap() map[string]string {
+	return nil
+}
+
+func (e errForbidden) SetError(message string) {
+	e.Message = message
+}
+
+func (e errForbidden) Status() int {
+	return e.StatusCode
+}
+
+func NewForbidden(message string) errUnauthorized {
+	return errUnauthorized{
+		Message:    message,
+		StatusCode: http.StatusForbidden,
 	}
 }
 

@@ -8,8 +8,11 @@ import (
 	"strings"
 
 	"github.com/yeahuz/yeah-api/internal/errors"
+	"github.com/yeahuz/yeah-api/internal/localizer"
 	"golang.org/x/crypto/argon2"
 )
+
+var l = localizer.GetDefault()
 
 type params struct {
 	saltLen uint32
@@ -55,20 +58,20 @@ func Hash(s string) (hash string, err error) {
 	return encodedHash, nil
 }
 
-func Verify(s, encoded string) (match bool, err error) {
+func Verify(s, encoded string) error {
 	p, salt, hash, err := decodeHash(encoded)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	otherHash := argon2.IDKey([]byte(s), salt, p.time, p.memory, p.threads, p.keyLen)
 
 	if subtle.ConstantTimeCompare(hash, otherHash) == 1 {
-		return true, nil
+		return errors.NewBadRequest(l.T("Code is invalid"))
 	}
 
-	return false, nil
+	return nil
 }
 
 func decodeHash(encoded string) (p *params, salt, hash []byte, err error) {
