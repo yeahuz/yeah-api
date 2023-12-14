@@ -2,19 +2,23 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
+	e "errors"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
+	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 )
@@ -23,6 +27,21 @@ var (
 	emailRegex = regexp.MustCompile(`(?i)^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$`)
 	l          = localizer.GetDefault()
 )
+
+func newSession(userID, clientID, userAgent string) *session {
+	return &session{
+		UserID:    userID,
+		ClientID:  clientID,
+		UserAgent: userAgent,
+	}
+}
+
+func (s *session) save(ctx context.Context) error {
+	return db.Pool.QueryRow(ctx,
+		"insert into sessions (user_id, client_id, user_agent, ip) values ($1, $2, $3, $4) returning id",
+		s.UserID, s.ClientID, s.UserAgent, s.IP,
+	).Scan(&s.ID)
+}
 
 func newLoginToken() (*loginToken, error) {
 	b := make([]byte, 16)
@@ -231,10 +250,47 @@ func (supd signUpPhoneData) validate() error {
 	return nil
 }
 
+func isValidUUID(uuid string) bool {
+	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
+	return r.MatchString(uuid)
+}
+
+func getSessionById(ctx context.Context, id string) (*session, error) {
+	if !isValidUUID(id) {
+		return nil, errors.NewBadRequest(l.T("Missing valid session id"))
+	}
+
+	var session session
+	err := db.Pool.QueryRow(ctx,
+		"select id, user_id, active from sessions where id = $1",
+		id).Scan(&session.ID, &session.UserID, &session.Active)
+
+	if err != nil {
+		if e.Is(err, pgx.ErrNoRows) {
+			return nil, errors.NewNotFound(l.T("Session with id %s not found", id))
+		}
+		return nil, errors.Internal
+	}
+
+	return &session, nil
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return c.HandleError(func(w http.ResponseWriter, r *http.Request) error {
-		fmt.Printf("TODO: auth.middleware() not implemented yet!\n")
-		next.ServeHTTP(w, r)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		sessionId := r.Header.Get("X-Session-Id")
+		session, err := getSessionById(ctx, sessionId)
+		if err != nil {
+			return err
+		}
+
+		if !session.Active {
+			return errors.Unauthorized
+		}
+
+		ctx = context.WithValue(r.Context(), "session", session)
+		next.ServeHTTP(w, r.WithContext(ctx))
 		return nil
 	})
 }

@@ -67,8 +67,8 @@ func Verify(s, encoded string) error {
 
 	otherHash := argon2.IDKey([]byte(s), salt, p.time, p.memory, p.threads, p.keyLen)
 
-	if subtle.ConstantTimeCompare(hash, otherHash) == 1 {
-		return errors.NewBadRequest(l.T("Code is invalid"))
+	if subtle.ConstantTimeCompare(hash, otherHash) == 0 {
+		return errors.NewBadRequest(l.T("Invalid hash"))
 	}
 
 	return nil

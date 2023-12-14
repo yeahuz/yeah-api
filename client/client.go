@@ -91,7 +91,7 @@ func Middleware(next http.Handler) http.Handler {
 		clientSecret := r.Header.Get("X-Client-Secret")
 		client, err := GetById(ctx, clientId)
 		if err != nil {
-			return errors.Unauthorized
+			return err
 		}
 
 		if err := client.Verify(clientSecret); err != nil {
