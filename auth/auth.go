@@ -275,6 +275,18 @@ func getSessionById(ctx context.Context, id string) (*session, error) {
 	return &session, nil
 }
 
+func getIP(r *http.Request) string {
+	ip := r.Header.Get("X-Forwarded-For")
+	if len(ip) == 0 {
+		ip = r.Header.Get("X-Real-Ip")
+	}
+	if len(ip) == 0 {
+		ip = r.RemoteAddr
+	}
+
+	return ip
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return c.HandleError(func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)

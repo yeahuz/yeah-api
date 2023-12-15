@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	e "errors"
-	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/yeahuz/yeah-api/auth/credential"
@@ -79,30 +77,6 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	return c.JSON(w, http.StatusOK, sentCode)
 }
 
-func getIP(r *http.Request) (string, error) {
-	ips := r.Header.Get("X-Forwarded-For")
-	splitIps := strings.Split(ips, ",")
-
-	if len(splitIps) > 0 {
-		ip := net.ParseIP(splitIps[len(splitIps)-1])
-		if ip != nil {
-			return ip.String(), nil
-		}
-	}
-
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return "", err
-	}
-
-	netIP := net.ParseIP(ip)
-	if netIP != nil {
-		return netIP.String(), nil
-	}
-
-	return "", errors.Internal
-}
-
 func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	var signInData signInEmailData
 	err := json.NewDecoder(r.Body).Decode(&signInData)
@@ -140,15 +114,12 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// TODO: fix
-	ip := "127.0.0.1"
-
 	client := r.Context().Value("client").(*client.Client)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	sess := &session{IP: ip, UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -195,14 +166,12 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	ip := "127.0.0.1"
-
 	client := r.Context().Value("client").(*client.Client)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	sess := &session{IP: ip, UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -248,14 +217,12 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	ip := "127.0.0.1"
-
 	client := r.Context().Value("client").(*client.Client)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	sess := &session{IP: ip, UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -301,14 +268,12 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	ip := "127.0.0.1"
-
 	client := r.Context().Value("client").(*client.Client)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	sess := &session{IP: ip, UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
 
 	if err := sess.save(ctx); err != nil {
 		return err
