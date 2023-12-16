@@ -94,6 +94,9 @@ func main() {
 	mux.Handle("/auth.scanLoginToken", localizer.Middleware(
 		client.Middleware(c.MakeHandler(auth.HandleScanLoginToken, http.MethodPost)),
 	))
+	mux.Handle("/auth.logOut", localizer.Middleware(
+		auth.Middleware(c.MakeHandler(auth.HandleLogOut, http.MethodPost)),
+	))
 	mux.Handle("/credentials.pubKeyCreateRequest", localizer.Middleware(
 		auth.Middleware(c.MakeHandler(auth.HandlePubKeyCreateRequest, http.MethodPost)),
 	))

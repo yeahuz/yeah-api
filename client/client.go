@@ -77,7 +77,7 @@ func GetById(ctx context.Context, id string) (*Client, error) {
 		if e.Is(err, pgx.ErrNoRows) {
 			return nil, errors.NewNotFound(l.T("Client with id %s not found", id))
 		}
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &client, nil

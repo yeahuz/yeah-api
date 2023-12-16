@@ -43,6 +43,13 @@ func (s *session) save(ctx context.Context) error {
 	).Scan(&s.ID)
 }
 
+func (s *session) remove(ctx context.Context) error {
+	if _, err := db.Pool.Exec(ctx, "delete from sessions where id = $1", s.ID); err != nil {
+		return err
+	}
+	return nil
+}
+
 func newLoginToken() (*loginToken, error) {
 	b := make([]byte, 16)
 

@@ -483,3 +483,16 @@ func HandleScanLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 	return c.JSON(w, http.StatusOK, nil)
 }
+
+func HandleLogOut(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	session := r.Context().Value("session").(*session)
+
+	if err := session.remove(ctx); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, nil)
+}
