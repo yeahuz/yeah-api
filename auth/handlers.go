@@ -433,7 +433,9 @@ func HandleCreateLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 func HandleAcceptLoginToken(w http.ResponseWriter, r *http.Request) error {
 	var loginTokenData loginTokenData
-	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&loginTokenData)
+	defer r.Body.Close()
+	if err != nil {
 		return err
 	}
 
@@ -455,7 +457,9 @@ func HandleAcceptLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 func HandleRejectLoginToken(w http.ResponseWriter, r *http.Request) error {
 	var loginTokenData loginTokenData
-	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&loginTokenData)
+	defer r.Body.Close()
+	if err != nil {
 		return err
 	}
 
@@ -468,7 +472,9 @@ func HandleRejectLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 func HandleScanLoginToken(w http.ResponseWriter, r *http.Request) error {
 	var loginTokenData loginTokenData
-	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&loginTokenData)
+	defer r.Body.Close()
+	if err != nil {
 		return err
 	}
 
@@ -495,4 +501,24 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return c.JSON(w, http.StatusOK, nil)
+}
+
+func HandleCreateOAuthFlow(w http.ResponseWriter, r *http.Request) error {
+	var data createOAuthFlowData
+	err := json.NewDecoder(r.Body).Decode(&data)
+	defer r.Body.Close()
+
+	if err != nil {
+		return err
+	}
+
+	if err := data.validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func HandleOAuthCallback(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }

@@ -47,7 +47,11 @@ func (c *Client) Verify(secret string) error {
 		return nil
 	}
 
-	return argon.Verify(secret, c.secret)
+	if err := argon.Verify(secret, c.secret); err != nil {
+		return errors.NewBadRequest(l.T("Missing or invalid secret for confidential client"))
+	}
+
+	return nil
 }
 
 func (c *Client) Save(ctx context.Context) error {
@@ -88,6 +92,11 @@ func Middleware(next http.Handler) http.Handler {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		clientId := r.Header.Get("X-Client-Id")
+
+		if clientId == "" {
+			return errors.Unauthorized
+		}
+
 		clientSecret := r.Header.Get("X-Client-Secret")
 		client, err := GetById(ctx, clientId)
 		if err != nil {

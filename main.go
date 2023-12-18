@@ -64,6 +64,12 @@ func main() {
 
 	defer db.Pool.Close()
 	mux := http.NewServeMux()
+	mux.Handle("/auth.createOAuthFlow", localizer.Middleware(
+		client.Middleware(c.MakeHandler(auth.HandleCreateOAuthFlow, http.MethodPost)),
+	))
+	mux.Handle("/auth.processOAuthCallback", localizer.Middleware(
+		client.Middleware(c.MakeHandler(auth.HandleOAuthCallback, http.MethodPost)),
+	))
 	mux.Handle("/auth.sendPhoneCode", localizer.Middleware(
 		client.Middleware(c.MakeHandler(auth.HandleSendPhoneCode, http.MethodPost)),
 	))

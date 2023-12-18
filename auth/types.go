@@ -94,6 +94,10 @@ type signUpPhoneData struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
+type createOAuthFlowData struct {
+	Provider providerName `json:"provider"`
+}
+
 type providerName string
 
 const (

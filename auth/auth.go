@@ -113,6 +113,18 @@ func (t *loginToken) verify() error {
 	return nil
 }
 
+func (d createOAuthFlowData) validate() error {
+	if len(d.Provider) == 0 {
+		return errors.NewBadRequest(l.T("OAuth provder name is required"))
+	}
+
+	if d.Provider != providerGoogle && d.Provider != providerTelegram {
+		return errors.NewBadRequest(l.T("Unsupported OAuth provider"))
+	}
+
+	return nil
+}
+
 func (pcd phoneCodeData) validate() error {
 	if len(pcd.PhoneNumber) == 0 {
 		return errors.NewBadRequest(l.T("Phone number is required"))
@@ -263,10 +275,6 @@ func isValidUUID(uuid string) bool {
 }
 
 func getSessionById(ctx context.Context, id string) (*session, error) {
-	if !isValidUUID(id) {
-		return nil, errors.NewBadRequest(l.T("Missing valid session id"))
-	}
-
 	var session session
 	err := db.Pool.QueryRow(ctx,
 		"select id, user_id, active from sessions where id = $1",
@@ -299,6 +307,14 @@ func Middleware(next http.Handler) http.Handler {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		sessionId := r.Header.Get("X-Session-Id")
+		if sessionId == "" {
+			return errors.Unauthorized
+		}
+
+		if !isValidUUID(sessionId) {
+			return errors.NewBadRequest(l.T("Missing valid session id"))
+		}
+
 		session, err := getSessionById(ctx, sessionId)
 		if err != nil {
 			return err
