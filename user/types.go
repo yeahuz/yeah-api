@@ -1,7 +1,5 @@
 package user
 
-import "time"
-
 type NewUserOpts struct {
 	PhoneNumber   string `json:"phone_number"`
 	FirstName     string `json:"first_name"`
@@ -18,10 +16,8 @@ type User struct {
 }
 
 type Account struct {
-	id                int
-	provider          string
-	userID            string
-	providerAccountId string
-	createdAt         time.Time
-	updatedAt         time.Time
+	ID                int
+	Provider          string
+	UserID            string
+	ProviderAccountID string
 }

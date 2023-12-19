@@ -67,8 +67,8 @@ func main() {
 	mux.Handle("/auth.createOAuthFlow", localizer.Middleware(
 		client.Middleware(c.MakeHandler(auth.HandleCreateOAuthFlow, http.MethodPost)),
 	))
-	mux.Handle("/auth.processOAuthCallback", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleOAuthCallback, http.MethodPost)),
+	mux.Handle("/auth.signInWithGoogle", localizer.Middleware(
+		client.Middleware(c.MakeHandler(auth.HandleSignInWithGoogle, http.MethodPost)),
 	))
 	mux.Handle("/auth.sendPhoneCode", localizer.Middleware(
 		client.Middleware(c.MakeHandler(auth.HandleSendPhoneCode, http.MethodPost)),

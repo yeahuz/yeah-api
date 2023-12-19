@@ -50,6 +50,10 @@ type sentCodeEmail struct {
 	Length int `json:"length"`
 }
 
+type signInGoogleData struct {
+	Code string `json:"code"`
+}
+
 type signInData struct {
 	Code string `json:"code"`
 	Hash string `json:"hash"`
@@ -61,7 +65,7 @@ type signUpData struct {
 	LastName  string `json:"last_name"`
 }
 
-type SignInPhoneData struct {
+type signInPhoneData struct {
 	signInData
 	PhoneNumber string `json:"phone_number"`
 }
@@ -94,23 +98,31 @@ type signUpPhoneData struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-type createOAuthFlowData struct {
-	Provider providerName `json:"provider"`
+type oAuthFlowData struct {
+	Provider    oAuthProvider `json:"provider"`
+	State       string        `json:"state"`
+	RedirectURL string        `json:"redirect_url"`
 }
 
-type providerName string
+type oAuthFlow struct {
+	URL string `json:"url"`
+}
+
+type oAuthProvider string
 
 const (
-	providerGoogle   providerName = "google"
-	providerTelegram providerName = "telegram"
+	providerGoogle oAuthProvider = "google"
 )
 
-type provider struct {
-	name      providerName
-	logoUrl   string
-	active    bool
-	createdAt time.Time
-	updatedAt time.Time
+func (o oAuthFlow) MarshalJSON() ([]byte, error) {
+	type Alias oAuthFlow
+	return json.Marshal(struct {
+		Type string `json:"_"`
+		Alias
+	}{
+		Type:  "auth.oAuthFlow",
+		Alias: Alias(o),
+	})
 }
 
 func (a authorization) MarshalJSON() ([]byte, error) {

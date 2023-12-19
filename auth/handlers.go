@@ -11,9 +11,11 @@ import (
 	"github.com/yeahuz/yeah-api/auth/otp"
 	"github.com/yeahuz/yeah-api/client"
 	c "github.com/yeahuz/yeah-api/common"
+	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/user"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -130,7 +132,7 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
-	var signInData SignInPhoneData
+	var signInData signInPhoneData
 	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
 	if err != nil {
@@ -504,7 +506,7 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleCreateOAuthFlow(w http.ResponseWriter, r *http.Request) error {
-	var data createOAuthFlowData
+	var data oAuthFlowData
 	err := json.NewDecoder(r.Body).Decode(&data)
 	defer r.Body.Close()
 
@@ -516,9 +518,50 @@ func HandleCreateOAuthFlow(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return nil
+	flow := newOAuthFlow(data)
+	return c.JSON(w, http.StatusOK, flow)
 }
 
-func HandleOAuthCallback(w http.ResponseWriter, r *http.Request) error {
-	return nil
+type userInfo struct {
+	Sub        string `json:"sub"`
+	Name       string `json:"name"`
+	GivenName  string `json:"given_name"`
+	FamilyName string `json:"family_name"`
+	Picture    string `json:"picture"`
+	Email      string `json:"email"`
+	Profile    string `json:"profile"`
+}
+
+func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
+	var signInData signInGoogleData
+	err := json.NewDecoder(r.Body).Decode(&signInData)
+	defer r.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	if err := signInData.validate(); err != nil {
+		return err
+	}
+
+	conf := config.Config.GoogleOAuthConf
+	tok, err := conf.Exchange(oauth2.NoContext, signInData.Code)
+	if err != nil {
+		return err
+	}
+
+	client := conf.Client(oauth2.NoContext, tok)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	var user userInfo
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return err
+	}
+
+	return c.JSON(w, http.StatusOK, user)
 }

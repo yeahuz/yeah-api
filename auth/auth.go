@@ -28,6 +28,20 @@ var (
 	l          = localizer.GetDefault()
 )
 
+func newOAuthFlow(data oAuthFlowData) oAuthFlow {
+	flow := oAuthFlow{}
+	switch data.Provider {
+	case providerGoogle:
+		{
+			//TODO: pass redirect url
+			flow.URL = config.Config.GoogleOAuthConf.AuthCodeURL(data.State)
+			break
+		}
+	}
+
+	return flow
+}
+
 func newSession(userID, clientID, userAgent string) *session {
 	return &session{
 		UserID:    userID,
@@ -113,13 +127,23 @@ func (t *loginToken) verify() error {
 	return nil
 }
 
-func (d createOAuthFlowData) validate() error {
+func (d oAuthFlowData) validate() error {
+	errs := make(map[string]string)
+
 	if len(d.Provider) == 0 {
-		return errors.NewBadRequest(l.T("OAuth provder name is required"))
+		errs["provider"] = l.T("OAuth provider is required")
 	}
 
-	if d.Provider != providerGoogle && d.Provider != providerTelegram {
-		return errors.NewBadRequest(l.T("Unsupported OAuth provider"))
+	if d.Provider != providerGoogle {
+		errs["provider"] = l.T("Unsupported OAuth provider")
+	}
+
+	if len(d.State) == 0 {
+		errs["state"] = l.T("OAuth state is required")
+	}
+
+	if len(errs) > 0 {
+		return errors.NewValidation(errs)
 	}
 
 	return nil
@@ -149,7 +173,15 @@ func (ecd emailCodeData) validate() error {
 	return nil
 }
 
-func (sipd SignInPhoneData) validate() error {
+func (d signInGoogleData) validate() error {
+	if len(d.Code) == 0 {
+		return errors.NewBadRequest(l.T("Response code is required"))
+	}
+
+	return nil
+}
+
+func (sipd signInPhoneData) validate() error {
 	errs := make(map[string]string)
 
 	if len(sipd.PhoneNumber) == 0 {

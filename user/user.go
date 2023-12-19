@@ -84,3 +84,42 @@ func GetById(id string) (*User, error) {
 
 	return &user, nil
 }
+
+func GetByAccountId(ctx context.Context, id string) (*Account, error) {
+	var account Account
+
+	err := db.Pool.QueryRow(
+		ctx,
+		"select id, provider, user_id, provider_account_id from accounts where id = $1",
+		id,
+	).Scan(&account.ID, &account.Provider, &account.UserID, &account.ProviderAccountID)
+
+	if err != nil {
+		if e.Is(err, pgx.ErrNoRows) {
+			return nil, errors.NewNotFound(l.T("Account with id %s not found", id))
+		}
+
+		return nil, errors.Internal
+	}
+
+	return &account, nil
+}
+
+func (u *User) LinkAccount(ctx context.Context, provider string, id string) (*Account, error) {
+	account := Account{
+		Provider:          provider,
+		ProviderAccountID: id,
+		UserID:            u.ID,
+	}
+
+	err := db.Pool.QueryRow(ctx,
+		"insert into accounts (user_id, provider, provider_account_id) values ($1, $2, $3) returning id",
+		account.UserID, account.Provider, account.ProviderAccountID,
+	).Scan(&account.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
