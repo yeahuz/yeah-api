@@ -15,7 +15,6 @@ import (
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/user"
-	"golang.org/x/oauth2"
 )
 
 var (
@@ -184,6 +183,9 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
 	var signUpData signUpEmailData
 	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	defer r.Body.Close()
@@ -215,14 +217,11 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 		EmailVerified: true,
 	})
 
-	if err := u.Save(); err != nil {
+	if err := u.Save(ctx); err != nil {
 		return err
 	}
 
 	client := r.Context().Value("client").(*client.Client)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
 
 	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
 
@@ -235,6 +234,9 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 }
 
 func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
 	var signUpData signUpPhoneData
 	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	defer r.Body.Close()
@@ -266,14 +268,11 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 		PhoneVerified: true,
 	})
 
-	if err := u.Save(); err != nil {
+	if err := u.Save(ctx); err != nil {
 		return err
 	}
 
 	client := r.Context().Value("client").(*client.Client)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
 
 	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
 
@@ -522,17 +521,10 @@ func HandleCreateOAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	return c.JSON(w, http.StatusOK, flow)
 }
 
-type userInfo struct {
-	Sub        string `json:"sub"`
-	Name       string `json:"name"`
-	GivenName  string `json:"given_name"`
-	FamilyName string `json:"family_name"`
-	Picture    string `json:"picture"`
-	Email      string `json:"email"`
-	Profile    string `json:"profile"`
-}
-
 func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
 	var signInData signInGoogleData
 	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
@@ -545,23 +537,86 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	conf := config.Config.GoogleOAuthConf
-	tok, err := conf.Exchange(oauth2.NoContext, signInData.Code)
+	tok, err := conf.Exchange(ctx, signInData.Code)
 	if err != nil {
 		return err
 	}
 
-	client := conf.Client(oauth2.NoContext, tok)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
+	oauthClient := conf.Client(ctx, tok)
+	resp, err := oauthClient.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
 		return err
 	}
 
 	defer resp.Body.Close()
 
-	var user userInfo
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+	var info userInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		return err
 	}
 
-	return c.JSON(w, http.StatusOK, user)
+	client := r.Context().Value("client").(*client.Client)
+
+	account, err := user.GetByAccountId(ctx, info.Sub)
+	if account != nil {
+		sess := &session{IP: getIP(r), UserID: account.UserID, ClientID: client.ID, UserAgent: r.UserAgent()}
+		if err := sess.save(ctx); err != nil {
+			return err
+		}
+
+		u, err := user.GetById(account.UserID)
+		if err != nil {
+			return err
+		}
+
+		authorization := authorization{User: u, Session: sess}
+		return c.JSON(w, http.StatusOK, authorization)
+	}
+
+	if !e.As(err, &errors.NotFound) {
+		return err
+	}
+
+	existingUser, err := user.GetByEmail(info.Email)
+	if existingUser != nil {
+		sess := &session{IP: getIP(r), UserID: existingUser.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+		if _, err := existingUser.LinkAccount(ctx, "google", info.Sub); err != nil {
+			return err
+		}
+		if err := sess.save(ctx); err != nil {
+			return err
+		}
+
+		authorization := authorization{User: existingUser, Session: sess}
+		return c.JSON(w, http.StatusOK, authorization)
+	}
+
+	if !e.As(err, &errors.NotFound) {
+		return err
+	}
+
+	newUser := user.New(user.NewUserOpts{
+		Email:         info.Email,
+		FirstName:     info.GivenName,
+		LastName:      info.FamilyName,
+		EmailVerified: true,
+	})
+
+	if err := newUser.Save(ctx); err != nil {
+		return err
+	}
+
+	sess := &session{IP: getIP(r), UserID: newUser.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+
+	if _, err := newUser.LinkAccount(ctx, "google", info.Sub); err != nil {
+		return err
+	}
+
+	if err := sess.save(ctx); err != nil {
+		return err
+	}
+
+	authorization := authorization{User: newUser, Session: sess}
+
+	return c.JSON(w, http.StatusOK, authorization)
 }

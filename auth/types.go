@@ -16,6 +16,16 @@ type session struct {
 	IP        string `json:"-"`
 }
 
+type userInfo struct {
+	Sub        string `json:"sub"`
+	Name       string `json:"name"`
+	GivenName  string `json:"given_name"`
+	FamilyName string `json:"family_name"`
+	Picture    string `json:"picture"`
+	Email      string `json:"email"`
+	Profile    string `json:"profile"`
+}
+
 type sentCodeType interface{}
 
 type loginToken struct {

@@ -11,24 +11,21 @@ import (
 )
 
 type config struct {
-	PostgresURI             string
-	Addr                    string
-	HighwayHashKey          string
-	AwsKey                  string
-	AwsSecret               string
-	NatsURL                 string
-	NatsAuthToken           string
-	SmsApiEmail             string
-	SmsApiPassword          string
-	SmsApiBaseUrl           string
-	RpName                  string
-	RpID                    string
-	Origin                  string
-	SigningSecret           string
-	GoogleOAuthClientID     string
-	GoogleOAuthClientSecret string
-	GoogleOAuthRedirectURL  string
-	GoogleOAuthConf         *oauth2.Config
+	PostgresURI     string
+	Addr            string
+	HighwayHashKey  string
+	AwsKey          string
+	AwsSecret       string
+	NatsURL         string
+	NatsAuthToken   string
+	SmsApiEmail     string
+	SmsApiPassword  string
+	SmsApiBaseUrl   string
+	RpName          string
+	RpID            string
+	Origin          string
+	SigningSecret   string
+	GoogleOAuthConf *oauth2.Config
 }
 
 var Config *config
@@ -39,29 +36,26 @@ func Load() *config {
 	godotenv.Load(".env." + env)
 
 	Config = &config{
-		PostgresURI:             os.Getenv("POSTGRES_URI"),
-		Addr:                    c.GetEnvStr("ADDR", ":3000"),
-		HighwayHashKey:          os.Getenv("HIGHWAY_HASH_KEY"),
-		AwsKey:                  os.Getenv("AWS_KEY"),
-		AwsSecret:               os.Getenv("AWS_SECRET"),
-		NatsURL:                 c.GetEnvStr("NATS_URL", nats.DefaultURL),
-		NatsAuthToken:           os.Getenv("NATS_AUTH_TOKEN"),
-		SmsApiEmail:             os.Getenv("SMS_API_EMAIL"),
-		SmsApiPassword:          os.Getenv("SMS_API_PASSWORD"),
-		SmsApiBaseUrl:           os.Getenv("SMS_API_URL"),
-		RpID:                    c.GetEnvStr("RP_ID", "localhost"),
-		RpName:                  c.GetEnvStr("RP_NAME", "Yeah Dev"),
-		Origin:                  c.GetEnvStr("ORIGIN", "http://localhost:3000"),
-		SigningSecret:           os.Getenv("SIGNING_SECRET"),
-		GoogleOAuthClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
-		GoogleOAuthClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-		GoogleOAuthRedirectURL:  os.Getenv("GOOGLE_OAUTH_REDIRECT_URL"),
+		PostgresURI:    os.Getenv("POSTGRES_URI"),
+		Addr:           c.GetEnvStr("ADDR", ":3000"),
+		HighwayHashKey: os.Getenv("HIGHWAY_HASH_KEY"),
+		AwsKey:         os.Getenv("AWS_KEY"),
+		AwsSecret:      os.Getenv("AWS_SECRET"),
+		NatsURL:        c.GetEnvStr("NATS_URL", nats.DefaultURL),
+		NatsAuthToken:  os.Getenv("NATS_AUTH_TOKEN"),
+		SmsApiEmail:    os.Getenv("SMS_API_EMAIL"),
+		SmsApiPassword: os.Getenv("SMS_API_PASSWORD"),
+		SmsApiBaseUrl:  os.Getenv("SMS_API_URL"),
+		RpID:           c.GetEnvStr("RP_ID", "localhost"),
+		RpName:         c.GetEnvStr("RP_NAME", "Yeah Dev"),
+		Origin:         c.GetEnvStr("ORIGIN", "http://localhost:3000"),
+		SigningSecret:  os.Getenv("SIGNING_SECRET"),
 	}
 
 	Config.GoogleOAuthConf = &oauth2.Config{
-		ClientID:     Config.GoogleOAuthClientID,
-		ClientSecret: Config.GoogleOAuthClientSecret,
-		RedirectURL:  Config.GoogleOAuthRedirectURL,
+		ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_OAUTH_REDIRECT_URL"),
 		Scopes: []string{
 			"email", "profile",
 		},

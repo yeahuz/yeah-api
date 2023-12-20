@@ -19,8 +19,8 @@ func New(opts NewUserOpts) *User {
 	}
 }
 
-func (u *User) Save() error {
-	err := db.Pool.QueryRow(context.Background(), "insert into users (first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6) returning id",
+func (u *User) Save(ctx context.Context) error {
+	err := db.Pool.QueryRow(ctx, "insert into users (first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6) returning id",
 		u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.EmailVerified, u.PhoneVerified,
 	).Scan(&u.ID)
 
