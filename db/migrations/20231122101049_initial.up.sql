@@ -1,7 +1,7 @@
 begin;
 
 create table if not exists users (
-  id bigserial primary key,
+  id uuid primary key,
   phone varchar(15) unique,
   phone_verified boolean default false,
   last_name varchar(255) default '',
@@ -28,9 +28,9 @@ create table if not exists auth_providers (
 );
 
 create table if not exists accounts (
-  id bigserial primary key,
+  id uuid primary key,
   provider varchar(255) not null,
-  user_id bigint not null,
+  user_id uuid not null,
   provider_account_id varchar(255) not null,
   created_at timestamp with time zone default now() not null,
   updated_at timestamp with time zone,
@@ -40,7 +40,7 @@ create table if not exists accounts (
 );
 
 create table if not exists otps (
-  id bigserial primary key,
+  id uuid primary key,
   code varchar(255) not null,
   hash varchar(255) not null,
   expires_at timestamp with time zone,
@@ -50,17 +50,17 @@ create table if not exists otps (
 );
 
 create table if not exists credential_requests (
-  id bigserial primary key,
+  id uuid primary key,
   type varchar(255) not null,
   challenge varchar(255) not null,
-  user_id bigint not null,
+  user_id uuid not null,
   used boolean default false,
 
   foreign key(user_id) references users(id) on delete cascade
 );
 
 create table if not exists credentials (
-  id bigserial primary key,
+  id uuid primary key,
   credential_id varchar(1024) default '',
   title varchar(255) not null,
   pubkey text default '',
@@ -68,8 +68,8 @@ create table if not exists credentials (
   type varchar(255) default 'public-key',
   counter int default 0,
   transports text[] default '{}',
-  user_id bigint not null,
-  credential_request_id bigint not null,
+  user_id uuid not null,
+  credential_request_id uuid not null,
   created_at timestamp with time zone default now() not null,
   updated_at timestamp with time zone,
 
@@ -78,7 +78,7 @@ create table if not exists credentials (
 );
 
 create table if not exists clients (
-  id bigserial primary key,
+  id uuid primary key,
   name varchar(255) not null,
   secret varchar(255) default '',
   type varchar(255) not null check (type in ('confidential', 'public', 'internal')) default 'confidential',
@@ -92,14 +92,35 @@ create table if not exists sessions (
   id uuid DEFAULT gen_random_uuid() primary key,
   active boolean default true,
   ip inet,
-  user_id bigint not null,
-  client_id bigint not null,
+  user_id uuid not null,
+  client_id uuid not null,
   user_agent varchar(255),
   created_at timestamp with time zone default now() not null,
   updated_at timestamp with time zone,
 
   foreign key(user_id) references users(id) on delete cascade,
   foreign key(client_id) references clients(id) on delete cascade
+);
+
+create table if not exists categories (
+  id serial primary key,
+  parent_id int,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone,
+
+  foreign key (parent_id) references categories(id) on delete cascade
+);
+
+create table if not exists listings (
+  id uuid primary key,
+  title varchar(255) not null,
+  category_id int not null,
+  owner_id uuid not null,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone,
+
+  foreign key (owner_id) references users(id) on delete cascade,
+  foreign key (category_id) references categories(id) on delete set null
 );
 
 create index idx_sessions_user_id on sessions(user_id);

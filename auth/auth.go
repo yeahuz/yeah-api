@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
 	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
@@ -42,19 +43,28 @@ func newOAuthFlow(data oAuthFlowData) oAuthFlow {
 	return flow
 }
 
-func newSession(userID, clientID, userAgent string) *session {
+func newSession(userID, clientID uuid.UUID, userAgent string, IP string) (*session, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
 	return &session{
 		UserID:    userID,
 		ClientID:  clientID,
 		UserAgent: userAgent,
-	}
+		ID:        id,
+		IP:        IP,
+	}, nil
 }
 
 func (s *session) save(ctx context.Context) error {
-	return db.Pool.QueryRow(ctx,
-		"insert into sessions (user_id, client_id, user_agent, ip) values ($1, $2, $3, $4) returning id",
-		s.UserID, s.ClientID, s.UserAgent, s.IP,
-	).Scan(&s.ID)
+	_, err := db.Pool.Exec(ctx,
+		"insert into sessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5) returning id",
+		s.ID, s.UserID, s.ClientID, s.UserAgent, s.IP,
+	)
+
+	return err
 }
 
 func (s *session) remove(ctx context.Context) error {

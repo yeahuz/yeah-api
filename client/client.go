@@ -9,6 +9,7 @@ import (
 
 	e "errors"
 
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/yeahuz/yeah-api/auth/argon"
 	c "github.com/yeahuz/yeah-api/common"
@@ -28,8 +29,8 @@ var (
 )
 
 type Client struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
 	secret string
 	Type   clientType `json:"type"`
 	Active bool       `json:"active"`
@@ -65,10 +66,12 @@ func (c *Client) Save(ctx context.Context) error {
 		return err
 	}
 
-	return db.Pool.QueryRow(ctx,
+	_, err = db.Pool.Exec(ctx,
 		"insert into clients (name, type, secret) values ($1, $2, $3) returning id",
-		c.Name, c.Type, hash,
-	).Scan(&c.ID)
+		c.ID, c.Name, c.Type, hash,
+	)
+
+	return err
 }
 
 func GetById(ctx context.Context, id string) (*Client, error) {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/minio/highwayhash"
 	"github.com/yeahuz/yeah-api/auth/argon"
@@ -20,7 +21,7 @@ import (
 var l = localizer.GetDefault()
 
 type Otp struct {
-	id        int
+	id        uuid.UUID
 	Code      string
 	Hash      string
 	Confirmed bool
@@ -31,16 +32,22 @@ func randomIn(min, max int) int {
 	return min + rand.Intn(max-min)
 }
 
-func New(duration time.Duration) *Otp {
+func New(duration time.Duration) (*Otp, error) {
 	expiresAt := time.Now().Add(duration)
 	code := strconv.Itoa(randomIn(100000, 999999))
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
 
 	otp := &Otp{
 		Code:      code,
 		ExpiresAt: expiresAt,
+		id:        id,
 	}
 
-	return otp
+	return otp, nil
 }
 
 func genHash(bytes []byte) (string, error) {
@@ -101,11 +108,11 @@ func (o *Otp) Save(identifier string) error {
 
 	o.Hash = hash
 
-	err = db.Pool.QueryRow(
+	_, err = db.Pool.Exec(
 		context.Background(),
-		"insert into otps (code, hash, expires_at) values ($1, $2, $3) returning id",
-		code, o.Hash, o.ExpiresAt,
-	).Scan(&o.id)
+		"insert into otps (id, code, hash, expires_at) values ($1, $2, $3, $4) returning id",
+		o.id, code, o.Hash, o.ExpiresAt,
+	)
 
 	if err != nil {
 		return errors.Internal

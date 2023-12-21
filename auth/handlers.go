@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/yeahuz/yeah-api/auth/credential"
 	"github.com/yeahuz/yeah-api/auth/otp"
 	"github.com/yeahuz/yeah-api/client"
@@ -36,7 +37,10 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	otp := otp.New(time.Minute * 15)
+	otp, err := otp.New(time.Minute * 15)
+	if err != nil {
+		return err
+	}
 
 	if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
 		return err
@@ -63,7 +67,10 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	otp := otp.New(time.Minute * 15)
+	otp, err := otp.New(time.Minute * 15)
+	if err != nil {
+		return err
+	}
 
 	if err := otp.Save(emailCodeData.Email); err != nil {
 		return err
@@ -120,7 +127,10 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess, err := newSession(u.ID, client.ID, r.UserAgent(), getIP(r))
+	if err != nil {
+		return err
+	}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -172,7 +182,10 @@ func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess, err := newSession(u.ID, client.ID, r.UserAgent(), getIP(r))
+	if err != nil {
+		return err
+	}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -210,12 +223,16 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	u := user.New(user.NewUserOpts{
+	u, err := user.New(user.NewUserOpts{
 		FirstName:     signUpData.FirstName,
 		LastName:      signUpData.LastName,
 		Email:         signUpData.Email,
 		EmailVerified: true,
 	})
+
+	if err != nil {
+		return err
+	}
 
 	if err := u.Save(ctx); err != nil {
 		return err
@@ -223,7 +240,10 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 
 	client := r.Context().Value("client").(*client.Client)
 
-	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess, err := newSession(u.ID, client.ID, r.UserAgent(), getIP(r))
+	if err != nil {
+		return err
+	}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -261,12 +281,16 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	u := user.New(user.NewUserOpts{
+	u, err := user.New(user.NewUserOpts{
 		FirstName:     signUpData.FirstName,
 		LastName:      signUpData.LastName,
 		PhoneNumber:   signUpData.PhoneNumber,
 		PhoneVerified: true,
 	})
+
+	if err != nil {
+		return err
+	}
 
 	if err := u.Save(ctx); err != nil {
 		return err
@@ -274,7 +298,10 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 
 	client := r.Context().Value("client").(*client.Client)
 
-	sess := &session{IP: getIP(r), UserID: u.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess, err := newSession(u.ID, client.ID, r.UserAgent(), getIP(r))
+	if err != nil {
+		return err
+	}
 
 	if err := sess.save(ctx); err != nil {
 		return err
@@ -292,7 +319,7 @@ func HandlePubKeyCreateRequest(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(l.T("user_id is required"))
 	}
 
-	u, err := user.GetById(userID)
+	u, err := user.GetById(uuid.FromStringOrNil(userID))
 	if err != nil {
 		return err
 	}
@@ -318,7 +345,7 @@ func HandlePubKeyGetRequest(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(l.T("user_id is required"))
 	}
 
-	u, err := user.GetById(userID)
+	u, err := user.GetById(uuid.FromStringOrNil(userID))
 	if err != nil {
 		return err
 	}
@@ -366,7 +393,7 @@ func HandleCreatePubKey(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	pubKeyCredential := &credential.PubKeyCredential{
+	pubKeyCredential, err := credential.NewPubKeyCredential(&credential.PubKeyCredentialOpts{
 		CredentialID:        createData.Credential.ID,
 		Counter:             authnData.Counter,
 		UserID:              request.UserID,
@@ -375,6 +402,10 @@ func HandleCreatePubKey(w http.ResponseWriter, r *http.Request) error {
 		Transports:          createData.Credential.Response.Transports,
 		CredentialRequestID: createData.ReqID,
 		Title:               createData.Title,
+	})
+
+	if err != nil {
+		return err
 	}
 
 	if err := pubKeyCredential.Save(ctx); err != nil {
@@ -559,7 +590,12 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 
 	account, err := user.GetByAccountId(ctx, info.Sub)
 	if account != nil {
-		sess := &session{IP: getIP(r), UserID: account.UserID, ClientID: client.ID, UserAgent: r.UserAgent()}
+
+		sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
+		if err != nil {
+			return err
+		}
+
 		if err := sess.save(ctx); err != nil {
 			return err
 		}
@@ -579,10 +615,15 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 
 	existingUser, err := user.GetByEmail(info.Email)
 	if existingUser != nil {
-		sess := &session{IP: getIP(r), UserID: existingUser.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+		sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
+		if err != nil {
+			return err
+		}
+
 		if _, err := existingUser.LinkAccount(ctx, "google", info.Sub); err != nil {
 			return err
 		}
+
 		if err := sess.save(ctx); err != nil {
 			return err
 		}
@@ -595,18 +636,25 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	newUser := user.New(user.NewUserOpts{
+	newUser, err := user.New(user.NewUserOpts{
 		Email:         info.Email,
 		FirstName:     info.GivenName,
 		LastName:      info.FamilyName,
 		EmailVerified: true,
 	})
 
+	if err != nil {
+		return err
+	}
+
 	if err := newUser.Save(ctx); err != nil {
 		return err
 	}
 
-	sess := &session{IP: getIP(r), UserID: newUser.ID, ClientID: client.ID, UserAgent: r.UserAgent()}
+	sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
+	if err != nil {
+		return err
+	}
 
 	if _, err := newUser.LinkAccount(ctx, "google", info.Sub); err != nil {
 		return err
@@ -619,4 +667,8 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 	authorization := authorization{User: newUser, Session: sess}
 
 	return c.JSON(w, http.StatusOK, authorization)
+}
+
+func HandleSignInWithTelegram(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }

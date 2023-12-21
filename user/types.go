@@ -1,5 +1,7 @@
 package user
 
+import "github.com/gofrs/uuid"
+
 type NewUserOpts struct {
 	PhoneNumber   string `json:"phone_number"`
 	FirstName     string `json:"first_name"`
@@ -11,13 +13,13 @@ type NewUserOpts struct {
 }
 
 type User struct {
-	ID string `json:"id"`
+	ID uuid.UUID `json:"id"`
 	NewUserOpts
 }
 
 type Account struct {
-	ID                int
+	ID                uuid.UUID
 	Provider          string
-	UserID            string
+	UserID            uuid.UUID
 	ProviderAccountID string
 }

@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/yeahuz/yeah-api/user"
 )
 
 type session struct {
-	ID        string `json:"id"`
-	UserID    string `json:"user_id"`
-	Active    bool   `json:"-"`
-	ClientID  string `json:"-"`
-	UserAgent string `json:"-"`
-	IP        string `json:"-"`
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Active    bool      `json:"-"`
+	ClientID  uuid.UUID `json:"-"`
+	UserAgent string    `json:"-"`
+	IP        string    `json:"-"`
 }
 
 type userInfo struct {

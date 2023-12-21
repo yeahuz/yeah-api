@@ -16,6 +16,7 @@ import (
 	"hash"
 	"math/big"
 
+	"github.com/gofrs/uuid"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
@@ -30,13 +31,28 @@ var hashers = map[COSEAlgorithmIdentifier]func() hash.Hash{
 	COSEAlgRS256: sha256.New,
 }
 
-func NewPubKeyCreateRequest(userID, displayName string) (*PubKeyCreateRequest, error) {
+func NewPubKeyCredential(opts *PubKeyCredentialOpts) (*PubKeyCredential, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	return &PubKeyCredential{ID: id, PubKeyCredentialOpts: opts}, nil
+}
+
+func NewPubKeyCreateRequest(userID uuid.UUID, displayName string) (*PubKeyCreateRequest, error) {
 	challenge, err := generateChallenge()
 	if err != nil {
 		return nil, err
 	}
 
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
 	request := &PubKeyCreateRequest{
+		ID:   id,
 		kind: "webauthn.create",
 		PubKey: &pubKeyCredentialCreationOpts{
 			Challenge: challenge,
@@ -46,7 +62,7 @@ func NewPubKeyCreateRequest(userID, displayName string) (*PubKeyCreateRequest, e
 			},
 			User: pubKeyCredentialUserEntity{
 				id:          userID,
-				EncodedID:   base64.RawURLEncoding.EncodeToString([]byte(userID)),
+				EncodedID:   base64.RawURLEncoding.EncodeToString(userID[:]),
 				DisplayName: displayName,
 			},
 			Timeout: 60000,
@@ -65,14 +81,19 @@ func NewPubKeyCreateRequest(userID, displayName string) (*PubKeyCreateRequest, e
 	return request, nil
 }
 
-func NewPubKeyGetRequest(userID string, allowCredentials []pubKeyCredentialDescriptor) (*pubKeyGetRequest, error) {
+func NewPubKeyGetRequest(userID uuid.UUID, allowCredentials []pubKeyCredentialDescriptor) (*pubKeyGetRequest, error) {
 	challenge, err := generateChallenge()
+	if err != nil {
+		return nil, err
+	}
 
+	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
 	}
 
 	request := &pubKeyGetRequest{
+		ID:   id,
 		kind: "webauthn.get",
 		PubKey: &pubKeyCredentialRequestOpts{
 			Challenge:        challenge,
@@ -101,7 +122,7 @@ func GetById(ctx context.Context, credId string) (*PubKeyCredential, error) {
 	return &credential, nil
 }
 
-func GetAll(ctx context.Context, userID string) ([]pubKeyCredentialDescriptor, error) {
+func GetAll(ctx context.Context, userID uuid.UUID) ([]pubKeyCredentialDescriptor, error) {
 	credentials := make([]pubKeyCredentialDescriptor, 0)
 	rows, err := db.Pool.Query(ctx, "select credential_id, transports, type from credentials where user_id = $1", userID)
 	defer rows.Close()
@@ -126,10 +147,10 @@ func GetAll(ctx context.Context, userID string) ([]pubKeyCredentialDescriptor, e
 }
 
 func (r *PubKeyCreateRequest) Save(ctx context.Context) error {
-	err := db.Pool.QueryRow(ctx,
-		"insert into credential_requests (challenge, type, user_id) values ($1, $2, $3) returning id",
-		r.PubKey.Challenge, r.kind, r.PubKey.User.id,
-	).Scan(&r.ID)
+	_, err := db.Pool.Exec(ctx,
+		"insert into credential_requests (id, challenge, type, user_id) values ($1, $2, $3, $4) returning id",
+		r.ID, r.PubKey.Challenge, r.kind, r.PubKey.User.id,
+	)
 
 	if err != nil {
 		//TODO: handle errors properly
@@ -140,10 +161,10 @@ func (r *PubKeyCreateRequest) Save(ctx context.Context) error {
 }
 
 func (r *pubKeyGetRequest) Save(ctx context.Context) error {
-	err := db.Pool.QueryRow(ctx,
-		"insert into credential_requests (challenge, type, user_id) values ($1, $2, $3) returning id",
-		r.PubKey.Challenge, r.kind, r.userID,
-	).Scan(&r.ID)
+	_, err := db.Pool.Exec(ctx,
+		"insert into credential_requests (id, challenge, type, user_id) values ($1, $2, $3, $4) returning id",
+		r.ID, r.PubKey.Challenge, r.kind, r.userID,
+	)
 
 	if err != nil {
 		return errors.Internal
@@ -153,13 +174,14 @@ func (r *pubKeyGetRequest) Save(ctx context.Context) error {
 }
 
 func (k *PubKeyCredential) Save(ctx context.Context) error {
-	err := db.Pool.QueryRow(ctx,
-		`insert into credentials (credential_id, title, pubkey, pubkey_alg, transports, user_id, counter, credential_request_id)
-		 values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
-		k.CredentialID, k.Title, k.PubKey, k.PubKeyAlg, k.Transports, k.UserID, k.Counter, k.CredentialRequestID,
-	).Scan(&k.ID)
+	_, err := db.Pool.Exec(ctx,
+		`insert into credentials (id, credential_id, title, pubkey, pubkey_alg, transports, user_id, counter, credential_request_id)
+		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
+		k.ID, k.CredentialID, k.Title, k.PubKey, k.PubKeyAlg, k.Transports, k.UserID, k.Counter, k.CredentialRequestID,
+	)
 
 	if err != nil {
+		// TODO: handle errors properly
 		return errors.Internal
 	}
 

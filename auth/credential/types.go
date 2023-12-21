@@ -2,18 +2,24 @@ package credential
 
 import (
 	"encoding/json"
+
+	"github.com/gofrs/uuid"
 )
 
-type PubKeyCredential struct {
-	ID                  string
+type PubKeyCredentialOpts struct {
 	CredentialID        string
 	Title               string
 	PubKey              string
 	PubKeyAlg           int
 	Transports          []AuthenticatorTransport
-	UserID              string
+	UserID              uuid.UUID
 	Counter             uint32
 	CredentialRequestID string
+}
+
+type PubKeyCredential struct {
+	ID uuid.UUID
+	*PubKeyCredentialOpts
 }
 
 type Request struct {
@@ -21,7 +27,7 @@ type Request struct {
 	Type      string
 	Challenge string
 	Used      bool
-	UserID    string
+	UserID    uuid.UUID
 }
 
 type AuthenticatorTransport string
@@ -74,15 +80,15 @@ const (
 )
 
 type PubKeyCreateRequest struct {
-	ID     string                        `json:"id"`
+	ID     uuid.UUID                     `json:"id"`
 	PubKey *pubKeyCredentialCreationOpts `json:"pubkey"`
 	kind   string
 }
 
 type pubKeyGetRequest struct {
-	ID     string                       `json:"id"`
+	ID     uuid.UUID                    `json:"id"`
 	PubKey *pubKeyCredentialRequestOpts `json:"pubkey"`
-	userID string
+	userID uuid.UUID
 	kind   string
 }
 
@@ -154,7 +160,7 @@ type pubKeyCredentialRpEntity struct {
 }
 
 type pubKeyCredentialUserEntity struct {
-	id          string
+	id          uuid.UUID
 	EncodedID   string `json:"id"`
 	DisplayName string `json:"display_name"`
 }
