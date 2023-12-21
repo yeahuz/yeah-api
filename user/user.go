@@ -76,10 +76,10 @@ func GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func GetById(id uuid.UUID) (*User, error) {
+func GetById(ctx context.Context, id uuid.UUID) (*User, error) {
 	var user User
 	err := db.Pool.QueryRow(
-		context.Background(),
+		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where id = $1`,
 		id).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 

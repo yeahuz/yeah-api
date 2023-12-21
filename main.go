@@ -17,6 +17,7 @@ import (
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/localizer"
+	"github.com/yeahuz/yeah-api/listing"
 	"github.com/yeahuz/yeah-api/smsclient"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -64,6 +65,7 @@ func main() {
 
 	defer db.Pool.Close()
 	mux := http.NewServeMux()
+
 	mux.Handle("/auth.createOAuthFlow", localizer.Middleware(
 		client.Middleware(c.MakeHandler(auth.HandleCreateOAuthFlow, http.MethodPost)),
 	))
@@ -106,6 +108,7 @@ func main() {
 	mux.Handle("/auth.logOut", localizer.Middleware(
 		auth.Middleware(c.MakeHandler(auth.HandleLogOut, http.MethodPost)),
 	))
+
 	mux.Handle("/credentials.pubKeyCreateRequest", localizer.Middleware(
 		auth.Middleware(c.MakeHandler(auth.HandlePubKeyCreateRequest, http.MethodPost)),
 	))
@@ -117,6 +120,10 @@ func main() {
 	))
 	mux.Handle("/credentials.verifyPubKey", localizer.Middleware(
 		client.Middleware(c.MakeHandler(auth.HandleVerifyPubKey, http.MethodPost)),
+	))
+
+	mux.Handle("/listing.createListing", localizer.Middleware(
+		auth.Middleware(c.MakeHandler(listing.HandleCreateListing, http.MethodPost)),
 	))
 
 	fmt.Printf("Server started at %s\n", config.Addr)

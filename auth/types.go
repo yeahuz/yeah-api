@@ -8,7 +8,7 @@ import (
 	"github.com/yeahuz/yeah-api/user"
 )
 
-type session struct {
+type Session struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`
 	Active    bool      `json:"-"`
@@ -96,7 +96,7 @@ type authorizationSignUpRequired struct {
 
 type authorization struct {
 	User    *user.User `json:"user"`
-	Session *session   `json:"session"`
+	Session *Session   `json:"session"`
 }
 
 type signUpEmailData struct {

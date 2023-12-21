@@ -26,11 +26,9 @@ var (
 
 func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 	var phoneCodeData phoneCodeData
-	err := json.NewDecoder(r.Body).Decode(&phoneCodeData)
 	defer r.Body.Close()
-
-	if err != nil {
-		return errors.Internal
+	if err := json.NewDecoder(r.Body).Decode(&phoneCodeData); err != nil {
+		return err
 	}
 
 	if err := phoneCodeData.validate(); err != nil {
@@ -56,11 +54,9 @@ func HandleSendPhoneCode(w http.ResponseWriter, r *http.Request) error {
 
 func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 	var emailCodeData emailCodeData
-	err := json.NewDecoder(r.Body).Decode(&emailCodeData)
 	defer r.Body.Close()
-
-	if err != nil {
-		return errors.Internal
+	if err := json.NewDecoder(r.Body).Decode(&emailCodeData); err != nil {
+		return err
 	}
 
 	if err := emailCodeData.validate(); err != nil {
@@ -87,10 +83,9 @@ func HandleSendEmailCode(w http.ResponseWriter, r *http.Request) error {
 
 func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 	var signInData signInEmailData
-	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
-	if err != nil {
-		return errors.Internal
+	if err := json.NewDecoder(r.Body).Decode(&signInData); err != nil {
+		return err
 	}
 
 	if err := signInData.validate(); err != nil {
@@ -142,10 +137,9 @@ func HandleSignInWithEmail(w http.ResponseWriter, r *http.Request) error {
 
 func HandleSignInWithPhone(w http.ResponseWriter, r *http.Request) error {
 	var signInData signInPhoneData
-	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
-	if err != nil {
-		return errors.Internal
+	if err := json.NewDecoder(r.Body).Decode(&signInData); err != nil {
+		return err
 	}
 
 	if err := signInData.validate(); err != nil {
@@ -200,10 +194,10 @@ func HandleSignUpWithEmail(w http.ResponseWriter, r *http.Request) error {
 	defer cancel()
 
 	var signUpData signUpEmailData
-	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	defer r.Body.Close()
-	if err != nil {
-		return errors.Internal
+
+	if err := json.NewDecoder(r.Body).Decode(&signUpData); err != nil {
+		return err
 	}
 
 	if err := signUpData.validate(); err != nil {
@@ -258,10 +252,9 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 	defer cancel()
 
 	var signUpData signUpPhoneData
-	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	defer r.Body.Close()
-	if err != nil {
-		return errors.Internal
+	if err := json.NewDecoder(r.Body).Decode(&signUpData); err != nil {
+		return err
 	}
 
 	if err := signUpData.validate(); err != nil {
@@ -314,12 +307,8 @@ func HandleSignUpWithPhone(w http.ResponseWriter, r *http.Request) error {
 func HandlePubKeyCreateRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		return errors.NewBadRequest(l.T("user_id is required"))
-	}
-
-	u, err := user.GetById(uuid.FromStringOrNil(userID))
+	session := r.Context().Value("session").(*Session)
+	u, err := user.GetById(ctx, session.UserID)
 	if err != nil {
 		return err
 	}
@@ -345,7 +334,7 @@ func HandlePubKeyGetRequest(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(l.T("user_id is required"))
 	}
 
-	u, err := user.GetById(uuid.FromStringOrNil(userID))
+	u, err := user.GetById(ctx, uuid.FromStringOrNil(userID))
 	if err != nil {
 		return err
 	}
@@ -372,10 +361,10 @@ func HandleCreatePubKey(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	var createData credential.CreatePubKeyData
-	err := json.NewDecoder(r.Body).Decode(&createData)
 	defer r.Body.Close()
-	if err != nil {
-		return errors.Internal
+
+	if err := json.NewDecoder(r.Body).Decode(&createData); err != nil {
+		return err
 	}
 
 	request, err := credential.GetRequestById(ctx, createData.ReqID)
@@ -419,10 +408,10 @@ func HandleVerifyPubKey(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	var assertData credential.AssertPubKeyData
-	err := json.NewDecoder(r.Body).Decode(&assertData)
 	defer r.Body.Close()
-	if err != nil {
-		return errors.Internal
+
+	if err := json.NewDecoder(r.Body).Decode(&assertData); err != nil {
+		return err
 	}
 
 	request, err := credential.GetRequestById(ctx, assertData.ReqID)
@@ -465,9 +454,8 @@ func HandleCreateLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 func HandleAcceptLoginToken(w http.ResponseWriter, r *http.Request) error {
 	var loginTokenData loginTokenData
-	err := json.NewDecoder(r.Body).Decode(&loginTokenData)
 	defer r.Body.Close()
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
 		return err
 	}
 
@@ -489,9 +477,8 @@ func HandleAcceptLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 func HandleRejectLoginToken(w http.ResponseWriter, r *http.Request) error {
 	var loginTokenData loginTokenData
-	err := json.NewDecoder(r.Body).Decode(&loginTokenData)
 	defer r.Body.Close()
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
 		return err
 	}
 
@@ -504,9 +491,8 @@ func HandleRejectLoginToken(w http.ResponseWriter, r *http.Request) error {
 
 func HandleScanLoginToken(w http.ResponseWriter, r *http.Request) error {
 	var loginTokenData loginTokenData
-	err := json.NewDecoder(r.Body).Decode(&loginTokenData)
 	defer r.Body.Close()
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&loginTokenData); err != nil {
 		return err
 	}
 
@@ -526,7 +512,7 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	session := r.Context().Value("session").(*session)
+	session := r.Context().Value("session").(*Session)
 
 	if err := session.remove(ctx); err != nil {
 		return err
@@ -537,10 +523,8 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) error {
 
 func HandleCreateOAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	var data oAuthFlowData
-	err := json.NewDecoder(r.Body).Decode(&data)
 	defer r.Body.Close()
-
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		return err
 	}
 
@@ -557,9 +541,8 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 	defer cancel()
 
 	var signInData signInGoogleData
-	err := json.NewDecoder(r.Body).Decode(&signInData)
 	defer r.Body.Close()
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&signInData); err != nil {
 		return err
 	}
 
@@ -600,7 +583,7 @@ func HandleSignInWithGoogle(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
-		u, err := user.GetById(account.UserID)
+		u, err := user.GetById(ctx, account.UserID)
 		if err != nil {
 			return err
 		}

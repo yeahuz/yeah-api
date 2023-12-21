@@ -1,5 +1,9 @@
 begin;
 
+create table if not exists languages (
+  code varchar(2) primary key
+);
+
 create table if not exists users (
   id uuid primary key,
   phone varchar(15) unique,
@@ -111,6 +115,23 @@ create table if not exists categories (
   foreign key (parent_id) references categories(id) on delete cascade
 );
 
+create table if not exists listing_statuses (
+ code varchar(255) check (code in ('ACTIVE', 'MODERATION', 'INDEXING', 'ARCHIVED', 'DRAFT', 'DELETED')) primary key,
+ active boolean default true,
+ fg_hex varchar(7) default '',
+ bg_hex varchar(7) default ''
+);
+
+create table if not exists listing_statuses_tr (
+  status_code varchar(255) not null,
+  lang_code varchar(255) not null,
+  name varchar(255) default '',
+
+  foreign key (status_code) references listing_statuses(code) on delete cascade,
+  foreign key (lang_code) references languages(code) on delete cascade,
+  primary key (status_code, lang_code)
+);
+
 create table if not exists listings (
   id uuid primary key,
   title varchar(255) not null,
@@ -118,10 +139,17 @@ create table if not exists listings (
   owner_id uuid not null,
   created_at timestamp with time zone default now() not null,
   updated_at timestamp with time zone,
+  status varchar(255) not null,
 
   foreign key (owner_id) references users(id) on delete cascade,
-  foreign key (category_id) references categories(id) on delete set null
+  foreign key (category_id) references categories(id) on delete set null,
+  foreign key (status) references listing_statuses(code) on delete set null
 );
+
+create index idx_categories_parent_id on categories(parent_id);
+
+create index idx_listings_owner_id on listings(owner_id);
+create index idx_listings_category_id on listings(category_id);
 
 create index idx_sessions_user_id on sessions(user_id);
 create index idx_sessions_client_id on sessions(client_id);

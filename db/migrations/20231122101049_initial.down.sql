@@ -8,5 +8,10 @@ drop table if exists credentials cascade;
 drop table if exists credential_requests cascade;
 drop table if exists sessions cascade;
 drop table if exists clients cascade;
+drop table if exists languages cascade;
+drop table if exists categories cascade;
+drop table if exists listing_statuses cascade;
+drop table if exists listing_statuses_tr cascade;
+drop table if exists listings cascade;
 
 commit;

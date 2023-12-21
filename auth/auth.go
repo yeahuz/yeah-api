@@ -43,13 +43,13 @@ func newOAuthFlow(data oAuthFlowData) oAuthFlow {
 	return flow
 }
 
-func newSession(userID, clientID uuid.UUID, userAgent string, IP string) (*session, error) {
+func newSession(userID, clientID uuid.UUID, userAgent string, IP string) (*Session, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
 	}
 
-	return &session{
+	return &Session{
 		UserID:    userID,
 		ClientID:  clientID,
 		UserAgent: userAgent,
@@ -58,7 +58,7 @@ func newSession(userID, clientID uuid.UUID, userAgent string, IP string) (*sessi
 	}, nil
 }
 
-func (s *session) save(ctx context.Context) error {
+func (s *Session) save(ctx context.Context) error {
 	_, err := db.Pool.Exec(ctx,
 		"insert into sessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5) returning id",
 		s.ID, s.UserID, s.ClientID, s.UserAgent, s.IP,
@@ -67,7 +67,7 @@ func (s *session) save(ctx context.Context) error {
 	return err
 }
 
-func (s *session) remove(ctx context.Context) error {
+func (s *Session) remove(ctx context.Context) error {
 	if _, err := db.Pool.Exec(ctx, "delete from sessions where id = $1", s.ID); err != nil {
 		return err
 	}
@@ -316,8 +316,8 @@ func isValidUUID(uuid string) bool {
 	return r.MatchString(uuid)
 }
 
-func getSessionById(ctx context.Context, id string) (*session, error) {
-	var session session
+func getSessionById(ctx context.Context, id string) (*Session, error) {
+	var session Session
 	err := db.Pool.QueryRow(ctx,
 		"select id, user_id, active from sessions where id = $1",
 		id).Scan(&session.ID, &session.UserID, &session.Active)
