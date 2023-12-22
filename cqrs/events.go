@@ -55,18 +55,18 @@ func NewLoginTokenAcceptedEvent(token string) LoginTokenAcceptedEvent {
 	}
 }
 
-func (ecse EmailCodeSentEvent) Name() string {
+func (ecse EmailCodeSentEvent) Subject() string {
 	return ecse.name
 }
 
-func (pcse PhoneCodeSentEvent) Name() string {
+func (pcse PhoneCodeSentEvent) Subject() string {
 	return pcse.name
 }
 
-func (l LoginTokenAcceptedEvent) Name() string {
+func (l LoginTokenAcceptedEvent) Subject() string {
 	return l.name
 }
 
-func (l LoginTokenRejectedEvent) Name() string {
+func (l LoginTokenRejectedEvent) Subject() string {
 	return l.name
 }

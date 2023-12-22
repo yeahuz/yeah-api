@@ -43,9 +43,9 @@ func (u *User) Save(ctx context.Context) error {
 	return nil
 }
 
-func GetByPhone(phone string) (*User, error) {
+func GetByPhone(ctx context.Context, phone string) (*User, error) {
 	var user User
-	err := db.Pool.QueryRow(context.Background(),
+	err := db.Pool.QueryRow(ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where phone = $1`,
 		phone).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 
@@ -59,10 +59,9 @@ func GetByPhone(phone string) (*User, error) {
 	return &user, nil
 }
 
-func GetByEmail(email string) (*User, error) {
+func GetByEmail(ctx context.Context, email string) (*User, error) {
 	var user User
-	err := db.Pool.QueryRow(
-		context.Background(),
+	err := db.Pool.QueryRow(ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where email = $1`,
 		email).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 

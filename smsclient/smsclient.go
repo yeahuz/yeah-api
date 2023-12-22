@@ -39,6 +39,12 @@ func New(opts Opts) *Client {
 	}
 }
 
+type SendSmsOutput struct {
+	ID      string `json:"id"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
 type tokenData struct {
 	Token string `json:"token"`
 }
@@ -78,7 +84,7 @@ func (c *Client) getToken(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) request(method, path, data string) error {
+func (c *Client) request(method, path, data string, v any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.TimeoutDuration)
 	defer cancel()
 
@@ -105,11 +111,7 @@ func (c *Client) request(method, path, data string) error {
 		c.cond.Wait()
 		c.cond.L.Unlock()
 		c.refreshing.Store(false)
-		return c.request(method, path, data)
-	}
-
-	if err != nil {
-		return err
+		return c.request(method, path, data, v)
 	}
 
 	//TODO: properly handle errors
@@ -117,19 +119,21 @@ func (c *Client) request(method, path, data string) error {
 		return fmt.Errorf("request(): Request failed with status code: %d", resp.StatusCode)
 	}
 
-	return nil
+	defer resp.Body.Close()
+	return json.NewDecoder(resp.Body).Decode(v)
 }
 
-func (c *Client) Send(to, message string) error {
+func (c *Client) Send(to, message string) (*SendSmsOutput, error) {
 	form := url.Values{
 		"message":      {message},
 		"from":         {"4546"},
 		"mobile_phone": {to},
 	}
 
-	if err := c.request("POST", "/message/sms/send", form.Encode()); err != nil {
-		return err
+	var output SendSmsOutput
+	if err := c.request("POST", "/message/sms/send", form.Encode(), &output); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &output, nil
 }

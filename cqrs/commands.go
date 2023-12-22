@@ -33,10 +33,10 @@ func NewSendPhoneCodeCommand(phoneNumber string, code string) SendPhoneCodeComma
 	}
 }
 
-func (secc SendEmailCodeCommand) Name() string {
+func (secc SendEmailCodeCommand) Subject() string {
 	return secc.name
 }
 
-func (spcc SendPhoneCodeCommand) Name() string {
+func (spcc SendPhoneCodeCommand) Subject() string {
 	return spcc.name
 }

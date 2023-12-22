@@ -25,7 +25,7 @@ var (
 	userId         = "10"
 )
 
-func HandleSendPhoneCode() c.ApiFunc {
+func HandleSendPhoneCode(cmdSender cqrs.Sender) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var phoneCodeData phoneCodeData
 		defer r.Body.Close()
@@ -42,12 +42,15 @@ func HandleSendPhoneCode() c.ApiFunc {
 			return err
 		}
 
-		if err := otp.Save(phoneCodeData.PhoneNumber); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		if err := otp.Save(ctx, phoneCodeData.PhoneNumber); err != nil {
 			return err
 		}
 
 		cmd := cqrs.NewSendPhoneCodeCommand(phoneCodeData.PhoneNumber, otp.Code)
-		if err := cqrs.Send(cmd); err != nil {
+		if err := cmdSender.Send(ctx, cmd); err != nil {
 			return errors.Internal
 		}
 
@@ -56,7 +59,7 @@ func HandleSendPhoneCode() c.ApiFunc {
 	}
 }
 
-func HandleSendEmailCode() c.ApiFunc {
+func HandleSendEmailCode(cmdSender cqrs.Sender) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var emailCodeData emailCodeData
 		defer r.Body.Close()
@@ -73,12 +76,15 @@ func HandleSendEmailCode() c.ApiFunc {
 			return err
 		}
 
-		if err := otp.Save(emailCodeData.Email); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		if err := otp.Save(ctx, emailCodeData.Email); err != nil {
 			return err
 		}
 
 		cmd := cqrs.NewSendEmailCodeCommand(emailCodeData.Email, otp.Code)
-		if err := cqrs.Send(cmd); err != nil {
+		if err := cmdSender.Send(ctx, cmd); err != nil {
 			return errors.Internal
 		}
 
@@ -99,7 +105,10 @@ func HandleSignInWithEmail() c.ApiFunc {
 			return err
 		}
 
-		otp, err := otp.GetByHash(signInData.Hash, false)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		otp, err := otp.GetByHash(ctx, signInData.Hash, false)
 		if err != nil {
 			return err
 		}
@@ -112,11 +121,11 @@ func HandleSignInWithEmail() c.ApiFunc {
 			return err
 		}
 
-		if err := otp.Confirm(); err != nil {
+		if err := otp.Confirm(ctx); err != nil {
 			return err
 		}
 
-		u, err := user.GetByEmail(signInData.Email)
+		u, err := user.GetByEmail(ctx, signInData.Email)
 		if err != nil {
 			if e.As(err, &errors.NotFound) {
 				return c.JSON(w, http.StatusOK, signupRequired)
@@ -125,9 +134,6 @@ func HandleSignInWithEmail() c.ApiFunc {
 		}
 
 		client := r.Context().Value("client").(*client.Client)
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
 
 		sess, err := newSession(u.ID, client.ID, r.UserAgent(), getIP(r))
 		if err != nil {
@@ -155,7 +161,10 @@ func HandleSignInWithPhone() c.ApiFunc {
 			return err
 		}
 
-		otp, err := otp.GetByHash(signInData.Hash, false)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		otp, err := otp.GetByHash(ctx, signInData.Hash, false)
 		if err != nil {
 			return err
 		}
@@ -168,11 +177,11 @@ func HandleSignInWithPhone() c.ApiFunc {
 			return err
 		}
 
-		if err := otp.Confirm(); err != nil {
+		if err := otp.Confirm(ctx); err != nil {
 			return err
 		}
 
-		u, err := user.GetByPhone(signInData.PhoneNumber)
+		u, err := user.GetByPhone(ctx, signInData.PhoneNumber)
 		if err != nil {
 			if e.As(err, &errors.NotFound) {
 				return c.JSON(w, http.StatusOK, signupRequired)
@@ -181,9 +190,6 @@ func HandleSignInWithPhone() c.ApiFunc {
 		}
 
 		client := r.Context().Value("client").(*client.Client)
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
 
 		sess, err := newSession(u.ID, client.ID, r.UserAgent(), getIP(r))
 		if err != nil {
@@ -215,7 +221,7 @@ func HandleSignUpWithEmail() c.ApiFunc {
 			return err
 		}
 
-		otp, err := otp.GetByHash(signUpData.Hash, true)
+		otp, err := otp.GetByHash(ctx, signUpData.Hash, true)
 		if err != nil {
 			return err
 		}
@@ -274,7 +280,7 @@ func HandleSignUpWithPhone() c.ApiFunc {
 			return err
 		}
 
-		otp, err := otp.GetByHash(signUpData.Hash, true)
+		otp, err := otp.GetByHash(ctx, signUpData.Hash, true)
 		if err != nil {
 			return err
 		}
@@ -476,7 +482,7 @@ func HandleCreateLoginToken() c.ApiFunc {
 	}
 }
 
-func HandleAcceptLoginToken() c.ApiFunc {
+func HandleAcceptLoginToken(cmdSender cqrs.Sender) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var loginTokenData loginTokenData
 		defer r.Body.Close()
@@ -493,7 +499,10 @@ func HandleAcceptLoginToken() c.ApiFunc {
 			return err
 		}
 
-		if err := cqrs.Send(cqrs.NewLoginTokenAcceptedEvent(loginTokenData.Token)); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		if err := cmdSender.Send(ctx, cqrs.NewLoginTokenAcceptedEvent(loginTokenData.Token)); err != nil {
 			return err
 		}
 
@@ -501,7 +510,7 @@ func HandleAcceptLoginToken() c.ApiFunc {
 	}
 }
 
-func HandleRejectLoginToken() c.ApiFunc {
+func HandleRejectLoginToken(cmdSender cqrs.Sender) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var loginTokenData loginTokenData
 		defer r.Body.Close()
@@ -509,7 +518,10 @@ func HandleRejectLoginToken() c.ApiFunc {
 			return err
 		}
 
-		if err := cqrs.Send(cqrs.NewLoginTokenRejectedEvent(loginTokenData.Token)); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		if err := cmdSender.Send(ctx, cqrs.NewLoginTokenRejectedEvent(loginTokenData.Token)); err != nil {
 			return err
 		}
 
@@ -632,7 +644,7 @@ func HandleSignInWithGoogle() c.ApiFunc {
 			return err
 		}
 
-		existingUser, err := user.GetByEmail(info.Email)
+		existingUser, err := user.GetByEmail(ctx, info.Email)
 		if existingUser != nil {
 			sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
 			if err != nil {

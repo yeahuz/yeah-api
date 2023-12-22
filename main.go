@@ -43,7 +43,7 @@ func main() {
 
 	sesClient := ses.NewFromConfig(cfg)
 
-	cleanup, err := cqrs.Setup(ctx, cqrs.SetupOpts{
+	cleanup, cqrsClient, err := cqrs.Setup(ctx, cqrs.SetupOpts{
 		NatsURL:       config.NatsURL,
 		NatsAuthToken: config.NatsAuthToken,
 		SmsClient:     smsClient,
@@ -73,10 +73,10 @@ func main() {
 		clientOnly(auth.HandleSignInWithTelegram()),
 	))
 	mux.Handle("POST /auth.sendPhoneCode", localized(
-		clientOnly(auth.HandleSendPhoneCode()),
+		clientOnly(auth.HandleSendPhoneCode(cqrsClient)),
 	))
 	mux.Handle("/auth.sendEmailCode", localized(
-		clientOnly(auth.HandleSendEmailCode()),
+		clientOnly(auth.HandleSendEmailCode(cqrsClient)),
 	))
 	mux.Handle("/auth.signInWithEmail", localized(
 		clientOnly(auth.HandleSignInWithEmail()),
@@ -94,10 +94,10 @@ func main() {
 		clientOnly(auth.HandleCreateLoginToken()),
 	))
 	mux.Handle("POST /auth.acceptLoginToken", localized(
-		userOnly(auth.HandleAcceptLoginToken()),
+		userOnly(auth.HandleAcceptLoginToken(cqrsClient)),
 	))
 	mux.Handle("POST /auth.rejectLoginToken", localized(
-		userOnly(auth.HandleRejectLoginToken()),
+		userOnly(auth.HandleRejectLoginToken(cqrsClient)),
 	))
 	mux.Handle("POST /auth.scanLoginToken", localized(
 		userOnly(auth.HandleScanLoginToken()),

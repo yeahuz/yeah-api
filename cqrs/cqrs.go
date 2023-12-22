@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ses"
@@ -26,7 +25,11 @@ var streamNames = map[string][]string{
 }
 
 type Message interface {
-	Name() string
+	Subject() string
+}
+
+type Sender interface {
+	Send(ctx context.Context, message Message) error
 }
 
 type SetupOpts struct {
@@ -36,19 +39,25 @@ type SetupOpts struct {
 	SesClient     *ses.Client
 }
 
-func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
+type Client struct {
+	nc *nats.Conn
+	js jetstream.JetStream
+}
 
+func Setup(ctx context.Context, opts SetupOpts) (func(), *Client, error) {
 	nc, err := nats.Connect(opts.NatsURL, nats.Token(opts.NatsAuthToken))
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, err
 	}
 
 	js, err := jetstream.New(nc)
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, err
 	}
+
+	client := &Client{nc: nc, js: js}
 
 	smsClient := opts.SmsClient
 	sesClient := opts.SesClient
@@ -62,7 +71,7 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
@@ -71,7 +80,7 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		cc, err := cons.Consume(func(m jetstream.Msg) {
@@ -104,7 +113,7 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 						return
 					}
 					m.Ack()
-					Send(NewEmailCodeSentEvent(cmd.Email))
+					client.Send(context.TODO(), NewEmailCodeSentEvent(cmd.Email))
 					break
 				}
 			case "auth.sendPhoneCode":
@@ -114,13 +123,13 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 						fmt.Printf("Error unmarshalling: %s\n", err)
 					}
 
-					err := smsClient.Send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
+					_, err := smsClient.Send(cmd.PhoneNumber[1:], fmt.Sprintf("Your verification code is %s. It expires in 15 minutes. Do not share this code! @needs.uz #%s", cmd.Code, cmd.Code))
 					if err != nil {
 						m.NakWithDelay(time.Second * 5)
 						return
 					}
 					m.Ack()
-					Send(NewPhoneCodeSentEvent(cmd.PhoneNumber))
+					client.Send(context.TODO(), NewPhoneCodeSentEvent(cmd.PhoneNumber))
 					break
 				}
 			case "auth.emailCodeSent":
@@ -160,19 +169,15 @@ func Setup(ctx context.Context, opts SetupOpts) (func(), error) {
 			cc.Stop()
 		}
 		nc.Drain()
-	}, nil
+	}, client, nil
 }
 
-func Send(message Message) error {
+func (c *Client) Send(ctx context.Context, message Message) error {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(message); err != nil {
 		return err
 	}
 
-	_, err := jstream.Publish(context.TODO(), message.Name(), buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := jstream.Publish(ctx, message.Subject(), buf.Bytes())
+	return err
 }

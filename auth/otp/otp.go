@@ -85,8 +85,8 @@ func (o *Otp) Verify(code string) error {
 	return argon.Verify(code, o.Code)
 }
 
-func (o *Otp) Confirm() error {
-	err := db.Pool.QueryRow(context.Background(), "update otps set confirmed = true where id = $1 returning confirmed", o.id).Scan(&o.Confirmed)
+func (o *Otp) Confirm(ctx context.Context) error {
+	err := db.Pool.QueryRow(ctx, "update otps set confirmed = true where id = $1 returning confirmed", o.id).Scan(&o.Confirmed)
 	if err != nil {
 		return errors.Internal
 	}
@@ -94,7 +94,7 @@ func (o *Otp) Confirm() error {
 	return nil
 }
 
-func (o *Otp) Save(identifier string) error {
+func (o *Otp) Save(ctx context.Context, identifier string) error {
 	code, err := argon.Hash(o.Code)
 	if err != nil {
 		return errors.Internal
@@ -109,7 +109,7 @@ func (o *Otp) Save(identifier string) error {
 	o.Hash = hash
 
 	_, err = db.Pool.Exec(
-		context.Background(),
+		ctx,
 		"insert into otps (id, code, hash, expires_at) values ($1, $2, $3, $4) returning id",
 		o.id, code, o.Hash, o.ExpiresAt,
 	)
@@ -121,10 +121,9 @@ func (o *Otp) Save(identifier string) error {
 	return nil
 }
 
-func GetByHash(hash string, confirmed bool) (*Otp, error) {
+func GetByHash(ctx context.Context, hash string, confirmed bool) (*Otp, error) {
 	var otp Otp
-	err := db.Pool.QueryRow(
-		context.Background(),
+	err := db.Pool.QueryRow(ctx,
 		"select id, hash, code, expires_at, confirmed from otps where hash = $1 and confirmed = $2 order by id desc limit 1",
 		hash, confirmed).Scan(&otp.id, &otp.Hash, &otp.Code, &otp.ExpiresAt, &otp.Confirmed)
 
