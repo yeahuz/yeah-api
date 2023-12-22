@@ -1,6 +1,6 @@
 module github.com/yeahuz/yeah-api
 
-go 1.20
+go 1.22
 
 require (
 	github.com/aws/aws-sdk-go v1.48.9

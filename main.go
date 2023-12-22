@@ -11,12 +11,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yeahuz/yeah-api/auth"
-	"github.com/yeahuz/yeah-api/client"
-	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/db"
-	"github.com/yeahuz/yeah-api/internal/localizer"
 	"github.com/yeahuz/yeah-api/listing"
 	"github.com/yeahuz/yeah-api/smsclient"
 
@@ -66,64 +63,64 @@ func main() {
 	defer db.Pool.Close()
 	mux := http.NewServeMux()
 
-	mux.Handle("/auth.createOAuthFlow", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleCreateOAuthFlow, http.MethodPost)),
+	mux.Handle("POST /auth.createOAuthFlow", localized(
+		clientOnly(auth.HandleCreateOAuthFlow()),
 	))
-	mux.Handle("/auth.signInWithGoogle", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSignInWithGoogle, http.MethodPost)),
+	mux.Handle("POST /auth.signInWithGoogle", localized(
+		clientOnly(auth.HandleSignInWithGoogle()),
 	))
-	mux.Handle("/auth.signInWithTelegram", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSignInWithTelegram, http.MethodPost)),
+	mux.Handle("POST /auth.signInWithTelegram", localized(
+		clientOnly(auth.HandleSignInWithTelegram()),
 	))
-	mux.Handle("/auth.sendPhoneCode", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSendPhoneCode, http.MethodPost)),
+	mux.Handle("POST /auth.sendPhoneCode", localized(
+		clientOnly(auth.HandleSendPhoneCode()),
 	))
-	mux.Handle("/auth.sendEmailCode", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSendEmailCode, http.MethodPost)),
+	mux.Handle("/auth.sendEmailCode", localized(
+		clientOnly(auth.HandleSendEmailCode()),
 	))
-	mux.Handle("/auth.signInWithEmail", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSignInWithEmail, http.MethodPost)),
+	mux.Handle("/auth.signInWithEmail", localized(
+		clientOnly(auth.HandleSignInWithEmail()),
 	))
-	mux.Handle("/auth.signInWithPhone", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSignInWithPhone, http.MethodPost)),
+	mux.Handle("/auth.signInWithPhone", localized(
+		clientOnly(auth.HandleSignInWithPhone()),
 	))
-	mux.Handle("/auth.signUpWithEmail", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSignUpWithEmail, http.MethodPost)),
+	mux.Handle("/auth.signUpWithEmail", localized(
+		clientOnly(auth.HandleSignUpWithEmail()),
 	))
-	mux.Handle("/auth.signUpWithPhone", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleSignUpWithPhone, http.MethodPost)),
+	mux.Handle("/auth.signUpWithPhone", localized(
+		clientOnly(auth.HandleSignUpWithPhone()),
 	))
-	mux.Handle("/auth.createLoginToken", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleCreateLoginToken, http.MethodPost)),
+	mux.Handle("POST /auth.createLoginToken", localized(
+		clientOnly(auth.HandleCreateLoginToken()),
 	))
-	mux.Handle("/auth.acceptLoginToken", localizer.Middleware(
-		auth.Middleware(c.MakeHandler(auth.HandleAcceptLoginToken, http.MethodPost)),
+	mux.Handle("POST /auth.acceptLoginToken", localized(
+		userOnly(auth.HandleAcceptLoginToken()),
 	))
-	mux.Handle("/auth.rejectLoginToken", localizer.Middleware(
-		auth.Middleware(c.MakeHandler(auth.HandleRejectLoginToken, http.MethodPost)),
+	mux.Handle("POST /auth.rejectLoginToken", localized(
+		userOnly(auth.HandleRejectLoginToken()),
 	))
-	mux.Handle("/auth.scanLoginToken", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleScanLoginToken, http.MethodPost)),
+	mux.Handle("POST /auth.scanLoginToken", localized(
+		userOnly(auth.HandleScanLoginToken()),
 	))
-	mux.Handle("/auth.logOut", localizer.Middleware(
-		auth.Middleware(c.MakeHandler(auth.HandleLogOut, http.MethodPost)),
-	))
-
-	mux.Handle("/credentials.pubKeyCreateRequest", localizer.Middleware(
-		auth.Middleware(c.MakeHandler(auth.HandlePubKeyCreateRequest, http.MethodPost)),
-	))
-	mux.Handle("/credentials.pubKeyGetRequest", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandlePubKeyGetRequest, http.MethodPost)),
-	))
-	mux.Handle("/credentials.createPubKey", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleCreatePubKey, http.MethodPost)),
-	))
-	mux.Handle("/credentials.verifyPubKey", localizer.Middleware(
-		client.Middleware(c.MakeHandler(auth.HandleVerifyPubKey, http.MethodPost)),
+	mux.Handle("POST /auth.logOut", localized(
+		userOnly(auth.HandleLogOut()),
 	))
 
-	mux.Handle("/listing.createListing", localizer.Middleware(
-		auth.Middleware(c.MakeHandler(listing.HandleCreateListing, http.MethodPost)),
+	mux.Handle("POST /credentials.pubKeyCreateRequest", localized(
+		userOnly(auth.HandlePubKeyCreateRequest()),
+	))
+	mux.Handle("POST /credentials.pubKeyGetRequest", localized(
+		clientOnly(auth.HandlePubKeyGetRequest()),
+	))
+	mux.Handle("POST /credentials.createPubKey", localized(
+		clientOnly(auth.HandleCreatePubKey()),
+	))
+	mux.Handle("POST /credentials.verifyPubKey", localized(
+		clientOnly(auth.HandleVerifyPubKey()),
+	))
+
+	mux.Handle("POST /listing.createListing", localized(
+		userOnly(listing.HandleCreateListing()),
 	))
 
 	fmt.Printf("Server started at %s\n", config.Addr)

@@ -4,15 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"net/http"
-	"time"
 
 	e "errors"
 
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/yeahuz/yeah-api/auth/argon"
-	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
 	"github.com/yeahuz/yeah-api/internal/localizer"
@@ -88,32 +85,6 @@ func GetById(ctx context.Context, id string) (*Client, error) {
 	}
 
 	return &client, nil
-}
-
-func Middleware(next http.Handler) http.Handler {
-	return c.HandleError(func(w http.ResponseWriter, r *http.Request) error {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		clientId := r.Header.Get("X-Client-Id")
-
-		if clientId == "" {
-			return errors.Unauthorized
-		}
-
-		clientSecret := r.Header.Get("X-Client-Secret")
-		client, err := GetById(ctx, clientId)
-		if err != nil {
-			return err
-		}
-
-		if err := client.Verify(clientSecret); err != nil {
-			return err
-		}
-
-		ctx = context.WithValue(r.Context(), "client", client)
-		next.ServeHTTP(w, r.WithContext(ctx))
-		return nil
-	})
 }
 
 func generateSecret() (string, error) {

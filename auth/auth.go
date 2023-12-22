@@ -17,7 +17,6 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
-	c "github.com/yeahuz/yeah-api/common"
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/internal/errors"
@@ -311,12 +310,7 @@ func (supd signUpPhoneData) validate() error {
 	return nil
 }
 
-func isValidUUID(uuid string) bool {
-	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
-	return r.MatchString(uuid)
-}
-
-func getSessionById(ctx context.Context, id string) (*Session, error) {
+func GetSessionById(ctx context.Context, id string) (*Session, error) {
 	var session Session
 	err := db.Pool.QueryRow(ctx,
 		"select id, user_id, active from sessions where id = $1",
@@ -342,32 +336,4 @@ func getIP(r *http.Request) string {
 	}
 
 	return ip
-}
-
-func Middleware(next http.Handler) http.Handler {
-	return c.HandleError(func(w http.ResponseWriter, r *http.Request) error {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		sessionId := r.Header.Get("X-Session-Id")
-		if sessionId == "" {
-			return errors.Unauthorized
-		}
-
-		if !isValidUUID(sessionId) {
-			return errors.NewBadRequest(l.T("Missing valid session id"))
-		}
-
-		session, err := getSessionById(ctx, sessionId)
-		if err != nil {
-			return err
-		}
-
-		if !session.Active {
-			return errors.Unauthorized
-		}
-
-		ctx = context.WithValue(r.Context(), "session", session)
-		next.ServeHTTP(w, r.WithContext(ctx))
-		return nil
-	})
 }

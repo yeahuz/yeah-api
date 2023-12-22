@@ -1,9 +1,6 @@
 package localizer
 
 import (
-	"context"
-	"net/http"
-
 	_ "github.com/yeahuz/yeah-api/internal/translations"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -45,13 +42,4 @@ func Get(id string) Localizer {
 
 func (l Localizer) T(key message.Reference, args ...interface{}) string {
 	return l.printer.Sprintf(key, args...)
-}
-
-func Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		lang := r.Header.Get("Accept-Language")
-		l := Get(lang)
-		ctx := context.WithValue(r.Context(), "localizer", l)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
 }
