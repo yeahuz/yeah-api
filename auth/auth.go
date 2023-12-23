@@ -28,6 +28,13 @@ var (
 	l          = localizer.GetDefault()
 )
 
+func newSentCode(hash string, typ sentCodeType) *sentCode {
+	return &sentCode{
+		Hash: hash,
+		Type: typ,
+	}
+}
+
 func newOAuthFlow(data oAuthFlowData) oAuthFlow {
 	flow := oAuthFlow{}
 	switch data.Provider {

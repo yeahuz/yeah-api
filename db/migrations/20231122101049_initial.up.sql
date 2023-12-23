@@ -146,6 +146,34 @@ create table if not exists listings (
   foreign key (status) references listing_statuses(code) on delete set null
 );
 
+create table if not exists currencies (
+  code varchar(10) primary key,
+  symbol varchar(10) default ''
+);
+
+create table if not exists listing_skus (
+  id uuid primary key,
+  custom_sku varchar(255) default '',
+  listing_id uuid not null,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone,
+
+  foreign key (listing_id) references listings(id) on delete cascade
+);
+
+create table if not exists listing_product_prices (
+  product_id uuid not null,
+  amount bigint 0,
+  currency varchar(255) not null,
+  start_date timestamp with time zone default now() not null,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone,
+
+  foreign key (product_id) references listing_products(id) on delete cascade,
+  foreign key (currency) references currencies(code) on delete set null,
+  primary key (product_id, start_date)
+);
+
 create index idx_categories_parent_id on categories(parent_id);
 
 create index idx_listings_owner_id on listings(owner_id);

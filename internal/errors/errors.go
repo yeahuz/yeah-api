@@ -1,9 +1,12 @@
 package errors
 
 import (
+	"bytes"
 	"net/http"
 
+	"github.com/yeahuz/yeah-api/client"
 	"github.com/yeahuz/yeah-api/internal/localizer"
+	"github.com/yeahuz/yeah-api/user"
 )
 
 var l = localizer.Get("en")
@@ -14,6 +17,94 @@ var (
 	NotFound         = NewNotFound(l.T("Resource not found"))
 	Unauthorized     = NewUnauthorized(l.T("Not authorized"))
 )
+
+type Op string
+type Kind uint8
+
+type Error struct {
+	Op       Op
+	Kind     Kind
+	Err      error
+	UserID   user.UserID
+	ClientID client.ClientID
+}
+
+func Ops(e *Error) []Op {
+	res := []Op{e.Op}
+
+	subErr, ok := e.Err.(*Error)
+
+	if !ok {
+		return res
+	}
+
+	res = append(res, Ops(subErr)...)
+	return res
+}
+
+func pad(b *bytes.Buffer, str string) {
+	if b.Len() == 0 {
+		return
+	}
+	b.WriteString(str)
+}
+
+func (e Error) Error() string {
+	b := new(bytes.Buffer)
+
+	if e.Op != "" {
+		b.WriteString(string(e.Op))
+	}
+	if e.UserID != "" {
+		pad(b, ": ")
+	}
+
+	return b.String()
+}
+
+func E(args ...interface{}) error {
+	if len(args) == 0 {
+		panic("call to errors.E with no arguments")
+	}
+
+	e := &Error{}
+
+	for _, arg := range args {
+		switch arg := arg.(type) {
+		case user.UserID:
+			e.UserID = arg
+		case client.ClientID:
+			e.ClientID = arg
+		case Op:
+			e.Op = arg
+		case error:
+			e.Err = arg
+		case Kind:
+			e.Kind = arg
+		case string:
+			e.Err = Str(arg)
+		case *Error:
+			copy := *arg
+			e.Err = &copy
+		default:
+			panic("bad call to errors.E")
+		}
+	}
+
+	return e
+}
+
+func Str(text string) error {
+	return &errorString{text}
+}
+
+type errorString struct {
+	s string
+}
+
+func (e *errorString) Error() string {
+	return e.s
+}
 
 type AppError interface {
 	error

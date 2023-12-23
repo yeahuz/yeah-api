@@ -21,7 +21,7 @@ func New(opts NewUserOpts) (*User, error) {
 	}
 
 	return &User{
-		ID:          id,
+		ID:          UserID(id.String()),
 		NewUserOpts: opts,
 	}, nil
 }

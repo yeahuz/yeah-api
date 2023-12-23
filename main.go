@@ -15,6 +15,7 @@ import (
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/db"
 	"github.com/yeahuz/yeah-api/listing"
+	"github.com/yeahuz/yeah-api/postgres"
 	"github.com/yeahuz/yeah-api/smsclient"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -59,15 +60,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer db.Pool.Close()
+	userService := &postgres.UserService{
+		Pool: db.Pool,
+	}
+
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /auth.createOAuthFlow", localized(
 		clientOnly(auth.HandleCreateOAuthFlow()),
 	))
 	mux.Handle("POST /auth.signInWithGoogle", localized(
-		clientOnly(auth.HandleSignInWithGoogle()),
+		clientOnly(auth.HandleSignInWithGoogle(userService)),
 	))
 	mux.Handle("POST /auth.signInWithTelegram", localized(
 		clientOnly(auth.HandleSignInWithTelegram()),
@@ -79,16 +83,16 @@ func main() {
 		clientOnly(auth.HandleSendEmailCode(cqrsClient)),
 	))
 	mux.Handle("/auth.signInWithEmail", localized(
-		clientOnly(auth.HandleSignInWithEmail()),
+		clientOnly(auth.HandleSignInWithEmail(userService)),
 	))
 	mux.Handle("/auth.signInWithPhone", localized(
-		clientOnly(auth.HandleSignInWithPhone()),
+		clientOnly(auth.HandleSignInWithPhone(userService)),
 	))
 	mux.Handle("/auth.signUpWithEmail", localized(
-		clientOnly(auth.HandleSignUpWithEmail()),
+		clientOnly(auth.HandleSignUpWithEmail(userService)),
 	))
 	mux.Handle("/auth.signUpWithPhone", localized(
-		clientOnly(auth.HandleSignUpWithPhone()),
+		clientOnly(auth.HandleSignUpWithPhone(userService)),
 	))
 	mux.Handle("POST /auth.createLoginToken", localized(
 		clientOnly(auth.HandleCreateLoginToken()),
@@ -107,11 +111,12 @@ func main() {
 	))
 
 	mux.Handle("POST /credentials.pubKeyCreateRequest", localized(
-		userOnly(auth.HandlePubKeyCreateRequest()),
+		userOnly(auth.HandlePubKeyCreateRequest(userService)),
 	))
 	mux.Handle("POST /credentials.pubKeyGetRequest", localized(
-		clientOnly(auth.HandlePubKeyGetRequest()),
+		clientOnly(auth.HandlePubKeyGetRequest(userService)),
 	))
+
 	mux.Handle("POST /credentials.createPubKey", localized(
 		clientOnly(auth.HandleCreatePubKey()),
 	))

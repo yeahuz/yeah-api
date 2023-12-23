@@ -7,7 +7,6 @@ import (
 
 	e "errors"
 
-	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/yeahuz/yeah-api/auth/argon"
 	"github.com/yeahuz/yeah-api/db"
@@ -25,9 +24,11 @@ var (
 	clientPublic       clientType = "public"
 )
 
+type ClientID string
+
 type Client struct {
-	ID     uuid.UUID `json:"id"`
-	Name   string    `json:"name"`
+	ID     ClientID `json:"id"`
+	Name   string   `json:"name"`
 	secret string
 	Type   clientType `json:"type"`
 	Active bool       `json:"active"`

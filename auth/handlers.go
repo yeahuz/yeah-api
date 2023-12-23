@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/yeahuz/yeah-api/auth/credential"
 	"github.com/yeahuz/yeah-api/auth/otp"
 	"github.com/yeahuz/yeah-api/client"
@@ -16,7 +15,7 @@ import (
 	"github.com/yeahuz/yeah-api/config"
 	"github.com/yeahuz/yeah-api/cqrs"
 	"github.com/yeahuz/yeah-api/internal/errors"
-	"github.com/yeahuz/yeah-api/user"
+	"github.com/yeahuz/yeah-api/yeah"
 )
 
 var (
@@ -54,7 +53,7 @@ func HandleSendPhoneCode(cmdSender cqrs.Sender) c.ApiFunc {
 			return errors.Internal
 		}
 
-		sentCode := sentCode{Hash: otp.Hash, Type: sentCodeSms{Length: len(otp.Code)}}
+		sentCode := newSentCode(otp.Hash, sentCodeSms{Length: len(otp.Code)})
 		return c.JSON(w, http.StatusOK, sentCode)
 	}
 }
@@ -88,12 +87,12 @@ func HandleSendEmailCode(cmdSender cqrs.Sender) c.ApiFunc {
 			return errors.Internal
 		}
 
-		sentCode := sentCode{Hash: otp.Hash, Type: sentCodeEmail{Length: len(otp.Code)}}
+		sentCode := newSentCode(otp.Hash, sentCodeEmail{Length: len(otp.Code)})
 		return c.JSON(w, http.StatusOK, sentCode)
 	}
 }
 
-func HandleSignInWithEmail() c.ApiFunc {
+func HandleSignInWithEmail(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var signInData signInEmailData
 		defer r.Body.Close()
@@ -125,7 +124,7 @@ func HandleSignInWithEmail() c.ApiFunc {
 			return err
 		}
 
-		u, err := user.GetByEmail(ctx, signInData.Email)
+		u, err := userService.ByEmail(ctx, signInData.Email)
 		if err != nil {
 			if e.As(err, &errors.NotFound) {
 				return c.JSON(w, http.StatusOK, signupRequired)
@@ -149,7 +148,7 @@ func HandleSignInWithEmail() c.ApiFunc {
 	}
 }
 
-func HandleSignInWithPhone() c.ApiFunc {
+func HandleSignInWithPhone(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var signInData signInPhoneData
 		defer r.Body.Close()
@@ -181,7 +180,8 @@ func HandleSignInWithPhone() c.ApiFunc {
 			return err
 		}
 
-		u, err := user.GetByPhone(ctx, signInData.PhoneNumber)
+		u, err := userService.ByPhone(ctx, signInData.phoneNumber)
+
 		if err != nil {
 			if e.As(err, &errors.NotFound) {
 				return c.JSON(w, http.StatusOK, signupRequired)
@@ -205,7 +205,7 @@ func HandleSignInWithPhone() c.ApiFunc {
 	}
 }
 
-func HandleSignUpWithEmail() c.ApiFunc {
+func HandleSignUpWithEmail(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -234,7 +234,7 @@ func HandleSignUpWithEmail() c.ApiFunc {
 			return err
 		}
 
-		u, err := user.New(user.NewUserOpts{
+		u, err := userService.CreateUser(ctx, &yeah.User{
 			FirstName:     signUpData.FirstName,
 			LastName:      signUpData.LastName,
 			Email:         signUpData.Email,
@@ -242,10 +242,6 @@ func HandleSignUpWithEmail() c.ApiFunc {
 		})
 
 		if err != nil {
-			return err
-		}
-
-		if err := u.Save(ctx); err != nil {
 			return err
 		}
 
@@ -265,7 +261,7 @@ func HandleSignUpWithEmail() c.ApiFunc {
 	}
 }
 
-func HandleSignUpWithPhone() c.ApiFunc {
+func HandleSignUpWithPhone(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -293,7 +289,7 @@ func HandleSignUpWithPhone() c.ApiFunc {
 			return err
 		}
 
-		u, err := user.New(user.NewUserOpts{
+		u, err := userService.CreateUser(ctx, &yeah.User{
 			FirstName:     signUpData.FirstName,
 			LastName:      signUpData.LastName,
 			PhoneNumber:   signUpData.PhoneNumber,
@@ -301,10 +297,6 @@ func HandleSignUpWithPhone() c.ApiFunc {
 		})
 
 		if err != nil {
-			return err
-		}
-
-		if err := u.Save(ctx); err != nil {
 			return err
 		}
 
@@ -324,12 +316,12 @@ func HandleSignUpWithPhone() c.ApiFunc {
 	}
 }
 
-func HandlePubKeyCreateRequest() c.ApiFunc {
+func HandlePubKeyCreateRequest(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		session := r.Context().Value("session").(*Session)
-		u, err := user.GetById(ctx, session.UserID)
+		u, err := userService.User(ctx, session.UserID)
 		if err != nil {
 			return err
 		}
@@ -348,7 +340,7 @@ func HandlePubKeyCreateRequest() c.ApiFunc {
 	}
 }
 
-func HandlePubKeyGetRequest() c.ApiFunc {
+func HandlePubKeyGetRequest(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -357,7 +349,7 @@ func HandlePubKeyGetRequest() c.ApiFunc {
 			return errors.NewBadRequest(l.T("user_id is required"))
 		}
 
-		u, err := user.GetById(ctx, uuid.FromStringOrNil(userID))
+		u, err := userService.User(ctx, yeah.UserID(userID))
 		if err != nil {
 			return err
 		}
@@ -583,7 +575,7 @@ func HandleCreateOAuthFlow() c.ApiFunc {
 	}
 }
 
-func HandleSignInWithGoogle() c.ApiFunc {
+func HandleSignInWithGoogle(userService yeah.UserService) c.ApiFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -619,7 +611,7 @@ func HandleSignInWithGoogle() c.ApiFunc {
 
 		client := r.Context().Value("client").(*client.Client)
 
-		account, err := user.GetByAccountId(ctx, info.Sub)
+		account, err := userService.Account(ctx, info.Sub)
 		if account != nil {
 
 			sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
@@ -631,7 +623,7 @@ func HandleSignInWithGoogle() c.ApiFunc {
 				return err
 			}
 
-			u, err := user.GetById(ctx, account.UserID)
+			u, err := userService.User(ctx, account.UserID)
 			if err != nil {
 				return err
 			}
@@ -644,14 +636,18 @@ func HandleSignInWithGoogle() c.ApiFunc {
 			return err
 		}
 
-		existingUser, err := user.GetByEmail(ctx, info.Email)
+		existingUser, err := userService.ByEmail(ctx, info.Email)
 		if existingUser != nil {
 			sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
 			if err != nil {
 				return err
 			}
 
-			if _, err := existingUser.LinkAccount(ctx, "google", info.Sub); err != nil {
+			if err := userService.LinkAccount(ctx, &yeah.Account{
+				UserID:            existingUser.ID,
+				Provider:          "google",
+				ProviderAccountID: info.Sub,
+			}); err != nil {
 				return err
 			}
 
@@ -667,35 +663,25 @@ func HandleSignInWithGoogle() c.ApiFunc {
 			return err
 		}
 
-		newUser, err := user.New(user.NewUserOpts{
+		user, err := userService.CreateUser(ctx, &yeah.User{
 			Email:         info.Email,
 			FirstName:     info.GivenName,
 			LastName:      info.FamilyName,
 			EmailVerified: true,
 		})
 
-		if err != nil {
-			return err
-		}
-
-		if err := newUser.Save(ctx); err != nil {
-			return err
-		}
-
 		sess, err := newSession(account.UserID, client.ID, r.UserAgent(), getIP(r))
 		if err != nil {
 			return err
 		}
 
-		if _, err := newUser.LinkAccount(ctx, "google", info.Sub); err != nil {
-			return err
-		}
+		if err := userService.LinkAccount(ctx, &yeah.Account{
+			UserID: user.ID,
+			Provider: "google",
+			ProviderAccountID: info.Sub,
+		})
 
-		if err := sess.save(ctx); err != nil {
-			return err
-		}
-
-		authorization := authorization{User: newUser, Session: sess}
+		authorization := authorization{User: user, Session: sess}
 
 		return c.JSON(w, http.StatusOK, authorization)
 	}
