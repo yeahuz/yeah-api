@@ -132,18 +132,3 @@ func expand(path string) (string, error) {
 	}
 	return filepath.Join(u.HomeDir, strings.TrimPrefix(path, "~"+string(os.PathSeparator))), nil
 }
-
-// POSTGRES_URI=postgresql://jcbbb:2157132aA*codes@localhost:5432/needs-api-dev
-// HIGHWAY_HASH_KEY=fad21f136da3d007d9b68bb7a161918e3067861e692175f76888c3210a0a485c
-// ADDR=:3000
-// AWS_KEY=AKIAT5IEKHYOJZKSGK6F
-// AWS_SECRET=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
-// NATS_AUTH_TOKEN=10cee6c8f524cab9795af019c62bdb60cdd30e7261df164adb577f857d93d2de
-// SMS_API_URL=https://notify.eskiz.uz/api
-// SMS_API_EMAIL=avaz28082000@gmail.com
-// SMS_API_PASSWORD=WC0jM1ztmAdeudblHWYjP0dEI88A3AHS7EAZ3dvI
-// SIGNING_SECRET=a0967db797a60d3ad5d72d906856386bbd1fa98526ff27d9891ad498656eb167
-// ORIGIN=http://localhost:8080
-// GOOGLE_OAUTH_CLIENT_SECRET=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
-// GOOGLE_OAUTH_CLIENT_ID=600896005100-u88qclbcs8clv5mllc2h7dbl9cngppb5.apps.googleusercontent.com
-// GOOGLE_OAUTH_REDIRECT_URL=http://localhost:3001/auth/google
