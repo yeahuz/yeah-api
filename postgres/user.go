@@ -5,16 +5,23 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yeahuz/yeah-api/yeah"
+	yeahapi "github.com/yeahuz/yeah-api"
 )
 
 type UserService struct {
-	Pool *pgxpool.Pool
+	pool  *pgxpool.Pool
+	locsv *yeahapi.LocalizerService
 }
 
-func (s *UserService) User(ctx context.Context, id yeah.UserID) (*yeah.User, error) {
-	var user yeah.User
-	err := s.Pool.QueryRow(
+func NewUserService(pool *pgxpool.Pool) *UserService {
+	return &UserService{
+		pool: pool,
+	}
+}
+
+func (s *UserService) User(ctx context.Context, id yeahapi.UserID) (*yeahapi.User, error) {
+	var user yeahapi.User
+	err := s.pool.QueryRow(
 		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where id = $1`,
 		id).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
@@ -22,9 +29,9 @@ func (s *UserService) User(ctx context.Context, id yeah.UserID) (*yeah.User, err
 	return &user, err
 }
 
-func (s *UserService) ByEmail(ctx context.Context, email string) (*yeah.User, error) {
-	var user yeah.User
-	err := s.Pool.QueryRow(
+func (s *UserService) ByEmail(ctx context.Context, email string) (*yeahapi.User, error) {
+	var user yeahapi.User
+	err := s.pool.QueryRow(
 		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where email = $1`,
 		email).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
@@ -32,9 +39,9 @@ func (s *UserService) ByEmail(ctx context.Context, email string) (*yeah.User, er
 	return &user, err
 }
 
-func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeah.User, error) {
-	var user yeah.User
-	err := s.Pool.QueryRow(
+func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeahapi.User, error) {
+	var user yeahapi.User
+	err := s.pool.QueryRow(
 		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where phone = $1`,
 		phone).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
@@ -42,10 +49,10 @@ func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeah.User, er
 	return &user, err
 }
 
-func (s *UserService) Account(ctx context.Context, id string) (*yeah.Account, error) {
-	var account yeah.Account
+func (s *UserService) Account(ctx context.Context, id string) (*yeahapi.Account, error) {
+	var account yeahapi.Account
 
-	err := s.Pool.QueryRow(
+	err := s.pool.QueryRow(
 		ctx,
 		"select id, provider, user_id, provider_account_id from accounts where id = $1",
 		id,
@@ -54,15 +61,15 @@ func (s *UserService) Account(ctx context.Context, id string) (*yeah.Account, er
 	return &account, err
 }
 
-func (s *UserService) CreateUser(ctx context.Context, user *yeah.User) (*yeah.User, error) {
+func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeahapi.User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
 	}
 
-	user.ID = yeah.UserID(id.String())
+	user.ID = yeahapi.UserID(id.String())
 
-	_, err = s.Pool.Exec(ctx,
+	_, err = s.pool.Exec(ctx,
 		"insert into users (id, first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6, $7)",
 		id, user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.EmailVerified, user.PhoneVerified,
 	)
@@ -70,7 +77,7 @@ func (s *UserService) CreateUser(ctx context.Context, user *yeah.User) (*yeah.Us
 	return user, err
 }
 
-func (s *UserService) LinkAccount(ctx context.Context, account *yeah.Account) error {
+func (s *UserService) LinkAccount(ctx context.Context, account *yeahapi.Account) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -78,7 +85,7 @@ func (s *UserService) LinkAccount(ctx context.Context, account *yeah.Account) er
 
 	account.ID = id.String()
 
-	_, err = s.Pool.Exec(ctx,
+	_, err = s.pool.Exec(ctx,
 		"insert into accounts (id, user_id, provider, provider_account_id) values ($1, $2, $3, $4) returning id",
 		account.ID, account.UserID, account.Provider, account.ProviderAccountID,
 	)

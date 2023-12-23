@@ -1,9 +1,8 @@
-package yeah
+package yeahapi
 
 import "context"
 
 type UserID string
-type ClientID string
 
 type User struct {
 	ID            UserID `json:"id"`
@@ -14,22 +13,6 @@ type User struct {
 	Username      string `json:"username"`
 	EmailVerified bool   `json:"-"`
 	PhoneVerified bool   `json:"-"`
-}
-
-type clientType string
-
-var (
-	clientInternal     clientType = "internal"
-	clientConfidential clientType = "confidential"
-	clientPublic       clientType = "public"
-)
-
-type Client struct {
-	ID     ClientID `json:"id"`
-	Name   string   `json:"name"`
-	secret string
-	Type   clientType `json:"type"`
-	Active bool       `json:"active"`
 }
 
 type Account struct {
@@ -46,8 +29,4 @@ type UserService interface {
 	User(ctx context.Context, id UserID) (*User, error)
 	Account(ctx context.Context, id string) (*Account, error)
 	LinkAccount(ctx context.Context, account *Account) error
-}
-
-type AuthService interface {
-	CreateSession(ctx context.Context) error
 }

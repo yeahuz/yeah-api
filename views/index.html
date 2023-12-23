@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <title>Document</title>
+    </head>
+    <body>
+      <button id="login">Log in</button>
+      <button id="register">Register</button>
+      <script type="text/javascript">
+        let login = document.getElementById("login")
+        let register = document.getElementById("register")
+
+        login.addEventListener("click", loginFn);
+        register.addEventListener("click", registerFn);
+
+       async function loginFn() {
+          let response = await fetch("http://localhost:3000/credentials.pubKeyGetRequest?user_id=1", {
+              method: "POST"
+          });
+
+          if (!response.ok) {
+              console.error("Response not ok: ", response.status);
+              return;
+          }
+
+          let json = await response.json();
+          let credential = await navigator.credentials.get({
+            publicKey: {
+              challenge: decode(json.pubkey.challenge),
+              rpId: json.pubkey.rp_id,
+              timeout: json.pubkey.timeout,
+              allowCredentials: json.pubkey.allow_credentials.map((item) => ({
+                ...item,
+                id: decode(item.id)
+              })),
+              userVerification: json.pubkey.user_verification
+            }
+          });
+
+          let resp = await fetch("http://localhost:3000/credentials.verifyPubKey", {
+            method: "POST",
+            body: JSON.stringify({
+                req_id: json.id,
+                credential: {
+                  id: credential.id,
+                  raw_id: await encode(credential.rawId),
+                  response: {
+                      authenticator_data: await encode(credential.response.authenticatorData),
+                      client_data_json: await encode(credential.response.clientDataJSON),
+                      signature: await encode(credential.response.signature),
+                  }
+                }
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+          })
+       }
+
+       async function registerFn() {
+          let response = await fetch("http://localhost:3000/credentials.pubKeyCreateRequest?user_id=1", {
+              method: "POST"
+          });
+
+          if (!response.ok) {
+              console.error("Response not ok: ", response.status);
+              return;
+          }
+
+          let json = await response.json();
+
+          if ("credentials" in navigator) {
+              let credential = await navigator.credentials.create({
+                  publicKey: {
+                      challenge: decode(json.pubkey.challenge),
+                      rp: json.pubkey.rp,
+                      user: {
+                          id: decode(json.pubkey.user.id),
+                          displayName: json.pubkey.user.display_name,
+                          name: json.pubkey.user.display_name,
+                      },
+                      pubKeyCredParams: json.pubkey.pubkey_cred_params,
+                      timeout: json.pubkey.timeout,
+                      attestation: json.pubkey.attestation
+                  }
+              });
+
+            console.log("Authn data: ", credential.response.getAuthenticatorData());
+            console.log("Public key: ", credential.response.getPublicKey());
+            console.log("Public key algo: ", credential.response.getPublicKeyAlgorithm());
+
+            let resp = await fetch("http://localhost:3000/credentials.createPubKey", {
+                method: "POST",
+                body: JSON.stringify({
+                    req_id: json.id,
+                    credential: {
+                        id: credential.id,
+                        raw_id: await encode(credential.rawId),
+                        response: {
+                            authenticator_data: await encode(credential.response.getAuthenticatorData()),
+                            client_data_json: await encode(credential.response.clientDataJSON),
+                            pubkey: await encode(credential.response.getPublicKey()),
+                            pubkey_alg: credential.response.getPublicKeyAlgorithm(),
+                            transports: credential.response.getTransports() || [],
+                        }
+                    },
+                    title: "Hello world"
+                }),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+          }
+       }
+
+
+        function decode(str) {
+          return Uint8Array.from(
+            window.atob(str.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "")),
+            (c) => c.charCodeAt(0)
+          );
+        }
+
+        function encode(buf) {
+          return new Promise((resolve, reject) => {
+            const blob = new Blob([buf]);
+            const reader = new FileReader();
+
+            reader.addEventListener("load", (e) => {
+              const base64 = e.target.result.substring(e.target.result.indexOf(",") + 1);
+              const base64url = base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+              resolve(base64url);
+            });
+
+            reader.addEventListener("error", reject);
+
+            reader.readAsDataURL(blob);
+          });
+       }
+      </script>
+    </body>
+</html>

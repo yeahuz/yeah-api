@@ -5,3 +5,4 @@ tmp/
 
 .env*
 nats/
+yeahapi*conf

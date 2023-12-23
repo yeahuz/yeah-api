@@ -2,8 +2,8 @@ package errors
 
 import (
 	"bytes"
-	"net/http"
 
+	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/client"
 	"github.com/yeahuz/yeah-api/internal/localizer"
 	"github.com/yeahuz/yeah-api/user"
@@ -11,22 +11,46 @@ import (
 
 var l = localizer.Get("en")
 
-var (
-	MethodNotAllowed = NewMethodNotAllowed(l.T("Method not allowed"))
-	Internal         = NewInternal(l.T("Internal server error"))
-	NotFound         = NewNotFound(l.T("Resource not found"))
-	Unauthorized     = NewUnauthorized(l.T("Not authorized"))
-)
-
 type Op string
 type Kind uint8
+
+const Separator = ":\n\t"
+
+const (
+	Other Kind = iota
+	Invalid
+	Permission
+	NotExist
+	Exist
+	Internal
+)
+
+func (k Kind) String() string {
+	switch k {
+	case Internal:
+		return "internal error"
+	case Other:
+		return "other error"
+	case NotExist:
+		return "item does not exit"
+	case Exist:
+		return "item already exists"
+	case Permission:
+		return "permission denied"
+	}
+	return "unknown error"
+}
 
 type Error struct {
 	Op       Op
 	Kind     Kind
 	Err      error
-	UserID   user.UserID
-	ClientID client.ClientID
+	UserID   yeahapi.UserID
+	ClientID yeahapi.ClientID
+}
+
+func (e *Error) isZero() bool {
+	return (e.UserID == "" || e.ClientID == "") && e.Op == "" && e.Kind == 0 && e.Err == nil
 }
 
 func Ops(e *Error) []Op {
@@ -57,6 +81,29 @@ func (e Error) Error() string {
 	}
 	if e.UserID != "" {
 		pad(b, ": ")
+		b.WriteString("user ")
+		b.WriteString(string(e.UserID))
+	}
+
+	if e.Kind != 0 {
+		pad(b, ": ")
+		b.WriteString(e.Kind.String())
+	}
+
+	if e.Err != nil {
+		if prevErr, ok := e.Err.(*Error); ok {
+			if !prevErr.isZero() {
+				pad(b, Separator)
+				b.WriteString(e.Err.Error())
+			}
+		} else {
+			pad(b, ": ")
+			b.WriteString(e.Err.Error())
+		}
+	}
+
+	if b.Len() == 0 {
+		return "no error"
 	}
 
 	return b.String()
@@ -91,6 +138,25 @@ func E(args ...interface{}) error {
 		}
 	}
 
+	prev, ok := e.Err.(*Error)
+
+	if !ok {
+		return e
+	}
+
+	if prev.UserID == e.UserID {
+		prev.UserID = ""
+	}
+
+	if prev.Kind == e.Kind {
+		prev.Kind = Other
+	}
+
+	if e.Kind == Other {
+		e.Kind = prev.Kind
+		prev.Kind = Other
+	}
+
 	return e
 }
 
@@ -106,236 +172,236 @@ func (e *errorString) Error() string {
 	return e.s
 }
 
-type AppError interface {
-	error
-	Name() string
-	ErrorMap() map[string]string
-	Status() int
-	SetError(message string)
-}
+// type AppError interface {
+// 	error
+// 	Name() string
+// 	ErrorMap() map[string]string
+// 	Status() int
+// 	SetError(message string)
+// }
 
-type errMethodNotAllowed struct {
-	Message    string `json:"message"`
-	StatusCode int    `json:"status_code"`
-}
+// type errMethodNotAllowed struct {
+// 	Message    string `json:"message"`
+// 	StatusCode int    `json:"status_code"`
+// }
 
-func (emna errMethodNotAllowed) Name() string {
-	return "error.methodNotAllowed"
-}
+// func (emna errMethodNotAllowed) Name() string {
+// 	return "error.methodNotAllowed"
+// }
 
-func (emna errMethodNotAllowed) Error() string {
-	return emna.Message
-}
+// func (emna errMethodNotAllowed) Error() string {
+// 	return emna.Message
+// }
 
-func (emna errMethodNotAllowed) ErrorMap() map[string]string {
-	return nil
-}
+// func (emna errMethodNotAllowed) ErrorMap() map[string]string {
+// 	return nil
+// }
 
-func (emna *errMethodNotAllowed) SetError(message string) {
-	emna.Message = message
-}
+// func (emna *errMethodNotAllowed) SetError(message string) {
+// 	emna.Message = message
+// }
 
-func (emna errMethodNotAllowed) Status() int {
-	return emna.StatusCode
-}
+// func (emna errMethodNotAllowed) Status() int {
+// 	return emna.StatusCode
+// }
 
-func NewMethodNotAllowed(message string) errMethodNotAllowed {
-	return errMethodNotAllowed{
-		Message:    message,
-		StatusCode: http.StatusMethodNotAllowed,
-	}
-}
+// func NewMethodNotAllowed(message string) errMethodNotAllowed {
+// 	return errMethodNotAllowed{
+// 		Message:    message,
+// 		StatusCode: http.StatusMethodNotAllowed,
+// 	}
+// }
 
-type errUnauthorized struct {
-	Message    string `json:"message"`
-	StatusCode int    `json:"status_code"`
-}
+// type errUnauthorized struct {
+// 	Message    string `json:"message"`
+// 	StatusCode int    `json:"status_code"`
+// }
 
-func (e errUnauthorized) Name() string {
-	return "error.internal"
-}
+// func (e errUnauthorized) Name() string {
+// 	return "error.internal"
+// }
 
-func (e errUnauthorized) Error() string {
-	return e.Message
-}
+// func (e errUnauthorized) Error() string {
+// 	return e.Message
+// }
 
-func (e errUnauthorized) ErrorMap() map[string]string {
-	return nil
-}
+// func (e errUnauthorized) ErrorMap() map[string]string {
+// 	return nil
+// }
 
-func (e errUnauthorized) SetError(message string) {
-	e.Message = message
-}
+// func (e errUnauthorized) SetError(message string) {
+// 	e.Message = message
+// }
 
-func (e errUnauthorized) Status() int {
-	return e.StatusCode
-}
+// func (e errUnauthorized) Status() int {
+// 	return e.StatusCode
+// }
 
-func NewUnauthorized(message string) errUnauthorized {
-	return errUnauthorized{
-		Message:    message,
-		StatusCode: http.StatusUnauthorized,
-	}
-}
+// func NewUnauthorized(message string) errUnauthorized {
+// 	return errUnauthorized{
+// 		Message:    message,
+// 		StatusCode: http.StatusUnauthorized,
+// 	}
+// }
 
-type errForbidden struct {
-	Message    string `json:"message"`
-	StatusCode int    `json:"status_code"`
-}
+// type errForbidden struct {
+// 	Message    string `json:"message"`
+// 	StatusCode int    `json:"status_code"`
+// }
 
-func (e errForbidden) Name() string {
-	return "error.internal"
-}
+// func (e errForbidden) Name() string {
+// 	return "error.internal"
+// }
 
-func (e errForbidden) Error() string {
-	return e.Message
-}
+// func (e errForbidden) Error() string {
+// 	return e.Message
+// }
 
-func (e errForbidden) ErrorMap() map[string]string {
-	return nil
-}
+// func (e errForbidden) ErrorMap() map[string]string {
+// 	return nil
+// }
 
-func (e errForbidden) SetError(message string) {
-	e.Message = message
-}
+// func (e errForbidden) SetError(message string) {
+// 	e.Message = message
+// }
 
-func (e errForbidden) Status() int {
-	return e.StatusCode
-}
+// func (e errForbidden) Status() int {
+// 	return e.StatusCode
+// }
 
-func NewForbidden(message string) errUnauthorized {
-	return errUnauthorized{
-		Message:    message,
-		StatusCode: http.StatusForbidden,
-	}
-}
+// func NewForbidden(message string) errUnauthorized {
+// 	return errUnauthorized{
+// 		Message:    message,
+// 		StatusCode: http.StatusForbidden,
+// 	}
+// }
 
-type errInternal struct {
-	Message    string `json:"message"`
-	StatusCode int    `json:"status_code"`
-}
+// type errInternal struct {
+// 	Message    string `json:"message"`
+// 	StatusCode int    `json:"status_code"`
+// }
 
-func (ei errInternal) Name() string {
-	return "error.internal"
-}
+// func (ei errInternal) Name() string {
+// 	return "error.internal"
+// }
 
-func (ei errInternal) Error() string {
-	return ei.Message
-}
+// func (ei errInternal) Error() string {
+// 	return ei.Message
+// }
 
-func (ei errInternal) ErrorMap() map[string]string {
-	return nil
-}
+// func (ei errInternal) ErrorMap() map[string]string {
+// 	return nil
+// }
 
-func (ei errInternal) SetError(message string) {
-	ei.Message = message
-}
+// func (ei errInternal) SetError(message string) {
+// 	ei.Message = message
+// }
 
-func (ei errInternal) Status() int {
-	return ei.StatusCode
-}
+// func (ei errInternal) Status() int {
+// 	return ei.StatusCode
+// }
 
-func NewInternal(message string) errInternal {
-	return errInternal{
-		Message:    message,
-		StatusCode: http.StatusInternalServerError,
-	}
-}
+// func NewInternal(message string) errInternal {
+// 	return errInternal{
+// 		Message:    message,
+// 		StatusCode: http.StatusInternalServerError,
+// 	}
+// }
 
-type errNotFound struct {
-	Message    string `json:"message"`
-	StatusCode int    `json:"status_code"`
-}
+// type errNotFound struct {
+// 	Message    string `json:"message"`
+// 	StatusCode int    `json:"status_code"`
+// }
 
-func (enf errNotFound) Name() string {
-	return "error.notFound"
-}
+// func (enf errNotFound) Name() string {
+// 	return "error.notFound"
+// }
 
-func (enf errNotFound) Error() string {
-	return enf.Message
-}
+// func (enf errNotFound) Error() string {
+// 	return enf.Message
+// }
 
-func (enf errNotFound) ErrorMap() map[string]string {
-	return nil
-}
+// func (enf errNotFound) ErrorMap() map[string]string {
+// 	return nil
+// }
 
-func (enf errNotFound) SetError(message string) {
-	enf.Message = message
-}
+// func (enf errNotFound) SetError(message string) {
+// 	enf.Message = message
+// }
 
-func (enf errNotFound) Status() int {
-	return enf.StatusCode
-}
+// func (enf errNotFound) Status() int {
+// 	return enf.StatusCode
+// }
 
-func NewNotFound(message string) errNotFound {
-	return errNotFound{
-		Message:    message,
-		StatusCode: http.StatusNotFound,
-	}
-}
+// func NewNotFound(message string) errNotFound {
+// 	return errNotFound{
+// 		Message:    message,
+// 		StatusCode: http.StatusNotFound,
+// 	}
+// }
 
-type errBadRequest struct {
-	Message    string `json:"message"`
-	StatusCode int    `json:"status_code"`
-}
+// type errBadRequest struct {
+// 	Message    string `json:"message"`
+// 	StatusCode int    `json:"status_code"`
+// }
 
-func (ebr errBadRequest) Name() string {
-	return "error.badRequest"
-}
+// func (ebr errBadRequest) Name() string {
+// 	return "error.badRequest"
+// }
 
-func (ebr errBadRequest) Error() string {
-	return ebr.Message
-}
+// func (ebr errBadRequest) Error() string {
+// 	return ebr.Message
+// }
 
-func (ebr errBadRequest) ErrorMap() map[string]string {
-	return nil
-}
+// func (ebr errBadRequest) ErrorMap() map[string]string {
+// 	return nil
+// }
 
-func (ebr errBadRequest) SetError(message string) {
-	ebr.Message = message
-}
+// func (ebr errBadRequest) SetError(message string) {
+// 	ebr.Message = message
+// }
 
-func (ebr errBadRequest) Status() int {
-	return ebr.StatusCode
-}
+// func (ebr errBadRequest) Status() int {
+// 	return ebr.StatusCode
+// }
 
-func NewBadRequest(message string) errBadRequest {
-	return errBadRequest{
-		Message:    message,
-		StatusCode: http.StatusBadRequest,
-	}
-}
+// func NewBadRequest(message string) errBadRequest {
+// 	return errBadRequest{
+// 		Message:    message,
+// 		StatusCode: http.StatusBadRequest,
+// 	}
+// }
 
-type errValidation struct {
-	Message    string            `json:"message"`
-	StatusCode int               `json:"status_code"`
-	Errors     map[string]string `json:"errors,omitempty"`
-}
+// type errValidation struct {
+// 	Message    string            `json:"message"`
+// 	StatusCode int               `json:"status_code"`
+// 	Errors     map[string]string `json:"errors,omitempty"`
+// }
 
-func (ev errValidation) Name() string {
-	return "error.valdation"
-}
+// func (ev errValidation) Name() string {
+// 	return "error.valdation"
+// }
 
-func (ev errValidation) Error() string {
-	return ev.Message
-}
+// func (ev errValidation) Error() string {
+// 	return ev.Message
+// }
 
-func (ev errValidation) ErrorMap() map[string]string {
-	return ev.Errors
-}
+// func (ev errValidation) ErrorMap() map[string]string {
+// 	return ev.Errors
+// }
 
-func (ev errValidation) SetError(message string) {
-	ev.Message = message
-}
+// func (ev errValidation) SetError(message string) {
+// 	ev.Message = message
+// }
 
-func (ev errValidation) Status() int {
-	return ev.StatusCode
-}
+// func (ev errValidation) Status() int {
+// 	return ev.StatusCode
+// }
 
-func NewValidation(errors map[string]string) errValidation {
-	return errValidation{
-		Message:    l.T("Validation failed"),
-		Errors:     errors,
-		StatusCode: http.StatusUnprocessableEntity,
-	}
-}
+// func NewValidation(errors map[string]string) errValidation {
+// 	return errValidation{
+// 		Message:    l.T("Validation failed"),
+// 		Errors:     errors,
+// 		StatusCode: http.StatusUnprocessableEntity,
+// 	}
+// }
