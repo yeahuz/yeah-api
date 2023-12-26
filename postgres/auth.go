@@ -9,7 +9,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	yeahapi "github.com/yeahuz/yeah-api"
-	"github.com/yeahuz/yeah-api/auth/argon"
 )
 
 type AuthService struct {
@@ -39,11 +38,12 @@ func (a *AuthService) CreateOtp(ctx context.Context, duration time.Duration, ide
 		ExpiresAt: expiresAt,
 	}
 
-	hashedCode, err := argon.Hash(code)
+	hashedCode := "hashed-code"
+	// hashedCode, err := argon.Hash(code)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	hash, err := genHash([]byte(identifier + hashedCode))
 
@@ -64,8 +64,8 @@ func (a *AuthService) VerifyOtp(ctx context.Context) error {
 	return nil
 }
 
-func (a *AuthService) CreateAuth(ctx context.Context)
-func (a *AuthService) DeleteAuth(ctx context.Context)
+func (a *AuthService) CreateAuth(ctx context.Context) {}
+func (a *AuthService) DeleteAuth(ctx context.Context) {}
 
 func genHash(bytes []byte) (string, error) {
 	return "", nil

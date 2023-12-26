@@ -1,7 +1,7 @@
 package yeahapi
 
 import (
-	_ "github.com/yeahuz/yeah-api/internal/translations"
+	// _ "github.com/yeahuz/yeah-api/internal/translations"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )

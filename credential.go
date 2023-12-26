@@ -1,7 +1,15 @@
-package credential
+package yeahapi
 
 import (
-	"encoding/json"
+	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/asn1"
+	"encoding/base64"
+	"math/big"
 
 	"github.com/gofrs/uuid"
 )
@@ -18,11 +26,18 @@ type PubKeyCredentialOpts struct {
 }
 
 type PubKeyCredential struct {
-	ID uuid.UUID
-	*PubKeyCredentialOpts
+	ID                  uuid.UUID
+	CredentialID        string
+	Title               string
+	PubKey              string
+	PubKeyAlg           int
+	Transports          []AuthenticatorTransport
+	UserID              uuid.UUID
+	Counter             uint32
+	CredentialRequestID uuid.UUID
 }
 
-type Request struct {
+type CredentialRequest struct {
 	ID        string
 	Type      string
 	Challenge string
@@ -81,18 +96,18 @@ const (
 
 type PubKeyCreateRequest struct {
 	ID     uuid.UUID                     `json:"id"`
-	PubKey *pubKeyCredentialCreationOpts `json:"pubkey"`
-	kind   string
+	PubKey *PubKeyCredentialCreationOpts `json:"pubkey"`
+	Kind   string
 }
 
-type pubKeyGetRequest struct {
+type PubKeyGetRequest struct {
 	ID     uuid.UUID                    `json:"id"`
-	PubKey *pubKeyCredentialRequestOpts `json:"pubkey"`
-	userID uuid.UUID
-	kind   string
+	PubKey *PubKeyCredentialRequestOpts `json:"pubkey"`
+	UserID UserID
+	Kind   string
 }
 
-type collectedClientData struct {
+type CollectedClientData struct {
 	Raw       []byte
 	Type      string `json:"type"`
 	Challenge string `json:"challenge"`
@@ -103,7 +118,7 @@ type authenticatorResponse struct {
 	ClientDataJSON string `json:"client_data_json"`
 }
 
-type authenticatorData struct {
+type AuthenticatorData struct {
 	Raw          []byte
 	RpIDHash     []byte
 	UserPresent  bool
@@ -133,115 +148,151 @@ type rawPubKeyCredential struct {
 	RawID string `json:"raw_id"`
 }
 
-type rawPubKeyCredentialAttestation struct {
+type RawPubKeyCredentialAttestation struct {
 	rawPubKeyCredential
 	Response AuthenticatorAttestationResponse `json:"response"`
 }
 
-type rawPubKeyCredentialAssertion struct {
+type RawPubKeyCredentialAssertion struct {
 	rawPubKeyCredential
 	Response AuthenticatorAssertionResponse `json:"response"`
 }
 
 type CreatePubKeyData struct {
 	ReqID      string                         `json:"req_id"`
-	Credential rawPubKeyCredentialAttestation `json:"credential"`
+	Credential RawPubKeyCredentialAttestation `json:"credential"`
 	Title      string
 }
 
 type AssertPubKeyData struct {
 	ReqID      string                       `json:"req_id"`
-	Credential rawPubKeyCredentialAssertion `json:"credential"`
+	Credential RawPubKeyCredentialAssertion `json:"credential"`
 }
 
-type pubKeyCredentialRpEntity struct {
+type PubKeyCredentialRpEntity struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
-type pubKeyCredentialUserEntity struct {
-	id          uuid.UUID
+type PubKeyCredentialUserEntity struct {
+	ID          UserID
 	EncodedID   string `json:"id"`
 	DisplayName string `json:"display_name"`
 }
 
-type authenticatorSelectionCriteria struct {
+type AuthenticatorSelectionCriteria struct {
 	AuthenticatorAttachment AuthenticatorAttachment     `json:"authenticator_attachment,omitempty"`
 	ResidentKey             ResidentKeyRequirement      `json:"resident_key,omitempty"`
 	RequireResidentKey      bool                        `json:"require_resident_key,omitempty"`
 	UserVerification        UserVerificationRequirement `json:"user_verification,omitempty"`
 }
 
-type pubKeyCredentialDescriptor struct {
+type PubKeyCredentialDescriptor struct {
 	Type       string                   `json:"type"`
 	ID         string                   `json:"id"`
 	Transports []AuthenticatorTransport `json:"transports"`
 }
 
-type pubKeyCredentialParameters struct {
+type PubKeyCredentialParameters struct {
 	Type string                  `json:"type"`
 	Alg  COSEAlgorithmIdentifier `json:"alg"`
 }
 
-type pubKeyCredentialCreationOpts struct {
-	Rp                     pubKeyCredentialRpEntity        `json:"rp"`
-	User                   pubKeyCredentialUserEntity      `json:"user"`
+type PubKeyCredentialCreationOpts struct {
+	Rp                     PubKeyCredentialRpEntity        `json:"rp"`
+	User                   PubKeyCredentialUserEntity      `json:"user"`
 	Challenge              string                          `json:"challenge"`
-	PubKeyCredParams       []pubKeyCredentialParameters    `json:"pubkey_cred_params"`
+	PubKeyCredParams       []PubKeyCredentialParameters    `json:"pubkey_cred_params"`
 	Timeout                int                             `json:"timeout"`
-	ExcludeCredentials     []pubKeyCredentialDescriptor    `json:"exclude_credentials,omitempty"`
-	AuthenticatorSelection authenticatorSelectionCriteria  `json:"authenticator_selection,omitempty"`
+	ExcludeCredentials     []PubKeyCredentialDescriptor    `json:"exclude_credentials,omitempty"`
+	AuthenticatorSelection AuthenticatorSelectionCriteria  `json:"authenticator_selection,omitempty"`
 	Attestation            AttestationConveyancePreference `json:"attestation"`
 }
 
-type pubKeyCredentialRequestOpts struct {
+type PubKeyCredentialRequestOpts struct {
 	Challenge        string                       `json:"challenge"`
 	Timeout          int                          `json:"timeout"`
 	RpID             string                       `json:"rp_id"`
-	AllowCredentials []pubKeyCredentialDescriptor `json:"allow_credentials"`
+	AllowCredentials []PubKeyCredentialDescriptor `json:"allow_credentials"`
 	UserVerification UserVerificationRequirement  `json:"user_verification"`
 }
 
-func (r PubKeyCreateRequest) MarshalJSON() ([]byte, error) {
-	type Alias PubKeyCreateRequest
-	return json.Marshal(struct {
-		Type string `json:"_"`
-		Alias
-	}{
-		Type:  "credentials.pubKeyCreateRequest",
-		Alias: Alias(r),
-	})
+func (c *PubKeyCredential) Verify(clientData []byte, authnData []byte, sig string) error {
+	sigbytes, err := base64.RawURLEncoding.DecodeString(sig)
+	if err != nil {
+		return errors.Internal
+	}
+
+	clientDataHash := sha256.Sum256(clientData)
+	message := make([]byte, len(authnData)+len(clientDataHash))
+	copy(message, authnData)
+	copy(message[len(authnData):], clientDataHash[:])
+
+	return c.verifySignature(message, sigbytes)
 }
 
-func (r pubKeyGetRequest) MarshalJSON() ([]byte, error) {
-	type Alias pubKeyGetRequest
-	return json.Marshal(struct {
-		Type string `json:"_"`
-		Alias
-	}{
-		Type:  "credentials.pubKeyGetRequest",
-		Alias: Alias(r),
-	})
+func (c *PubKeyCredential) verifySignature(message []byte, sig []byte) error {
+	bytes, err := base64.RawURLEncoding.DecodeString(c.PubKey)
+	if err != nil {
+		return errors.NewInternal(l.T("Couldn't decode pubkey"))
+	}
+
+	parsed, err := x509.ParsePKIXPublicKey(bytes)
+
+	if err != nil {
+		return errors.NewInternal(l.T("Unable to parse pubkey"))
+	}
+
+	hasher := hashers[COSEAlgorithmIdentifier(c.PubKeyAlg)]
+	if hasher == nil {
+		return errors.NewInternal(l.T("Unsupported hashing algorithm"))
+	}
+
+	h := hasher()
+	_, err = h.Write(message)
+	if err != nil {
+		return errors.NewInternal(l.T("Couldn't hash the data"))
+	}
+
+	digest := h.Sum(nil)
+
+	switch pk := parsed.(type) {
+	case *ecdsa.PublicKey:
+		type ecdsaSignature struct {
+			R, S *big.Int
+		}
+		var ecdsaSig ecdsaSignature
+		if rest, err := asn1.Unmarshal(sig, &ecdsaSig); err != nil {
+			return errors.Internal
+		} else if len(rest) != 0 {
+			return errors.NewBadRequest(l.T("Trailing data after ECDSA signature"))
+		}
+		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
+			return errors.NewBadRequest(l.T("ECDSA signature contained zero or negative values"))
+		}
+		if !ecdsa.Verify(pk, digest, ecdsaSig.R, ecdsaSig.S) {
+			return errors.NewBadRequest(l.T("ECDSA signature verification failed"))
+		}
+	case *rsa.PublicKey:
+		if err := rsa.VerifyPKCS1v15(pk, crypto.SHA256, digest, sig); err != nil {
+			return errors.NewBadRequest(l.T("RSA signature verification failed"))
+		}
+	default:
+		return errors.NewInternal("Unsupported key type")
+
+	}
+
+	return nil
 }
 
-func (o pubKeyCredentialCreationOpts) MarshalJSON() ([]byte, error) {
-	type Alias pubKeyCredentialCreationOpts
-	return json.Marshal(struct {
-		Type string `json:"_"`
-		Alias
-	}{
-		Type:  "credentials.pubKeyCreateOpts",
-		Alias: Alias(o),
-	})
-}
-
-func (o pubKeyCredentialRequestOpts) MarshalJSON() ([]byte, error) {
-	type Alias pubKeyCredentialRequestOpts
-	return json.Marshal(struct {
-		Type string `json:"_"`
-		Alias
-	}{
-		Type:  "credentials.pubKeyGetOpts",
-		Alias: Alias(o),
-	})
+type CredentialService interface {
+	PubKeyCreateRequest(ctx context.Context, user *User) (*PubKeyCreateRequest, error)
+	PubKeyGetRequest(ctx context.Context, userID UserID) (*PubKeyGetRequest, error)
+	CreatePubKey(ctx context.Context, credential *PubKeyCredential) error
+	VerifyPubKey(ctx context.Context) error
+	Request(ctx context.Context, id uuid.UUID) (*CredentialRequest, error)
+	Credentials(ctx context.Context, userID UserID) ([]PubKeyCredentialDescriptor, error)
+	Credential(ctx context.Context, id string) (*PubKeyCredential, error)
+	ValidateClientData(data string, req *CredentialRequest) (*CollectedClientData, error)
+	ValidateAuthnData(data string) (*AuthenticatorData, error)
 }

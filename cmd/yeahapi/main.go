@@ -2,22 +2,48 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/jackc/pgx/v5/pgxpool"
-	yeahapi "github.com/yeahuz/yeah-api"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/yeahuz/yeah-api/http"
-	"github.com/yeahuz/yeah-api/nats"
 	"github.com/yeahuz/yeah-api/postgres"
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	go func() { <-c; cancel() }()
+
+	m := NewMain()
+
+	if err := m.ParseFlags(ctx, os.Args[1:]); err == flag.ErrHelp {
+		os.Exit(1)
+	} else if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if err := m.Run(ctx); err != nil {
+		m.Close()
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	<-ctx.Done()
+
+	if err := m.Close(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
 
 type Main struct {
@@ -46,18 +72,21 @@ func (m *Main) Run(ctx context.Context) (err error) {
 
 	authService := postgres.NewAuthService(m.Pool)
 	userService := postgres.NewUserService(m.Pool)
-	cqrsService := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
-		NatsURL:       m.Config.Nats.URL,
-		NatsAuthToken: m.Config.Nats.AuthToken,
-		Streams:       map[string][]string{},
-	})
+	// cqrsService := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
+	// 	NatsURL:       m.Config.Nats.URL,
+	// 	NatsAuthToken: m.Config.Nats.AuthToken,
+	// 	Streams:       map[string][]string{},
+	// })
 
-	// m.Server.AuthService = authService
 	m.Server.UserService = userService
 	m.Server.AuthService = authService
-	m.Server.CQRSService = cqrsService
+	// m.Server.CQRSService = cqrsService
 
-	return err
+	if err := m.Server.Open(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *Main) Close() error {
@@ -72,7 +101,28 @@ func (m *Main) Close() error {
 }
 
 func (m *Main) ParseFlags(ctx context.Context, args []string) error {
-	// fs := flag.NewFlagSet("")
+	fs := flag.NewFlagSet("api", flag.ContinueOnError)
+
+	fs.StringVar(&m.ConfigPath, "config", defaultConfigPath, "config path")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	configPath, err := expand(m.ConfigPath)
+	if err != nil {
+		return err
+	}
+
+	config, err := ReadConfigFile(configPath)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("config file not found: %s\n", m.ConfigPath)
+	} else if err != nil {
+		return err
+	}
+
+	m.Config = config
+
 	return nil
 }
 
@@ -105,7 +155,7 @@ type Config struct {
 
 func ReadConfigFile(filename string) (Config, error) {
 	var config Config
-	if buf, err := ioutil.ReadFile(filename); err != nil {
+	if buf, err := os.ReadFile(filename); err != nil {
 		return config, err
 	} else if err := toml.Unmarshal(buf, &config); err != nil {
 		return config, err

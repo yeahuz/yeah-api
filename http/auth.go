@@ -7,8 +7,6 @@ import (
 	"time"
 
 	yeahapi "github.com/yeahuz/yeah-api"
-	"github.com/yeahuz/yeah-api/common"
-	"github.com/yeahuz/yeah-api/cqrs"
 )
 
 func (s *Server) registerAuthRoutes() {
@@ -16,7 +14,7 @@ func (s *Server) registerAuthRoutes() {
 	s.mux.Handle("POST /auth.sendEmailCode", s.handleSendEmailCode(nil))
 }
 
-func (s *Server) handleSendPhoneCode(cmdSender cqrs.Sender) common.ApiFunc {
+func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
 	const op yeahapi.Op = "auth.handleSendPhoneCode"
 	type request struct {
 		PhoneNumber string `json:"phone_number"`
@@ -41,16 +39,16 @@ func (s *Server) handleSendPhoneCode(cmdSender cqrs.Sender) common.ApiFunc {
 			return err
 		}
 
-		if err := s.CQRSService.Send(ctx, cqrs.NewSendPhoneCodeCommand(req.PhoneNumber, otp.Code)); err != nil {
+		if err := s.CQRSService.Send(ctx, nil); err != nil {
 			return yeahapi.E(op, err)
 		}
 
 		sentCode := sentCode{Type: sentCodeSms{Length: len(otp.Code)}, Hash: otp.Hash}
-		return common.JSON(w, http.StatusOK, sentCode)
+		return JSON(w, http.StatusOK, sentCode)
 	}
 }
 
-func (s *Server) handleSendEmailCode(cmdSender cqrs.Sender) common.ApiFunc {
+func (s *Server) handleSendEmailCode(cmdSender any) Handler {
 	const op yeahapi.Op = "auth.handleSendEmailCode"
 	type request struct {
 		Email string `json:"email"`
@@ -75,12 +73,12 @@ func (s *Server) handleSendEmailCode(cmdSender cqrs.Sender) common.ApiFunc {
 			return err
 		}
 
-		if err := s.CQRSService.Send(ctx, cqrs.NewSendEmailCodeCommand(req.Email, otp.Code)); err != nil {
+		if err := s.CQRSService.Send(ctx, nil); err != nil {
 			return yeahapi.E(op, err)
 		}
 
 		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
-		return common.JSON(w, http.StatusOK, sentCode)
+		return JSON(w, http.StatusOK, sentCode)
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 
 type Session struct {
 	ID        string   `json:"id"`
-	UserID    string   `json:"-"`
+	UserID    UserID   `json:"-"`
 	Active    bool     `json:"-"`
 	ClientID  ClientID `json:"-"`
 	UserAgent string   `json:"-"`
