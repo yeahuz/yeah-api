@@ -3,12 +3,9 @@ package postgres
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
-	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"hash"
 
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,12 +23,6 @@ func NewCredentailService(pool *pgxpool.Pool) *CredentialService {
 	return &CredentialService{
 		pool: pool,
 	}
-}
-
-var hashers = map[yeahapi.COSEAlgorithmIdentifier]func() hash.Hash{
-	yeahapi.COSEAlgES256: sha256.New,
-	yeahapi.COSEAlgEdDSA: sha512.New,
-	yeahapi.COSEAlgRS256: sha256.New,
 }
 
 func (c *CredentialService) CreatePubKeyRequest(ctx context.Context, user *yeahapi.User) (*yeahapi.PubKeyCreateRequest, error) {

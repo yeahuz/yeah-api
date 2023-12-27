@@ -6,9 +6,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
+	"hash"
 	"math/big"
 
 	"github.com/gofrs/uuid"
@@ -220,7 +222,7 @@ type PubKeyCredentialRequestOpts struct {
 func (c *PubKeyCredential) Verify(clientData []byte, authnData []byte, sig string) error {
 	sigbytes, err := base64.RawURLEncoding.DecodeString(sig)
 	if err != nil {
-		return errors.Internal
+		return E(EInternal, "unable to decode signature")
 	}
 
 	clientDataHash := sha256.Sum256(clientData)
@@ -231,27 +233,33 @@ func (c *PubKeyCredential) Verify(clientData []byte, authnData []byte, sig strin
 	return c.verifySignature(message, sigbytes)
 }
 
+var hashers = map[COSEAlgorithmIdentifier]func() hash.Hash{
+	COSEAlgES256: sha256.New,
+	COSEAlgEdDSA: sha512.New,
+	COSEAlgRS256: sha256.New,
+}
+
 func (c *PubKeyCredential) verifySignature(message []byte, sig []byte) error {
 	bytes, err := base64.RawURLEncoding.DecodeString(c.PubKey)
 	if err != nil {
-		return errors.NewInternal(l.T("Couldn't decode pubkey"))
+		return E(EInvalid, "unable to decode pubkey")
 	}
 
 	parsed, err := x509.ParsePKIXPublicKey(bytes)
 
 	if err != nil {
-		return errors.NewInternal(l.T("Unable to parse pubkey"))
+		return E(EInvalid, "unable to parse pubkey")
 	}
 
 	hasher := hashers[COSEAlgorithmIdentifier(c.PubKeyAlg)]
 	if hasher == nil {
-		return errors.NewInternal(l.T("Unsupported hashing algorithm"))
+		return E(EInvalid, "unsupported hashing algorithm")
 	}
 
 	h := hasher()
 	_, err = h.Write(message)
 	if err != nil {
-		return errors.NewInternal(l.T("Couldn't hash the data"))
+		return E(EInternal, "unable to hash the data")
 	}
 
 	digest := h.Sum(nil)
@@ -263,23 +271,22 @@ func (c *PubKeyCredential) verifySignature(message []byte, sig []byte) error {
 		}
 		var ecdsaSig ecdsaSignature
 		if rest, err := asn1.Unmarshal(sig, &ecdsaSig); err != nil {
-			return errors.Internal
+			return E(EInternal)
 		} else if len(rest) != 0 {
-			return errors.NewBadRequest(l.T("Trailing data after ECDSA signature"))
+			return E(EInvalid, "trailing data after ECDSA signature")
 		}
 		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
-			return errors.NewBadRequest(l.T("ECDSA signature contained zero or negative values"))
+			return E(EInvalid, "ECDSA signature contained zero or negative values")
 		}
 		if !ecdsa.Verify(pk, digest, ecdsaSig.R, ecdsaSig.S) {
-			return errors.NewBadRequest(l.T("ECDSA signature verification failed"))
+			return E(EInvalid, "ECDSA signature verification failed")
 		}
 	case *rsa.PublicKey:
 		if err := rsa.VerifyPKCS1v15(pk, crypto.SHA256, digest, sig); err != nil {
-			return errors.NewBadRequest(l.T("RSA signature verification failed"))
+			return E(EInvalid, "RSA signature verification failed")
 		}
 	default:
-		return errors.NewInternal("Unsupported key type")
-
+		return E(EInternal, "unsupported key type")
 	}
 
 	return nil

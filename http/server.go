@@ -1,16 +1,24 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	yeahapi "github.com/yeahuz/yeah-api"
 )
 
+const ShutdownTimeout = 1 * time.Second
+
 type Handler func(w http.ResponseWriter, r *http.Request) error
 type Server struct {
-	mux  *http.ServeMux
-	Addr string
+	mux    *http.ServeMux
+	server *http.Server
+	ln     net.Listener
+	Addr   string
 
 	AuthService       yeahapi.AuthService
 	UserService       yeahapi.UserService
@@ -21,17 +29,33 @@ type Server struct {
 
 func NewServer() *Server {
 	s := &Server{
-		mux: http.NewServeMux(),
+		mux:    http.NewServeMux(),
+		server: &http.Server{},
 	}
+
+	s.server.Handler = http.HandlerFunc(s.serveHTTP)
 
 	s.registerAuthRoutes()
 	s.registerCredentialRoutes()
 	return s
 }
 
-func (s *Server) Open() error {
+func (s *Server) Open() (err error) {
 	// TODO: some validations
-	return http.ListenAndServe(s.Addr, s.mux)
+	fmt.Printf("Server started at %s\n", s.Addr)
+	if s.ln, err = net.Listen("tcp", s.Addr); err != nil {
+		return err
+	}
+
+	go s.server.Serve(s.ln)
+	return nil
+}
+
+func (s *Server) Close() error {
+	ctx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
+	defer cancel()
+
+	return s.server.Shutdown(ctx)
 }
 
 func JSON(w http.ResponseWriter, r *http.Request, status int, v any) error {
@@ -40,7 +64,7 @@ func JSON(w http.ResponseWriter, r *http.Request, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func POST(next Handler) Handler {
+func post(next Handler) Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodPost {
 			return yeahapi.E(yeahapi.EMethodNotAllowed)
@@ -50,7 +74,7 @@ func POST(next Handler) Handler {
 	}
 }
 
-func GET(next Handler) Handler {
+func get(next Handler) Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
 			return yeahapi.E(yeahapi.EMethodNotAllowed)
@@ -70,6 +94,10 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		JSON(w, r, http.StatusInternalServerError, nil)
 	}
+}
+
+func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
 }
 
 func cors(next http.Handler) http.Handler {

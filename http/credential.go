@@ -11,13 +11,14 @@ import (
 )
 
 func (s *Server) registerCredentialRoutes() {
-	s.mux.Handle("/credentials.pubKeyCreateRequest", POST(s.handlePubKeyCreateRequest()))
-	s.mux.Handle("/credentials.pubKeyGetRequest", POST(s.handlePubKeyGetRequest()))
-	s.mux.Handle("/credentials.createPubKey", POST(s.handleCreatePubKey()))
-	s.mux.Handle("/credentials.verifyPubKey", POST(s.handleVerifyPubKey()))
+	s.mux.Handle("/credentials.pubKeyCreateRequest", post(s.handlePubKeyCreateRequest()))
+	s.mux.Handle("/credentials.pubKeyGetRequest", post(s.handlePubKeyGetRequest()))
+	s.mux.Handle("/credentials.createPubKey", post(s.handleCreatePubKey()))
+	s.mux.Handle("/credentials.verifyPubKey", post(s.handleVerifyPubKey()))
 }
 
 func (s *Server) handlePubKeyCreateRequest() Handler {
+	const op yeahapi.Op = "credentials.handlePubKeyCreateRequest"
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
@@ -38,6 +39,7 @@ func (s *Server) handlePubKeyCreateRequest() Handler {
 }
 
 func (s *Server) handlePubKeyGetRequest() Handler {
+	const op yeahapi.Op = "credentials.handlePubKeyGetRequest"
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
@@ -53,6 +55,7 @@ func (s *Server) handlePubKeyGetRequest() Handler {
 }
 
 func (s *Server) handleCreatePubKey() Handler {
+	const op yeahapi.Op = "credentials.handleCreatePubKey"
 	type request struct {
 		ReqID      uuid.UUID                              `json:"req_id"`
 		Credential yeahapi.RawPubKeyCredentialAttestation `json:"credential"`
@@ -103,6 +106,7 @@ func (s *Server) handleCreatePubKey() Handler {
 }
 
 func (s *Server) handleVerifyPubKey() Handler {
+	const op yeahapi.Op = "credentials.handleVerifyPubKey"
 	type request struct {
 		ReqID      uuid.UUID                            `json:"req_id"`
 		Credential yeahapi.RawPubKeyCredentialAssertion `json:"credential"`

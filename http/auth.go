@@ -10,12 +10,12 @@ import (
 )
 
 func (s *Server) registerAuthRoutes() {
-	s.mux.Handle("/auth.sendPhoneCode", POST(s.handleSendPhoneCode(nil)))
-	s.mux.Handle("/auth.sendEmailCode", POST(s.handleSendEmailCode(nil)))
-	s.mux.Handle("/auth.signInWithEmail", POST(s.handleSignInWithEmail()))
-	s.mux.Handle("/auth.signInWithPhone", POST(s.handleSignInWithPhone()))
-	s.mux.Handle("/auth.signUpWithEmail", POST(s.handleSignUpWithEmail()))
-	s.mux.Handle("/auth.signUpWithPhone", POST(s.handleSignUpWithPhone()))
+	s.mux.Handle("/auth.sendPhoneCode", post(s.handleSendPhoneCode(nil)))
+	s.mux.Handle("/auth.sendEmailCode", post(s.handleSendEmailCode(nil)))
+	s.mux.Handle("/auth.signInWithEmail", post(s.handleSignInWithEmail()))
+	s.mux.Handle("/auth.signInWithPhone", post(s.handleSignInWithPhone()))
+	s.mux.Handle("/auth.signUpWithEmail", post(s.handleSignUpWithEmail()))
+	s.mux.Handle("/auth.signUpWithPhone", post(s.handleSignUpWithPhone()))
 }
 
 type signInData struct {
@@ -343,9 +343,9 @@ func (s *Server) handleSendEmailCode(cmdSender any) Handler {
 			return yeahapi.E(op, err)
 		}
 
-		if err := s.CQRSService.Send(ctx, nil); err != nil {
-			return yeahapi.E(op, err)
-		}
+		// if err := s.CQRSService.Send(ctx, nil); err != nil {
+		// 	return yeahapi.E(op, err)
+		// }
 
 		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
 		return JSON(w, r, http.StatusOK, sentCode)

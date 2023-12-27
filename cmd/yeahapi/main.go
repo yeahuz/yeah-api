@@ -49,7 +49,7 @@ func main() {
 }
 
 type Main struct {
-	Config     Config
+	Config     *Config
 	ConfigPath string
 	Pool       *pgxpool.Pool
 	Server     *http.Server
@@ -61,14 +61,14 @@ const (
 
 func NewMain() *Main {
 	return &Main{
-		Config:     Config{},
+		Config:     &Config{},
 		Server:     http.NewServer(),
 		ConfigPath: defaultConfigPath,
 	}
 }
 
 func (m *Main) Run(ctx context.Context) (err error) {
-	if m.Pool, err = pgxpool.New(ctx, m.Config.DB.DSN); err != nil {
+	if m.Pool, err = pgxpool.New(ctx, m.Config.DB.Postgres); err != nil {
 		return err
 	}
 
@@ -79,7 +79,8 @@ func (m *Main) Run(ctx context.Context) (err error) {
 		Threads: 4,
 		KeyLen:  32,
 	})
-	highwayHasher := inmem.NewHighwayHasher("some-key")
+
+	highwayHasher := inmem.NewHighwayHasher(m.Config.HighwayHash.Key)
 
 	authService := postgres.NewAuthService(m.Pool)
 	authService.ArgonHasher = argonHasher
@@ -92,6 +93,8 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	// 	NatsAuthToken: m.Config.Nats.AuthToken,
 	// 	Streams:       map[string][]string{},
 	// })
+
+	m.Server.Addr = m.Config.HTTP.Addr
 
 	m.Server.UserService = userService
 	m.Server.AuthService = authService
@@ -107,6 +110,9 @@ func (m *Main) Run(ctx context.Context) (err error) {
 
 func (m *Main) Close() error {
 	if m.Server != nil {
+		if err := m.Server.Close(); err != nil {
+			return err
+		}
 	}
 
 	if m.Pool != nil {
@@ -144,7 +150,7 @@ func (m *Main) ParseFlags(ctx context.Context, args []string) error {
 
 type Config struct {
 	DB struct {
-		DSN string `toml:"dsn"`
+		Postgres string `toml:"postgres"`
 	} `toml:"db"`
 
 	HTTP struct {
@@ -155,6 +161,10 @@ type Config struct {
 		Secret string `toml:"secret"`
 		Key    string `toml:"key"`
 	} `toml:"aws"`
+
+	HighwayHash struct {
+		Key string `toml:"key"`
+	} `toml:"highwayhash"`
 
 	Nats struct {
 		AuthToken string            `toml:"auth-token"`
@@ -169,14 +179,15 @@ type Config struct {
 	} `toml:"google"`
 }
 
-func ReadConfigFile(filename string) (Config, error) {
+func ReadConfigFile(filename string) (*Config, error) {
 	var config Config
 	if buf, err := os.ReadFile(filename); err != nil {
-		return config, err
+		return &config, err
 	} else if err := toml.Unmarshal(buf, &config); err != nil {
-		return config, err
+		return &config, err
 	}
-	return config, nil
+
+	return &config, nil
 }
 
 func expand(path string) (string, error) {
