@@ -31,7 +31,7 @@ func NewLocalizerService(fallback string) *Localizer {
 	}
 }
 
-func (l *Localizer) Get(args ...string) (p printer) {
+func (l *Localizer) Get(args ...string) (p *printer) {
 	locale := l.fallback
 	if len(args) > 0 {
 		locale = args[0]
@@ -39,7 +39,7 @@ func (l *Localizer) Get(args ...string) (p printer) {
 
 	for _, printer := range l.printers {
 		if printer.code == locale {
-			p = printer
+			p = &printer
 		}
 	}
 

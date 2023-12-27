@@ -6,7 +6,7 @@ import (
 )
 
 type Op string
-type Kind uint8
+type Kind int
 
 type Error struct {
 	Op       Op
@@ -24,6 +24,9 @@ const (
 	EPermission
 	ENotExist
 	EExist
+	ENotImplemented
+	EUnathorized
+	EMethodNotAllowed
 	EInternal
 )
 
@@ -147,7 +150,7 @@ func Errorf(format string, args ...interface{}) error {
 	return &errorString{fmt.Sprintf(format, args...)}
 }
 
-func ErrorIs(kind Kind, err error) bool {
+func EIs(kind Kind, err error) bool {
 	e, ok := err.(*Error)
 	if !ok {
 		return false
@@ -158,7 +161,7 @@ func ErrorIs(kind Kind, err error) bool {
 	}
 
 	if e.Err != nil {
-		return ErrorIs(kind, e.Err)
+		return EIs(kind, e.Err)
 	}
 
 	return false

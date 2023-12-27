@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	yeahapi "github.com/yeahuz/yeah-api"
 )
@@ -40,13 +42,22 @@ func (s *UserService) ByEmail(ctx context.Context, email string) (*yeahapi.User,
 }
 
 func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeahapi.User, error) {
+	const op yeahapi.Op = "user.ByPhone"
 	var user yeahapi.User
 	err := s.pool.QueryRow(
 		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where phone = $1`,
 		phone).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 
-	return &user, err
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
+
+		return nil, yeahapi.E(op, yeahapi.EInternal)
+	}
+
+	return &user, nil
 }
 
 func (s *UserService) Account(ctx context.Context, id string) (*yeahapi.Account, error) {

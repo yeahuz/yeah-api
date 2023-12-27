@@ -11,10 +11,10 @@ import (
 )
 
 func (s *Server) registerCredentialRoutes() {
-	s.mux.Handle("POST /credentials.pubKeyCreateRequest", s.handlePubKeyCreateRequest())
-	s.mux.Handle("POST /credentials.pubKeyGetRequest", s.handlePubKeyGetRequest())
-	s.mux.Handle("POST /credentials.createPubKey", s.handleCreatePubKey())
-	s.mux.Handle("POST /credentials.verifyPubKey", s.handleVerifyPubKey())
+	s.mux.Handle("/credentials.pubKeyCreateRequest", POST(s.handlePubKeyCreateRequest()))
+	s.mux.Handle("/credentials.pubKeyGetRequest", POST(s.handlePubKeyGetRequest()))
+	s.mux.Handle("/credentials.createPubKey", POST(s.handleCreatePubKey()))
+	s.mux.Handle("/credentials.verifyPubKey", POST(s.handleVerifyPubKey()))
 }
 
 func (s *Server) handlePubKeyCreateRequest() Handler {
@@ -22,7 +22,7 @@ func (s *Server) handlePubKeyCreateRequest() Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
 
-		session := r.Context().Value("session").(*yeahapi.Session)
+		session := yeahapi.SessionFromContext(r.Context())
 		u, err := s.UserService.User(ctx, session.UserID)
 		if err != nil {
 			return err
@@ -33,7 +33,7 @@ func (s *Server) handlePubKeyCreateRequest() Handler {
 			return err
 		}
 
-		return JSON(w, http.StatusOK, request)
+		return JSON(w, r, http.StatusOK, request)
 	}
 }
 
@@ -42,13 +42,13 @@ func (s *Server) handlePubKeyGetRequest() Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
 
-		session := r.Context().Value("session").(*yeahapi.Session)
+		session := yeahapi.SessionFromContext(r.Context())
 		request, err := s.CredentialService.PubKeyGetRequest(ctx, session.UserID)
 		if err != nil {
 			return err
 		}
 
-		return JSON(w, http.StatusOK, request)
+		return JSON(w, r, http.StatusOK, request)
 	}
 }
 
@@ -98,7 +98,7 @@ func (s *Server) handleCreatePubKey() Handler {
 			return err
 		}
 
-		return JSON(w, http.StatusOK, nil)
+		return JSON(w, r, http.StatusOK, nil)
 	}
 }
 
@@ -142,6 +142,6 @@ func (s *Server) handleVerifyPubKey() Handler {
 			return err
 		}
 
-		return JSON(w, http.StatusOK, nil)
+		return JSON(w, r, http.StatusOK, nil)
 	}
 }

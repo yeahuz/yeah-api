@@ -10,13 +10,31 @@ import (
 )
 
 func (s *Server) registerAuthRoutes() {
-	s.mux.Handle("POST /auth.sendPhoneCode", s.handleSendPhoneCode(nil))
-	s.mux.Handle("POST /auth.sendEmailCode", s.handleSendEmailCode(nil))
+	s.mux.Handle("/auth.sendPhoneCode", POST(s.handleSendPhoneCode(nil)))
+	s.mux.Handle("/auth.sendEmailCode", POST(s.handleSendEmailCode(nil)))
+	s.mux.Handle("/auth.signInWithEmail", POST(s.handleSignInWithEmail()))
+	s.mux.Handle("/auth.signInWithPhone", POST(s.handleSignInWithPhone()))
+	s.mux.Handle("/auth.signUpWithEmail", POST(s.handleSignUpWithEmail()))
+	s.mux.Handle("/auth.signUpWithPhone", POST(s.handleSignUpWithPhone()))
 }
 
-func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
-	const op yeahapi.Op = "auth.handleSendPhoneCode"
+type signInData struct {
+	Code string `json:"code"`
+	Hash string `json:"hash"`
+}
+
+type termsOfService struct {
+	Text string `json:"text"`
+}
+
+type authSignUpRequired struct {
+	TermsOfService termsOfService `json:"terms_of_service"`
+}
+
+func (s *Server) handleSignInWithPhone() Handler {
+	const op yeahapi.Op = "auth.handleSignInWithPhone"
 	type request struct {
+		signInData
 		PhoneNumber string `json:"phone_number"`
 	}
 
@@ -24,33 +42,55 @@ func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
 		var req request
 		defer r.Body.Close()
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+
+		if err := s.AuthService.VerifyOtp(ctx, &yeahapi.Otp{
+			Hash:       req.Hash,
+			Code:       req.Code,
+			Identifier: req.PhoneNumber,
+		}); err != nil {
 			return err
 		}
 
-		// if err := req.validate(); err != nil {
-		// 	return err
-		// }
+		u, err := s.UserService.ByPhone(ctx, req.PhoneNumber)
+		if yeahapi.EIs(yeahapi.ENotExist, err) {
+			return JSON(w, r, http.StatusOK, authSignUpRequired{
+				TermsOfService: termsOfService{
+					Text: "terms of service",
+				},
+			})
+		} else if err != nil {
+			return err
+		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
+		client := yeahapi.ClientFromContext(r.Context())
 
-		otp, err := s.AuthService.CreateOtp(ctx, time.Minute*15, req.PhoneNumber)
+		auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
+			User: u,
+			Session: &yeahapi.Session{
+				UserID:    u.ID,
+				ClientID:  client.ID,
+				UserAgent: r.UserAgent(),
+				IP:        getIP(r),
+			},
+		})
+
 		if err != nil {
 			return err
 		}
 
-		if err := s.CQRSService.Send(ctx, nil); err != nil {
-			return yeahapi.E(op, err)
-		}
-
-		sentCode := sentCode{Type: sentCodeSms{Length: len(otp.Code)}, Hash: otp.Hash}
-		return JSON(w, http.StatusOK, sentCode)
+		return JSON(w, r, http.StatusOK, auth)
 	}
 }
 
-func (s *Server) handleSendEmailCode(cmdSender any) Handler {
-	const op yeahapi.Op = "auth.handleSendEmailCode"
+func (s *Server) handleSignInWithEmail() Handler {
+	const op yeahapi.Op = "auth.handleSignInWithEmail"
 	type request struct {
+		signInData
 		Email string `json:"email"`
 	}
 
@@ -58,27 +98,166 @@ func (s *Server) handleSendEmailCode(cmdSender any) Handler {
 		var req request
 		defer r.Body.Close()
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+
+		if err := s.AuthService.VerifyOtp(ctx, &yeahapi.Otp{
+			Hash:       req.Hash,
+			Code:       req.Code,
+			Identifier: req.Email,
+		}); err != nil {
 			return err
 		}
 
-		// if err := emailCodeData.validate(); err != nil {
-		// 	return err
-		// }
+		u, err := s.UserService.ByEmail(ctx, req.Email)
+		if yeahapi.EIs(yeahapi.ENotExist, err) {
+			return JSON(w, r, http.StatusOK, authSignUpRequired{
+				TermsOfService: termsOfService{
+					Text: "terms of service",
+				},
+			})
+		} else if err != nil {
+			return err
+		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
+		client := yeahapi.ClientFromContext(r.Context())
 
-		otp, err := s.AuthService.CreateOtp(ctx, time.Minute*15, req.Email)
+		auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
+			User: u,
+			Session: &yeahapi.Session{
+				UserID:    u.ID,
+				ClientID:  client.ID,
+				UserAgent: r.UserAgent(),
+				IP:        getIP(r),
+			},
+		})
+
 		if err != nil {
 			return err
 		}
 
-		if err := s.CQRSService.Send(ctx, nil); err != nil {
+		return JSON(w, r, http.StatusOK, auth)
+	}
+}
+
+type signUpData struct {
+	signInData
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+func (s *Server) handleSignUpWithEmail() Handler {
+	const op yeahapi.Op = "auth.handleSignUpWithEmail"
+	type request struct {
+		signUpData
+		Email string `json:"email"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		var req request
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			return yeahapi.E(op, err)
 		}
 
-		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
-		return JSON(w, http.StatusOK, sentCode)
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+
+		if err := s.AuthService.VerifyOtp(ctx, &yeahapi.Otp{
+			Hash:       req.Hash,
+			Code:       req.Code,
+			Identifier: req.Email,
+		}); err != nil {
+			return err
+		}
+
+		u, err := s.UserService.CreateUser(ctx, &yeahapi.User{
+			FirstName:     req.FirstName,
+			LastName:      req.LastName,
+			Email:         req.Email,
+			EmailVerified: true,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		client := yeahapi.ClientFromContext(r.Context())
+
+		auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
+			User: u,
+			Session: &yeahapi.Session{
+				UserID:    u.ID,
+				ClientID:  client.ID,
+				UserAgent: r.UserAgent(),
+				IP:        getIP(r),
+			},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		return JSON(w, r, http.StatusOK, auth)
+	}
+}
+
+func (s *Server) handleSignUpWithPhone() Handler {
+	const op yeahapi.Op = "auth.handleSignUpWithPhone"
+	type request struct {
+		signUpData
+		PhoneNumber string `json:"phone_number"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		var req request
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+
+		if err := s.AuthService.VerifyOtp(ctx, &yeahapi.Otp{
+			Hash:       req.Hash,
+			Code:       req.Code,
+			Identifier: req.PhoneNumber,
+		}); err != nil {
+			return err
+		}
+
+		u, err := s.UserService.CreateUser(ctx, &yeahapi.User{
+			FirstName:     req.FirstName,
+			LastName:      req.LastName,
+			Email:         req.PhoneNumber,
+			EmailVerified: true,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		client := yeahapi.ClientFromContext(r.Context())
+
+		auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
+			User: u,
+			Session: &yeahapi.Session{
+				UserID:    u.ID,
+				ClientID:  client.ID,
+				UserAgent: r.UserAgent(),
+				IP:        getIP(r),
+			},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		return JSON(w, r, http.StatusOK, auth)
 	}
 }
 
@@ -95,4 +274,95 @@ type sentCodeSms struct {
 
 type sentCodeEmail struct {
 	Length int `json:"length"`
+}
+
+func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
+	const op yeahapi.Op = "auth.handleSendPhoneCode"
+	type request struct {
+		PhoneNumber string `json:"phone_number"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		var req request
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		// if err := req.validate(); err != nil {
+		// 	return err
+		// }
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		otp, err := s.AuthService.CreateOtp(ctx, &yeahapi.Otp{
+			Identifier: req.PhoneNumber,
+			ExpiresAt:  time.Now().Add(time.Minute * 15),
+		})
+
+		if err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		if err := s.CQRSService.Send(ctx, nil); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		sentCode := sentCode{Type: sentCodeSms{Length: len(otp.Code)}, Hash: otp.Hash}
+		return JSON(w, r, http.StatusOK, sentCode)
+	}
+}
+
+func (s *Server) handleSendEmailCode(cmdSender any) Handler {
+	const op yeahapi.Op = "auth.handleSendEmailCode"
+	type request struct {
+		Email string `json:"email"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		var req request
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		// if err := emailCodeData.validate(); err != nil {
+		// 	return err
+		// }
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		otp, err := s.AuthService.CreateOtp(ctx, &yeahapi.Otp{
+			Identifier: req.Email,
+			ExpiresAt:  time.Now().Add(time.Minute * 15),
+		})
+
+		if err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		if err := s.CQRSService.Send(ctx, nil); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
+		return JSON(w, r, http.StatusOK, sentCode)
+	}
+}
+
+func (s *Server) handleLogOut() Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		session := yeahapi.SessionFromContext(r.Context())
+
+		if err := s.AuthService.DeleteAuth(ctx, session.ID); err != nil {
+			return err
+		}
+
+		return JSON(w, r, http.StatusOK, nil)
+	}
 }

@@ -22,16 +22,18 @@ type Auth struct {
 }
 
 type Otp struct {
-	ID        uuid.UUID
-	Code      string
-	Hash      string
-	Confirmed bool
-	ExpiresAt time.Time
+	ID         uuid.UUID
+	Code       string
+	Hash       string
+	Confirmed  bool
+	ExpiresAt  time.Time
+	Identifier string
 }
 
 type AuthService interface {
-	CreateOtp(ctx context.Context, duration time.Duration, identifier string) (*Otp, error)
-	VerifyOtp(ctx context.Context) error
-	CreateAuth(ctx context.Context)
-	DeleteAuth(ctx context.Context)
+	CreateOtp(ctx context.Context, otp *Otp) (*Otp, error)
+	VerifyOtp(ctx context.Context, otp *Otp) error
+	Otp(ctx context.Context, hash string, confirmed bool) (*Otp, error)
+	CreateAuth(ctx context.Context, auth *Auth) (*Auth, error)
+	DeleteAuth(ctx context.Context, sessionID string) error
 }

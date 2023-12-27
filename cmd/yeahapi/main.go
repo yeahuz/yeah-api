@@ -12,7 +12,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pelletier/go-toml/v2"
+	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/http"
+	"github.com/yeahuz/yeah-api/inmem"
 	"github.com/yeahuz/yeah-api/postgres"
 )
 
@@ -70,8 +72,21 @@ func (m *Main) Run(ctx context.Context) (err error) {
 		return err
 	}
 
+	argonHasher := inmem.NewArgonHasher(yeahapi.ArgonParams{
+		SaltLen: 15,
+		Time:    1,
+		Memory:  64 * 1024,
+		Threads: 4,
+		KeyLen:  32,
+	})
+	highwayHasher := inmem.NewHighwayHasher("some-key")
+
 	authService := postgres.NewAuthService(m.Pool)
+	authService.ArgonHasher = argonHasher
+	authService.HighwayHasher = highwayHasher
 	userService := postgres.NewUserService(m.Pool)
+	localizerService := yeahapi.NewLocalizerService("en")
+
 	// cqrsService := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
 	// 	NatsURL:       m.Config.Nats.URL,
 	// 	NatsAuthToken: m.Config.Nats.AuthToken,
@@ -80,6 +95,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 
 	m.Server.UserService = userService
 	m.Server.AuthService = authService
+	m.Server.LocalizerService = localizerService
 	// m.Server.CQRSService = cqrsService
 
 	if err := m.Server.Open(); err != nil {
