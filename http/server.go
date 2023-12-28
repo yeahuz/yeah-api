@@ -14,6 +14,7 @@ import (
 const ShutdownTimeout = 1 * time.Second
 
 type Handler func(w http.ResponseWriter, r *http.Request) error
+
 type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
@@ -51,11 +52,16 @@ func (s *Server) Open() (err error) {
 	return nil
 }
 
-func (s *Server) Close() error {
+func (s *Server) Close() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
 	defer cancel()
 
-	return s.server.Shutdown(ctx)
+	if s.CQRSService != nil {
+		err = s.CQRSService.Close()
+	}
+
+	err = s.server.Shutdown(ctx)
+	return err
 }
 
 func JSON(w http.ResponseWriter, r *http.Request, status int, v any) error {

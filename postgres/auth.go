@@ -8,7 +8,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	yeahapi "github.com/yeahuz/yeah-api"
-	"github.com/yeahuz/yeah-api/db"
 )
 
 type AuthService struct {
@@ -109,7 +108,7 @@ func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeah
 
 	auth.Session.ID = id.String()
 
-	_, err = db.Pool.Exec(ctx,
+	_, err = a.pool.Exec(ctx,
 		"insert into seessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5)",
 		auth.Session.ID, auth.Session.UserID, auth.Session.ClientID, auth.Session.UserAgent, auth.Session.IP,
 	)

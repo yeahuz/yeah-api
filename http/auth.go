@@ -10,8 +10,8 @@ import (
 )
 
 func (s *Server) registerAuthRoutes() {
-	s.mux.Handle("/auth.sendPhoneCode", post(s.handleSendPhoneCode(nil)))
-	s.mux.Handle("/auth.sendEmailCode", post(s.handleSendEmailCode(nil)))
+	s.mux.Handle("/auth.sendPhoneCode", post(s.handleSendPhoneCode()))
+	s.mux.Handle("/auth.sendEmailCode", post(s.handleSendEmailCode()))
 	s.mux.Handle("/auth.signInWithEmail", post(s.handleSignInWithEmail()))
 	s.mux.Handle("/auth.signInWithPhone", post(s.handleSignInWithPhone()))
 	s.mux.Handle("/auth.signUpWithEmail", post(s.handleSignUpWithEmail()))
@@ -276,7 +276,7 @@ type sentCodeEmail struct {
 	Length int `json:"length"`
 }
 
-func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
+func (s *Server) handleSendPhoneCode() Handler {
 	const op yeahapi.Op = "auth.handleSendPhoneCode"
 	type request struct {
 		PhoneNumber string `json:"phone_number"`
@@ -305,7 +305,7 @@ func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
 			return yeahapi.E(op, err)
 		}
 
-		if err := s.CQRSService.Send(ctx, nil); err != nil {
+		if err := s.CQRSService.Publish(ctx, yeahapi.NewSendPhoneCodeCmd(req.PhoneNumber, otp.Code)); err != nil {
 			return yeahapi.E(op, err)
 		}
 
@@ -314,7 +314,7 @@ func (s *Server) handleSendPhoneCode(cmdSender any) Handler {
 	}
 }
 
-func (s *Server) handleSendEmailCode(cmdSender any) Handler {
+func (s *Server) handleSendEmailCode() Handler {
 	const op yeahapi.Op = "auth.handleSendEmailCode"
 	type request struct {
 		Email string `json:"email"`
@@ -343,9 +343,9 @@ func (s *Server) handleSendEmailCode(cmdSender any) Handler {
 			return yeahapi.E(op, err)
 		}
 
-		// if err := s.CQRSService.Send(ctx, nil); err != nil {
-		// 	return yeahapi.E(op, err)
-		// }
+		if err := s.CQRSService.Publish(ctx, yeahapi.NewSendEmailCodeCmd(req.Email, otp.Code)); err != nil {
+			return yeahapi.E(op, err)
+		}
 
 		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
 		return JSON(w, r, http.StatusOK, sentCode)

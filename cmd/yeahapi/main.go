@@ -10,11 +10,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	awsconf "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/pelletier/go-toml/v2"
 	yeahapi "github.com/yeahuz/yeah-api"
+	"github.com/yeahuz/yeah-api/aws"
 	"github.com/yeahuz/yeah-api/http"
 	"github.com/yeahuz/yeah-api/inmem"
+	"github.com/yeahuz/yeah-api/nats"
 	"github.com/yeahuz/yeah-api/postgres"
 )
 
@@ -88,18 +93,30 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	userService := postgres.NewUserService(m.Pool)
 	localizerService := yeahapi.NewLocalizerService("en")
 
-	// cqrsService := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
-	// 	NatsURL:       m.Config.Nats.URL,
-	// 	NatsAuthToken: m.Config.Nats.AuthToken,
-	// 	Streams:       map[string][]string{},
-	// })
+	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
+		NatsURL:       m.Config.Nats.URL,
+		NatsAuthToken: m.Config.Nats.AuthToken,
+		Streams:       m.Config.Nats.Streams,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	awsconfig, err := awsconf.LoadDefaultConfig(ctx,
+		awsconf.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(m.Config.AWS.Key, m.Config.AWS.Secret, "")),
+		awsconf.WithRegion("en-north-1"),
+	)
+
+	emailService := aws.NewEmailService(awsconfig, cqrsService)
+	cqrsService.Handle("auth.sendEmailCode", emailService.HandleSendEmailCode)
 
 	m.Server.Addr = m.Config.HTTP.Addr
 
 	m.Server.UserService = userService
 	m.Server.AuthService = authService
 	m.Server.LocalizerService = localizerService
-	// m.Server.CQRSService = cqrsService
+	m.Server.CQRSService = cqrsService
 
 	if err := m.Server.Open(); err != nil {
 		return err
@@ -109,14 +126,14 @@ func (m *Main) Run(ctx context.Context) (err error) {
 }
 
 func (m *Main) Close() error {
+	if m.Pool != nil {
+		m.Pool.Close()
+	}
+
 	if m.Server != nil {
 		if err := m.Server.Close(); err != nil {
 			return err
 		}
-	}
-
-	if m.Pool != nil {
-		m.Pool.Close()
 	}
 
 	return nil
@@ -167,9 +184,9 @@ type Config struct {
 	} `toml:"highwayhash"`
 
 	Nats struct {
-		AuthToken string            `toml:"auth-token"`
-		URL       string            `toml:"url"`
-		Streams   map[string]string `toml:"streams"`
+		AuthToken string              `toml:"auth-token"`
+		URL       string              `toml:"url"`
+		Streams   map[string][]string `toml:"streams"`
 	} `toml:"nats"`
 
 	Google struct {
