@@ -12,6 +12,7 @@ type Error struct {
 	Op       Op
 	Kind     Kind
 	Err      error
+	Message  string
 	UserID   UserID
 	ClientID ClientID
 }
@@ -44,19 +45,6 @@ func (k Kind) String() string {
 		return "permission denied"
 	}
 	return "unknown error"
-}
-
-func Ops(e *Error) []Op {
-	res := []Op{e.Op}
-
-	subErr, ok := e.Err.(*Error)
-
-	if !ok {
-		return res
-	}
-
-	res = append(res, Ops(subErr)...)
-	return res
 }
 
 func (e Error) Error() string {
@@ -95,6 +83,28 @@ func (e Error) Error() string {
 	return b.String()
 }
 
+func ErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	} else if e, ok := err.(*Error); ok && e.Message != "" {
+		return e.Message
+	} else if ok && e.Err != nil {
+		return ErrorMessage(e.Err)
+	}
+	return ""
+}
+
+func ErrorKind(err error) Kind {
+	if err == nil {
+		return EOther
+	} else if e, ok := err.(*Error); ok && e.Kind != 0 {
+		return e.Kind
+	} else if ok && e.Err != nil {
+		return ErrorKind(e.Err)
+	}
+	return EOther
+}
+
 func E(args ...interface{}) error {
 	if len(args) == 0 {
 		panic("call to errors.E with no arguments")
@@ -115,7 +125,8 @@ func E(args ...interface{}) error {
 		case Kind:
 			e.Kind = arg
 		case string:
-			e.Err = Str(arg)
+			e.Message = arg
+			// e.Err = Str(arg)
 		case *Error:
 			copy := *arg
 			e.Err = &copy

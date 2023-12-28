@@ -22,27 +22,45 @@ func NewUserService(pool *pgxpool.Pool) *UserService {
 }
 
 func (s *UserService) User(ctx context.Context, id yeahapi.UserID) (*yeahapi.User, error) {
+	const op yeahapi.Op = "postgres/UserService.User"
 	var user yeahapi.User
 	err := s.pool.QueryRow(
 		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where id = $1`,
 		id).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 
-	return &user, err
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
+
+		return nil, yeahapi.E(op, err)
+	}
+
+	return &user, nil
 }
 
 func (s *UserService) ByEmail(ctx context.Context, email string) (*yeahapi.User, error) {
+	const op yeahapi.Op = "postgres/UserService.ByEmail"
 	var user yeahapi.User
 	err := s.pool.QueryRow(
 		ctx,
 		`select id, first_name, last_name, coalesce(phone, ''), coalesce(email, ''), coalesce(username, '') from users where email = $1`,
 		email).Scan(&user.ID, &user.FirstName, &user.LastName, &user.PhoneNumber, &user.Email, &user.Username)
 
-	return &user, err
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
+
+		return nil, yeahapi.E(op, err)
+	}
+
+	return &user, nil
 }
 
 func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeahapi.User, error) {
-	const op yeahapi.Op = "user.ByPhone"
+	const op yeahapi.Op = "postgres/UserService.ByPhone"
 	var user yeahapi.User
 	err := s.pool.QueryRow(
 		ctx,
@@ -54,25 +72,34 @@ func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeahapi.User,
 			return nil, yeahapi.E(op, yeahapi.ENotExist)
 		}
 
-		return nil, yeahapi.E(op, yeahapi.EInternal)
+		return nil, yeahapi.E(op, err)
 	}
 
 	return &user, nil
 }
 
 func (s *UserService) Account(ctx context.Context, id string) (*yeahapi.Account, error) {
+	const op yeahapi.Op = "postgres/UserService.Account"
 	var account yeahapi.Account
-
 	err := s.pool.QueryRow(
 		ctx,
 		"select id, provider, user_id, provider_account_id from accounts where id = $1",
 		id,
 	).Scan(&account.ID, &account.Provider, &account.UserID, &account.ProviderAccountID)
 
-	return &account, err
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
+
+		return nil, yeahapi.E(op, err)
+	}
+
+	return &account, nil
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeahapi.User, error) {
+	const op yeahapi.Op = "postgres/UserService.CreateUser"
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
@@ -85,10 +112,15 @@ func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeah
 		id, user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.EmailVerified, user.PhoneVerified,
 	)
 
-	return user, err
+	if err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	return user, nil
 }
 
 func (s *UserService) LinkAccount(ctx context.Context, account *yeahapi.Account) error {
+	const op yeahapi.Op = "postgres/UserService.LinkAccount"
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -101,5 +133,9 @@ func (s *UserService) LinkAccount(ctx context.Context, account *yeahapi.Account)
 		account.ID, account.UserID, account.Provider, account.ProviderAccountID,
 	)
 
-	return err
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	return nil
 }

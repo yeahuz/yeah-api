@@ -23,7 +23,7 @@ func NewAuthService(pool *pgxpool.Pool) *AuthService {
 }
 
 func (a *AuthService) CreateOtp(ctx context.Context, otp *yeahapi.Otp) (*yeahapi.Otp, error) {
-	const op yeahapi.Op = "authService.CreateOtp"
+	const op yeahapi.Op = "postgres/AuthService.CreateOtp"
 	code := strconv.Itoa(100000 + rand.Intn(999999-100000))
 
 	id, err := uuid.NewV7()
@@ -60,7 +60,7 @@ func (a *AuthService) CreateOtp(ctx context.Context, otp *yeahapi.Otp) (*yeahapi
 }
 
 func (a *AuthService) VerifyOtp(ctx context.Context, otp *yeahapi.Otp) error {
-	const op yeahapi.Op = "authService.VerifyOtp"
+	const op yeahapi.Op = "postgres/AuthService.VerifyOtp"
 	hash, err := a.HighwayHasher.Hash([]byte(otp.Identifier + otp.Code))
 	if err != nil {
 		return yeahapi.E(op, err)
@@ -84,7 +84,7 @@ func (a *AuthService) VerifyOtp(ctx context.Context, otp *yeahapi.Otp) error {
 }
 
 func (a *AuthService) Otp(ctx context.Context, hash string, confirmed bool) (*yeahapi.Otp, error) {
-	const op yeahapi.Op = "authService.Otp"
+	const op yeahapi.Op = "postgres/AuthService.Otp"
 	var otp yeahapi.Otp
 
 	err := a.pool.QueryRow(ctx,
@@ -99,7 +99,7 @@ func (a *AuthService) Otp(ctx context.Context, hash string, confirmed bool) (*ye
 }
 
 func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeahapi.Auth, error) {
-	const op yeahapi.Op = "authService.CreateAuth"
+	const op yeahapi.Op = "postgres/AuthService.CreateAuth"
 
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -121,24 +121,9 @@ func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeah
 }
 
 func (a *AuthService) DeleteAuth(ctx context.Context, sessionID string) error {
-	const op yeahapi.Op = "authService.DeleteAuth"
+	const op yeahapi.Op = "postgres/AuthService.DeleteAuth"
 	if _, err := a.pool.Exec(ctx, "delete from sessions where id = $1", sessionID); err != nil {
 		return yeahapi.E(op, err)
 	}
 	return nil
-}
-
-func genHash(bytes []byte) (string, error) {
-	return "", nil
-	// key, err := hex.DecodeString(config.Config.HighwayHashKey)
-	// if err != nil {
-	// 	return "", errors.Internal
-	// }
-
-	// hash, err := highwayhash.New(key)
-	// if err != nil {
-	// 	return "", errors.Internal
-	// }
-	// hash.Write(bytes)
-	// return hex.EncodeToString(hash.Sum(nil)), nil
 }

@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -18,7 +19,7 @@ func (s *Server) registerCredentialRoutes() {
 }
 
 func (s *Server) handlePubKeyCreateRequest() Handler {
-	const op yeahapi.Op = "credentials.handlePubKeyCreateRequest"
+	const op yeahapi.Op = "http/credentials.handlePubKeyCreateRequest"
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
@@ -26,12 +27,12 @@ func (s *Server) handlePubKeyCreateRequest() Handler {
 		session := yeahapi.SessionFromContext(r.Context())
 		u, err := s.UserService.User(ctx, session.UserID)
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		request, err := s.CredentialService.PubKeyCreateRequest(ctx, u)
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		return JSON(w, r, http.StatusOK, request)
@@ -39,7 +40,7 @@ func (s *Server) handlePubKeyCreateRequest() Handler {
 }
 
 func (s *Server) handlePubKeyGetRequest() Handler {
-	const op yeahapi.Op = "credentials.handlePubKeyGetRequest"
+	const op yeahapi.Op = "http/credentials.handlePubKeyGetRequest"
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
@@ -47,7 +48,7 @@ func (s *Server) handlePubKeyGetRequest() Handler {
 		session := yeahapi.SessionFromContext(r.Context())
 		request, err := s.CredentialService.PubKeyGetRequest(ctx, session.UserID)
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		return JSON(w, r, http.StatusOK, request)
@@ -55,7 +56,7 @@ func (s *Server) handlePubKeyGetRequest() Handler {
 }
 
 func (s *Server) handleCreatePubKey() Handler {
-	const op yeahapi.Op = "credentials.handleCreatePubKey"
+	const op yeahapi.Op = "http/credentials.handleCreatePubKey"
 	type request struct {
 		ReqID      uuid.UUID                              `json:"req_id"`
 		Credential yeahapi.RawPubKeyCredentialAttestation `json:"credential"`
@@ -74,16 +75,19 @@ func (s *Server) handleCreatePubKey() Handler {
 
 		credRequest, err := s.CredentialService.Request(ctx, req.ReqID)
 		if err != nil {
-			return err
+			if yeahapi.EIs(yeahapi.ENotExist, err) {
+				return yeahapi.E(op, err, fmt.Sprintf("Credential request with id %s not found", req.ReqID))
+			}
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		if _, err := s.CredentialService.ValidateClientData(req.Credential.Response.ClientDataJSON, credRequest); err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to validate client date")
 		}
 
 		authnData, err := s.CredentialService.ValidateAuthnData(req.Credential.Response.AuthenticatorData)
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to validate authnticator data")
 		}
 
 		pubKeyCredential := &yeahapi.PubKeyCredential{
@@ -98,7 +102,7 @@ func (s *Server) handleCreatePubKey() Handler {
 		}
 
 		if err := s.CredentialService.CreatePubKey(ctx, pubKeyCredential); err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to save pubkey. Please, try again later")
 		}
 
 		return JSON(w, r, http.StatusOK, nil)
@@ -106,7 +110,7 @@ func (s *Server) handleCreatePubKey() Handler {
 }
 
 func (s *Server) handleVerifyPubKey() Handler {
-	const op yeahapi.Op = "credentials.handleVerifyPubKey"
+	const op yeahapi.Op = "http/credentials.handleVerifyPubKey"
 	type request struct {
 		ReqID      uuid.UUID                            `json:"req_id"`
 		Credential yeahapi.RawPubKeyCredentialAssertion `json:"credential"`
@@ -124,26 +128,33 @@ func (s *Server) handleVerifyPubKey() Handler {
 
 		credRequest, err := s.CredentialService.Request(ctx, req.ReqID)
 		if err != nil {
-			return err
+			if yeahapi.EIs(yeahapi.ENotExist, err) {
+				return yeahapi.E(op, err, fmt.Sprintf("Credential request with id %s not found", req.ReqID))
+			}
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		clientData, err := s.CredentialService.ValidateClientData(req.Credential.Response.ClientDataJSON, credRequest)
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to validate client date")
 		}
 
 		authnData, err := s.CredentialService.ValidateAuthnData(req.Credential.Response.AuthenticatorData)
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to validate authnticator data")
 		}
 
 		credential, err := s.CredentialService.Credential(ctx, req.Credential.ID)
+
 		if err != nil {
-			return err
+			if yeahapi.EIs(yeahapi.ENotExist, err) {
+				return yeahapi.E(op, err, "Credential with not found")
+			}
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		if err := credential.Verify(clientData.Raw, authnData.Raw, req.Credential.Response.Signature); err != nil {
-			return err
+			return yeahapi.E(op, err, "Couldn't verify the credential")
 		}
 
 		return JSON(w, r, http.StatusOK, nil)

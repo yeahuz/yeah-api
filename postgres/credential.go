@@ -6,8 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	yeahapi "github.com/yeahuz/yeah-api"
 )
@@ -26,7 +28,7 @@ func NewCredentailService(pool *pgxpool.Pool) *CredentialService {
 }
 
 func (c *CredentialService) CreatePubKeyRequest(ctx context.Context, user *yeahapi.User) (*yeahapi.PubKeyCreateRequest, error) {
-	const op yeahapi.Op = "credential.CreatePubKeyRequest"
+	const op yeahapi.Op = "postgres/CredentialService.CreatePubKeyRequest"
 	challenge, err := generateChallenge()
 	if err != nil {
 		return nil, yeahapi.E(op, err, "unable to generate a challenge")
@@ -77,7 +79,7 @@ func (c *CredentialService) CreatePubKeyRequest(ctx context.Context, user *yeaha
 }
 
 func (c *CredentialService) GetPubKeyRequest(ctx context.Context, userID yeahapi.UserID) (*yeahapi.PubKeyGetRequest, error) {
-	const op yeahapi.Op = "credential.GetPubKeyRequest"
+	const op yeahapi.Op = "postgres/CredentialService.GetPubKeyRequest"
 	credentials, err := c.Credentials(ctx, userID)
 	if err != nil {
 		return nil, yeahapi.E(op, err)
@@ -119,7 +121,7 @@ func (c *CredentialService) GetPubKeyRequest(ctx context.Context, userID yeahapi
 }
 
 func (c *CredentialService) Credentials(ctx context.Context, userID yeahapi.UserID) ([]yeahapi.PubKeyCredentialDescriptor, error) {
-	const op yeahapi.Op = "credential.credentials"
+	const op yeahapi.Op = "postgres/CredentialService.Credentials"
 	credentials := make([]yeahapi.PubKeyCredentialDescriptor, 0)
 
 	rows, err := c.pool.Query(ctx, "select credential_id, transports, type from credentials where user_id = $1", userID)
@@ -145,21 +147,65 @@ func (c *CredentialService) Credentials(ctx context.Context, userID yeahapi.User
 }
 
 func (c *CredentialService) Credential(ctx context.Context, id string) (*yeahapi.PubKeyCredential, error) {
-	const op yeahapi.Op = "credential.credential"
+	const op yeahapi.Op = "postgres/CredentialService.Credential"
 	var credential yeahapi.PubKeyCredential
 	err := c.pool.QueryRow(ctx,
 		"select id, credential_id, title, transports, user_id, pubkey, pubkey_alg from credentials where credential_id = $1", id).Scan(
 		&credential.ID, &credential.CredentialID, &credential.Title, &credential.Transports, &credential.UserID, &credential.PubKey, &credential.PubKeyAlg)
 
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
 		return nil, yeahapi.E(op, err)
 	}
 
 	return &credential, nil
 }
 
+func (c *CredentialService) CreatePubKey(ctx context.Context, crd *yeahapi.PubKeyCredential) error {
+	const op yeahapi.Op = "postgres/CredentialService.CreatePubKey"
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return yeahapi.E(op, err, "unable to generate uuid")
+	}
+
+	crd.ID = id
+
+	_, err = c.pool.Exec(ctx,
+		`insert into credentials (id, credential_id, title, pubkey, pubkey_alg, transports, user_id, counter, credential_request_id)
+		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		crd.ID, crd.CredentialID, crd.Title, crd.PubKey, crd.PubKeyAlg, crd.Transports, crd.UserID, crd.Counter, crd.CredentialRequestID,
+	)
+
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	return nil
+}
+
+func (c *CredentialService) Request(ctx context.Context, id uuid.UUID) (*yeahapi.CredentialRequest, error) {
+	const op yeahapi.Op = "postgres/CredentialService.Credential"
+	var credRequest yeahapi.CredentialRequest
+	err := c.pool.QueryRow(ctx,
+		"select type, challenge, used, user_id from credential_requests where id = $1", id,
+	).Scan(&credRequest.Type, &credRequest.Challenge, &credRequest.Used, &credRequest.UserID)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
+
+		return nil, yeahapi.E(op, err)
+	}
+
+	return &credRequest, nil
+}
+
 func (c *CredentialService) ValidateAuthnData(data string) (*yeahapi.AuthenticatorData, error) {
-	const op yeahapi.Op = "credential.ValidateAuthnData"
+	const op yeahapi.Op = "postgres/CredentialService.ValidateAuthnData"
 	authnData, err := parseAuthenticatorData(data)
 	if err != nil {
 		return nil, yeahapi.E(op, err)
@@ -177,7 +223,7 @@ func (c *CredentialService) ValidateAuthnData(data string) (*yeahapi.Authenticat
 }
 
 func (c *CredentialService) ValidateClientData(data string, req *yeahapi.CredentialRequest) (*yeahapi.CollectedClientData, error) {
-	const op yeahapi.Op = "credential.ValidateClientData"
+	const op yeahapi.Op = "postgres/CredentialService.ValidateClientData"
 	decoded, err := base64.RawURLEncoding.DecodeString(data)
 	if err != nil {
 		return nil, yeahapi.E(err, yeahapi.EInternal)
@@ -204,20 +250,8 @@ func (c *CredentialService) ValidateClientData(data string, req *yeahapi.Credent
 	return clientData, nil
 }
 
-func generateChallenge() (string, error) {
-	b := make([]byte, 32)
-
-	_, err := rand.Read(b)
-
-	if err != nil {
-		return "", err
-	}
-
-	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
 func parseAuthenticatorData(authnData string) (*yeahapi.AuthenticatorData, error) {
-	const op yeahapi.Op = "credential.parseAuthenticatorData"
+	const op yeahapi.Op = "postgres/CredentialService.parseAuthenticatorData"
 	data, err := base64.RawURLEncoding.DecodeString(authnData)
 	if err != nil {
 		return nil, yeahapi.E(op, err)
@@ -265,4 +299,16 @@ func parseAuthenticatorData(authnData string) (*yeahapi.AuthenticatorData, error
 	}
 
 	return r, nil
+}
+
+func generateChallenge() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

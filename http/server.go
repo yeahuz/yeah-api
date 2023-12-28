@@ -28,6 +28,11 @@ type Server struct {
 	LocalizerService  yeahapi.LocalizerService
 }
 
+type errorResponse struct {
+	StatusCode int    `json:"status_code"`
+	Message    string `json:"message"`
+}
+
 func NewServer() *Server {
 	s := &Server{
 		mux:    http.NewServeMux(),
@@ -92,13 +97,19 @@ func get(next Handler) Handler {
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h(w, r); err != nil {
-		// lang := r.Header.Get("Accept-Language")
-		if e, ok := err.(yeahapi.Error); ok {
-			JSON(w, r, errStatusCode(e.Kind), e)
+		resp := &errorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Internal server error",
+		}
+
+		if e, ok := err.(*yeahapi.Error); ok {
+			resp.Message = yeahapi.ErrorMessage(e)
+			resp.StatusCode = errStatusCode(yeahapi.ErrorKind(e))
+			JSON(w, r, errStatusCode(e.Kind), resp)
 			return
 		}
 
-		JSON(w, r, http.StatusInternalServerError, nil)
+		JSON(w, r, http.StatusInternalServerError, resp)
 	}
 }
 

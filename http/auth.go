@@ -32,7 +32,7 @@ type authSignUpRequired struct {
 }
 
 func (s *Server) handleSignInWithPhone() Handler {
-	const op yeahapi.Op = "auth.handleSignInWithPhone"
+	const op yeahapi.Op = "http/auth.handleSignInWithPhone"
 	type request struct {
 		signInData
 		PhoneNumber string `json:"phone_number"`
@@ -53,7 +53,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 			Code:       req.Code,
 			Identifier: req.PhoneNumber,
 		}); err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to verify otp code. Make sure code and hash is correct")
 		}
 
 		u, err := s.UserService.ByPhone(ctx, req.PhoneNumber)
@@ -64,7 +64,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 				},
 			})
 		} else if err != nil {
-			return err
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		client := yeahapi.ClientFromContext(r.Context())
@@ -80,7 +80,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 		})
 
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
 		return JSON(w, r, http.StatusOK, auth)
@@ -88,7 +88,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 }
 
 func (s *Server) handleSignInWithEmail() Handler {
-	const op yeahapi.Op = "auth.handleSignInWithEmail"
+	const op yeahapi.Op = "http/auth.handleSignInWithEmail"
 	type request struct {
 		signInData
 		Email string `json:"email"`
@@ -109,7 +109,7 @@ func (s *Server) handleSignInWithEmail() Handler {
 			Code:       req.Code,
 			Identifier: req.Email,
 		}); err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to verify otp code. Make sure code and hash is correct")
 		}
 
 		u, err := s.UserService.ByEmail(ctx, req.Email)
@@ -120,7 +120,7 @@ func (s *Server) handleSignInWithEmail() Handler {
 				},
 			})
 		} else if err != nil {
-			return err
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		client := yeahapi.ClientFromContext(r.Context())
@@ -136,7 +136,7 @@ func (s *Server) handleSignInWithEmail() Handler {
 		})
 
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
 		return JSON(w, r, http.StatusOK, auth)
@@ -150,7 +150,7 @@ type signUpData struct {
 }
 
 func (s *Server) handleSignUpWithEmail() Handler {
-	const op yeahapi.Op = "auth.handleSignUpWithEmail"
+	const op yeahapi.Op = "http/auth.handleSignUpWithEmail"
 	type request struct {
 		signUpData
 		Email string `json:"email"`
@@ -171,7 +171,7 @@ func (s *Server) handleSignUpWithEmail() Handler {
 			Code:       req.Code,
 			Identifier: req.Email,
 		}); err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to verify otp code. Make sure code and hash is correct")
 		}
 
 		u, err := s.UserService.CreateUser(ctx, &yeahapi.User{
@@ -182,7 +182,8 @@ func (s *Server) handleSignUpWithEmail() Handler {
 		})
 
 		if err != nil {
-			return err
+			// TODO: check if there is constraint violation with phone number
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		client := yeahapi.ClientFromContext(r.Context())
@@ -198,7 +199,7 @@ func (s *Server) handleSignUpWithEmail() Handler {
 		})
 
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
 		return JSON(w, r, http.StatusOK, auth)
@@ -206,7 +207,7 @@ func (s *Server) handleSignUpWithEmail() Handler {
 }
 
 func (s *Server) handleSignUpWithPhone() Handler {
-	const op yeahapi.Op = "auth.handleSignUpWithPhone"
+	const op yeahapi.Op = "http/auth.handleSignUpWithPhone"
 	type request struct {
 		signUpData
 		PhoneNumber string `json:"phone_number"`
@@ -227,18 +228,19 @@ func (s *Server) handleSignUpWithPhone() Handler {
 			Code:       req.Code,
 			Identifier: req.PhoneNumber,
 		}); err != nil {
-			return err
+			return yeahapi.E(op, err, "Unable to verify otp code. Make sure code and hash is correct")
 		}
 
 		u, err := s.UserService.CreateUser(ctx, &yeahapi.User{
 			FirstName:     req.FirstName,
 			LastName:      req.LastName,
-			Email:         req.PhoneNumber,
-			EmailVerified: true,
+			PhoneNumber:   req.PhoneNumber,
+			PhoneVerified: true,
 		})
 
 		if err != nil {
-			return err
+			// TODO: check if there is constraint violation with phone number
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
 		client := yeahapi.ClientFromContext(r.Context())
@@ -254,7 +256,7 @@ func (s *Server) handleSignUpWithPhone() Handler {
 		})
 
 		if err != nil {
-			return err
+			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
 		return JSON(w, r, http.StatusOK, auth)
@@ -277,7 +279,7 @@ type sentCodeEmail struct {
 }
 
 func (s *Server) handleSendPhoneCode() Handler {
-	const op yeahapi.Op = "auth.handleSendPhoneCode"
+	const op yeahapi.Op = "http/auth.handleSendPhoneCode"
 	type request struct {
 		PhoneNumber string `json:"phone_number"`
 	}
@@ -302,11 +304,11 @@ func (s *Server) handleSendPhoneCode() Handler {
 		})
 
 		if err != nil {
-			return yeahapi.E(op, err)
+			return yeahapi.E(op, err, "Couldn't create otp code. Please try again")
 		}
 
 		if err := s.CQRSService.Publish(ctx, yeahapi.NewSendPhoneCodeCmd(req.PhoneNumber, otp.Code)); err != nil {
-			return yeahapi.E(op, err)
+			return yeahapi.E(op, err, "Something went wrong on our end. Please try again after some time")
 		}
 
 		sentCode := sentCode{Type: sentCodeSms{Length: len(otp.Code)}, Hash: otp.Hash}
@@ -315,7 +317,7 @@ func (s *Server) handleSendPhoneCode() Handler {
 }
 
 func (s *Server) handleSendEmailCode() Handler {
-	const op yeahapi.Op = "auth.handleSendEmailCode"
+	const op yeahapi.Op = "http/auth.handleSendEmailCode"
 	type request struct {
 		Email string `json:"email"`
 	}
@@ -340,11 +342,11 @@ func (s *Server) handleSendEmailCode() Handler {
 		})
 
 		if err != nil {
-			return yeahapi.E(op, err)
+			return yeahapi.E(op, err, "Couldn't create otp code. Please, try again")
 		}
 
 		if err := s.CQRSService.Publish(ctx, yeahapi.NewSendEmailCodeCmd(req.Email, otp.Code)); err != nil {
-			return yeahapi.E(op, err)
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again after some time")
 		}
 
 		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
@@ -353,6 +355,7 @@ func (s *Server) handleSendEmailCode() Handler {
 }
 
 func (s *Server) handleLogOut() Handler {
+	const op yeahapi.Op = "http/auth.handleLogOut"
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -360,7 +363,7 @@ func (s *Server) handleLogOut() Handler {
 		session := yeahapi.SessionFromContext(r.Context())
 
 		if err := s.AuthService.DeleteAuth(ctx, session.ID); err != nil {
-			return err
+			return yeahapi.E(op, err, "Couldn't delete session. Please, try again")
 		}
 
 		return JSON(w, r, http.StatusOK, nil)
