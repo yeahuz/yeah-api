@@ -26,7 +26,7 @@ func NewEmailService(cfg aws.Config, cqrssrv yeahapi.CQRSService) *EmailService 
 	}
 }
 
-func (e *EmailService) HandleSendEmailCode(m jetstream.Msg) error {
+func (e *EmailService) SendEmailCode(m jetstream.Msg) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 

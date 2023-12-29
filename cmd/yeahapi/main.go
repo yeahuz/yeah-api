@@ -17,6 +17,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/aws"
+	"github.com/yeahuz/yeah-api/eskiz"
 	"github.com/yeahuz/yeah-api/http"
 	"github.com/yeahuz/yeah-api/inmem"
 	"github.com/yeahuz/yeah-api/nats"
@@ -109,7 +110,10 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	)
 
 	emailService := aws.NewEmailService(awsconfig, cqrsService)
-	cqrsService.Handle("auth.sendEmailCode", emailService.HandleSendEmailCode)
+	smsService := eskiz.NewSmsService(m.Config.Eskiz.Email, m.Config.Eskiz.Password, m.Config.Eskiz.BaseURL, cqrsService)
+
+	cqrsService.Handle("auth.sendEmailCode", emailService.SendEmailCode)
+	cqrsService.Handle("auth.sendPhoneCode", smsService.SendSmsCode)
 
 	m.Server.Addr = m.Config.HTTP.Addr
 
@@ -178,6 +182,12 @@ type Config struct {
 		Secret string `toml:"secret"`
 		Key    string `toml:"key"`
 	} `toml:"aws"`
+
+	Eskiz struct {
+		Email    string `toml:"email"`
+		Password string `toml:"password"`
+		BaseURL  string `toml:"base-url"`
+	} `toml:"eskiz"`
 
 	HighwayHash struct {
 		Key string `toml:"key"`

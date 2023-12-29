@@ -34,7 +34,7 @@ func NewHighwayHasher(key string) *HighwayHasher {
 }
 
 func (h *HighwayHasher) Hash(b []byte) (string, error) {
-	const op yeahapi.Op = "highwayHasher.Hash"
+	const op yeahapi.Op = "inmem/HighwayHasher.Hash"
 	key, err := hex.DecodeString(h.key)
 	if err != nil {
 		return "", yeahapi.E(op, err)
@@ -51,6 +51,7 @@ func (h *HighwayHasher) Hash(b []byte) (string, error) {
 }
 
 func (h *ArgonHasher) Hash(b []byte) (string, error) {
+	const op yeahapi.Op = "inmem/ArgonHasher.Hash"
 	salt, err := genRandBytes(h.params.SaltLen)
 	if err != nil {
 		return "", err
@@ -66,7 +67,7 @@ func (h *ArgonHasher) Hash(b []byte) (string, error) {
 }
 
 func (h *ArgonHasher) Verify(s, encoded string) error {
-	const op yeahapi.Op = "argonHasher.Verify"
+	const op yeahapi.Op = "inmem/ArgonHasher.Verify"
 	p, salt, hash, err := h.Decode(encoded)
 	if err != nil {
 		return yeahapi.E(op, err)
@@ -80,7 +81,7 @@ func (h *ArgonHasher) Verify(s, encoded string) error {
 }
 
 func (h *ArgonHasher) Decode(encoded string) (p *yeahapi.ArgonParams, salt, hash []byte, err error) {
-	const op yeahapi.Op = "argonHasher.Decode"
+	const op yeahapi.Op = "inmem/ArgonHasher.Decode"
 	vals := strings.Split(encoded, "$")
 
 	if len(vals) != 6 {

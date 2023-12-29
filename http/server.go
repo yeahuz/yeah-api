@@ -76,26 +76,6 @@ func JSON(w http.ResponseWriter, r *http.Request, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func post(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		if r.Method != http.MethodPost {
-			return yeahapi.E(yeahapi.EMethodNotAllowed)
-		}
-
-		return next(w, r)
-	}
-}
-
-func get(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		if r.Method != http.MethodGet {
-			return yeahapi.E(yeahapi.EMethodNotAllowed)
-		}
-
-		return next(w, r)
-	}
-}
-
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h(w, r); err != nil {
 		resp := &errorResponse{
@@ -185,19 +165,6 @@ func (s *Server) userOnly(next Handler) Handler {
 	}
 }
 
-func cors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Headers", "*")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 var statusCodes = map[yeahapi.Kind]int{
 	yeahapi.EInternal:         http.StatusInternalServerError,
 	yeahapi.EInvalid:          http.StatusBadRequest,
@@ -208,6 +175,26 @@ var statusCodes = map[yeahapi.Kind]int{
 	yeahapi.ENotImplemented:   http.StatusNotImplemented,
 	yeahapi.EMethodNotAllowed: http.StatusMethodNotAllowed,
 	yeahapi.EOther:            http.StatusInternalServerError,
+}
+
+func post(next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodPost {
+			return yeahapi.E(yeahapi.EMethodNotAllowed)
+		}
+
+		return next(w, r)
+	}
+}
+
+func get(next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return yeahapi.E(yeahapi.EMethodNotAllowed)
+		}
+
+		return next(w, r)
+	}
 }
 
 func errStatusCode(kind yeahapi.Kind) int {
