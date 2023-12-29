@@ -92,6 +92,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	authService.ArgonHasher = argonHasher
 	authService.HighwayHasher = highwayHasher
 	userService := postgres.NewUserService(m.Pool)
+	listingService := postgres.NewListingService(m.Pool)
 	localizerService := yeahapi.NewLocalizerService("en")
 
 	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
@@ -120,6 +121,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	m.Server.UserService = userService
 	m.Server.AuthService = authService
 	m.Server.LocalizerService = localizerService
+	m.Server.ListingService = listingService
 	m.Server.CQRSService = cqrsService
 
 	if err := m.Server.Open(); err != nil {

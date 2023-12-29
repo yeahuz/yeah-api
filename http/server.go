@@ -27,6 +27,7 @@ type Server struct {
 	CredentialService yeahapi.CredentialService
 	LocalizerService  yeahapi.LocalizerService
 	ClientService     yeahapi.ClientService
+	ListingService    yeahapi.ListingService
 }
 
 type errorResponse struct {

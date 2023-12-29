@@ -102,9 +102,8 @@ func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeah
 	const op yeahapi.Op = "postgres/UserService.CreateUser"
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return nil, yeahapi.E(op, err)
 	}
-
 	user.ID = yeahapi.UserID(id.String())
 
 	_, err = s.pool.Exec(ctx,
