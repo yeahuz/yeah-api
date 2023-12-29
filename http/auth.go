@@ -2,12 +2,14 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
+	"regexp"
 	"time"
 
 	yeahapi "github.com/yeahuz/yeah-api"
 )
+
+var emailRegex = regexp.MustCompile(`(?i)^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$`)
 
 func (s *Server) registerAuthRoutes() {
 	s.mux.Handle("/auth.sendPhoneCode", post(s.handleSendPhoneCode()))
@@ -16,11 +18,20 @@ func (s *Server) registerAuthRoutes() {
 	s.mux.Handle("/auth.signInWithPhone", post(s.handleSignInWithPhone()))
 	s.mux.Handle("/auth.signUpWithEmail", post(s.handleSignUpWithEmail()))
 	s.mux.Handle("/auth.signUpWithPhone", post(s.handleSignUpWithPhone()))
+	s.mux.Handle("/auth.logOut", post(s.handleLogOut()))
 }
 
-type signInData struct {
+type sentCodeData struct {
 	Code string `json:"code"`
 	Hash string `json:"hash"`
+}
+
+type phoneData struct {
+	PhoneNumber string `json:"phone_number"`
+}
+
+type emailData struct {
+	Email string `json:"email"`
 }
 
 type termsOfService struct {
@@ -31,17 +42,57 @@ type authSignUpRequired struct {
 	TermsOfService termsOfService `json:"terms_of_service"`
 }
 
+func (d sentCodeData) Ok() error {
+	if d.Code == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Code is required")
+	}
+	if d.Hash == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Hash is required")
+	}
+	return nil
+}
+
+func (d phoneData) Ok() error {
+	if d.PhoneNumber == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Phone number is required")
+	}
+	if len(d.PhoneNumber) != 13 {
+		return yeahapi.E(yeahapi.EInvalid, "Phone number is invalid")
+	}
+	return nil
+}
+
+func (d emailData) Ok() error {
+	if d.Email == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Email is required")
+	}
+	if !emailRegex.MatchString(d.Email) {
+		return yeahapi.E(yeahapi.EInvalid, "Email is invalid")
+	}
+	return nil
+}
+
+type signInPhoneData struct {
+	sentCodeData
+	phoneData
+}
+
+func (d signInPhoneData) Ok() error {
+	if err := d.sentCodeData.Ok(); err != nil {
+		return err
+	}
+	if err := d.phoneData.Ok(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Server) handleSignInWithPhone() Handler {
 	const op yeahapi.Op = "http/auth.handleSignInWithPhone"
-	type request struct {
-		signInData
-		PhoneNumber string `json:"phone_number"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) error {
-		var req request
+		var req signInPhoneData
 		defer r.Body.Close()
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := decode(r, &req); err != nil {
 			return yeahapi.E(op, err)
 		}
 
@@ -87,17 +138,28 @@ func (s *Server) handleSignInWithPhone() Handler {
 	}
 }
 
-func (s *Server) handleSignInWithEmail() Handler {
-	const op yeahapi.Op = "http/auth.handleSignInWithEmail"
-	type request struct {
-		signInData
-		Email string `json:"email"`
+type signInEmailData struct {
+	sentCodeData
+	emailData
+}
+
+func (d signInEmailData) Ok() error {
+	if err := d.sentCodeData.Ok(); err != nil {
+		return err
 	}
 
+	if err := d.emailData.Ok(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) handleSignInWithEmail() Handler {
+	const op yeahapi.Op = "http/auth.handleSignInWithEmail"
 	return func(w http.ResponseWriter, r *http.Request) error {
-		var req request
+		var req signInEmailData
 		defer r.Body.Close()
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := decode(r, &req); err != nil {
 			return yeahapi.E(op, err)
 		}
 
@@ -144,22 +206,45 @@ func (s *Server) handleSignInWithEmail() Handler {
 }
 
 type signUpData struct {
-	signInData
+	sentCodeData
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 }
 
+func (d signUpData) Ok() error {
+	if err := d.sentCodeData.Ok(); err != nil {
+		return err
+	}
+	if d.LastName == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Last name is required")
+	}
+	if d.FirstName == "" {
+		return yeahapi.E(yeahapi.EInvalid, "First name is required")
+	}
+	return nil
+}
+
+type signUpEmailData struct {
+	signUpData
+	emailData
+}
+
+func (d signUpEmailData) Ok() error {
+	if err := d.signUpData.Ok(); err != nil {
+		return err
+	}
+	if err := d.emailData.Ok(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Server) handleSignUpWithEmail() Handler {
 	const op yeahapi.Op = "http/auth.handleSignUpWithEmail"
-	type request struct {
-		signUpData
-		Email string `json:"email"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) error {
-		var req request
+		var req signUpEmailData
 		defer r.Body.Close()
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := decode(r, &req); err != nil {
 			return yeahapi.E(op, err)
 		}
 
@@ -206,17 +291,27 @@ func (s *Server) handleSignUpWithEmail() Handler {
 	}
 }
 
+type signUpPhoneData struct {
+	signUpData
+	phoneData
+}
+
+func (d signUpPhoneData) Ok() error {
+	if err := d.signUpData.Ok(); err != nil {
+		return err
+	}
+	if err := d.phoneData.Ok(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Server) handleSignUpWithPhone() Handler {
 	const op yeahapi.Op = "http/auth.handleSignUpWithPhone"
-	type request struct {
-		signUpData
-		PhoneNumber string `json:"phone_number"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) error {
-		var req request
+		var req signUpPhoneData
 		defer r.Body.Close()
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := decode(r, &req); err != nil {
 			return yeahapi.E(op, err)
 		}
 
@@ -274,26 +369,14 @@ type sentCodeSms struct {
 	Length int `json:"length"`
 }
 
-type sentCodeEmail struct {
-	Length int `json:"length"`
-}
-
 func (s *Server) handleSendPhoneCode() Handler {
 	const op yeahapi.Op = "http/auth.handleSendPhoneCode"
-	type request struct {
-		PhoneNumber string `json:"phone_number"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) error {
-		var req request
+		var req phoneData
 		defer r.Body.Close()
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := decode(r, &req); err != nil {
 			return yeahapi.E(op, err)
 		}
-
-		// if err := req.validate(); err != nil {
-		// 	return err
-		// }
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -316,22 +399,18 @@ func (s *Server) handleSendPhoneCode() Handler {
 	}
 }
 
+type sentCodeEmail struct {
+	Length int `json:"length"`
+}
+
 func (s *Server) handleSendEmailCode() Handler {
 	const op yeahapi.Op = "http/auth.handleSendEmailCode"
-	type request struct {
-		Email string `json:"email"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) error {
-		var req request
+		var req emailData
 		defer r.Body.Close()
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := decode(r, &req); err != nil {
 			return yeahapi.E(op, err)
 		}
-
-		// if err := emailCodeData.validate(); err != nil {
-		// 	return err
-		// }
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
