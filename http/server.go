@@ -26,6 +26,7 @@ type Server struct {
 	CQRSService       yeahapi.CQRSService
 	CredentialService yeahapi.CredentialService
 	LocalizerService  yeahapi.LocalizerService
+	ClientService     yeahapi.ClientService
 }
 
 type errorResponse struct {
@@ -129,6 +130,61 @@ func decode(r *http.Request, v ok) error {
 	return v.Ok()
 }
 
+func (s *Server) clientOnly(next Handler) Handler {
+	const op yeahapi.Op = "http/server.ClientOnly"
+	return func(w http.ResponseWriter, r *http.Request) error {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+		clientId := r.Header.Get("X-Client-Id")
+		if clientId == "" {
+			return yeahapi.E(op, yeahapi.EUnathorized, "X-Client-Id header is missing")
+		}
+		client, err := s.ClientService.Client(ctx, yeahapi.ClientID(clientId))
+		if err != nil {
+			if yeahapi.EIs(yeahapi.ENotExist, err) {
+				return yeahapi.E(op, err, fmt.Sprintf("Client with id %s not found", clientId))
+			}
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
+		}
+
+		clientSecret := r.Header.Get("X-Client-Secret")
+		if err := s.ClientService.VerifySecret(client, clientSecret); err != nil {
+			return yeahapi.E(op, err, "Invalid client secret")
+		}
+
+		r = r.WithContext(yeahapi.NewContextWithClient(r.Context(), client))
+
+		return next(w, r)
+	}
+}
+
+func (s *Server) userOnly(next Handler) Handler {
+	const op yeahapi.Op = "http/server.userOnly"
+	return func(w http.ResponseWriter, r *http.Request) error {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+		sessionId := r.Header.Get("X-Session-Id")
+		if sessionId == "" {
+			return yeahapi.E(op, yeahapi.EUnathorized, "X-Session-Id header is missing")
+		}
+
+		session, err := s.AuthService.Session(ctx, sessionId)
+		if err != nil {
+			if yeahapi.EIs(yeahapi.ENotExist, err) {
+				return yeahapi.E(op, err, fmt.Sprintf("Session with id %s not found", sessionId))
+			}
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
+		}
+		if !session.Active {
+			return yeahapi.E(op, yeahapi.EUnathorized, "Session is not active or expired")
+		}
+
+		r = r.WithContext(yeahapi.NewContextWithSession(r.Context(), session))
+
+		return next(w, r)
+	}
+}
+
 func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
@@ -173,18 +229,3 @@ func getIP(r *http.Request) string {
 
 	return ip
 }
-
-// if err := fn(w, r); err != nil {
-// 	lang := r.Header.Get("Accept-Language")
-// 	// l := localizer.Get(lang)
-// 	if e, ok := err.(yeahapi.Error); ok {
-// 		e.SetError(l.T(e.Error()))
-// 		errorMap := e.ErrorMap()
-// 		for k, v := range errorMap {
-// 			errorMap[k] = l.T(v)
-// 		}
-// 		JSON(w, e.Status(), e)
-// 		return
-// 	}
-// 	JSON(w, errors.Internal.StatusCode, errors.NewInternal(l.T("Internal server error")))
-// }

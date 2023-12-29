@@ -7,19 +7,20 @@ type ClientID string
 type clientType string
 
 var (
-	clientInternal     clientType = "internal"
-	clientConfidential clientType = "confidential"
-	clientPublic       clientType = "public"
+	ClientInternal     clientType = "internal"
+	ClientConfidential clientType = "confidential"
+	ClientPublic       clientType = "public"
 )
 
 type Client struct {
 	ID     ClientID `json:"id"`
 	Name   string   `json:"name"`
-	secret string
+	Secret string
 	Type   clientType `json:"type"`
 	Active bool       `json:"active"`
 }
 
 type ClientService interface {
 	Client(ctx context.Context, id ClientID) (*Client, error)
+	VerifySecret(client *Client, secret string) error
 }

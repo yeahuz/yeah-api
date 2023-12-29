@@ -12,10 +12,10 @@ import (
 )
 
 func (s *Server) registerCredentialRoutes() {
-	s.mux.Handle("/credentials.pubKeyCreateRequest", post(s.handlePubKeyCreateRequest()))
-	s.mux.Handle("/credentials.pubKeyGetRequest", post(s.handlePubKeyGetRequest()))
-	s.mux.Handle("/credentials.createPubKey", post(s.handleCreatePubKey()))
-	s.mux.Handle("/credentials.verifyPubKey", post(s.handleVerifyPubKey()))
+	s.mux.Handle("/credentials.pubKeyCreateRequest", post(s.userOnly(s.handlePubKeyCreateRequest())))
+	s.mux.Handle("/credentials.pubKeyGetRequest", post(s.clientOnly(s.handlePubKeyGetRequest())))
+	s.mux.Handle("/credentials.createPubKey", post(s.userOnly(s.handleCreatePubKey())))
+	s.mux.Handle("/credentials.verifyPubKey", post(s.clientOnly(s.handleVerifyPubKey())))
 }
 
 func (s *Server) handlePubKeyCreateRequest() Handler {

@@ -36,4 +36,5 @@ type AuthService interface {
 	Otp(ctx context.Context, hash string, confirmed bool) (*Otp, error)
 	CreateAuth(ctx context.Context, auth *Auth) (*Auth, error)
 	DeleteAuth(ctx context.Context, sessionID string) error
+	Session(ctx context.Context, sessionID string) (*Session, error)
 }

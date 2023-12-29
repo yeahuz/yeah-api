@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"strconv"
 
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	yeahapi "github.com/yeahuz/yeah-api"
 )
@@ -126,4 +128,23 @@ func (a *AuthService) DeleteAuth(ctx context.Context, sessionID string) error {
 		return yeahapi.E(op, err)
 	}
 	return nil
+}
+
+func (a *AuthService) Session(ctx context.Context, sessionID string) (*yeahapi.Session, error) {
+	const op yeahapi.Op = "postgres/AuthService.Session"
+	var session yeahapi.Session
+
+	err := a.pool.QueryRow(ctx,
+		"select id, user_id, active, client_id from sessions where id = $1",
+		sessionID,
+	).Scan(&session.ID, &session.UserID, &session.Active, &session.ClientID)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotExist)
+		}
+		return nil, yeahapi.E(op, err)
+	}
+
+	return &session, nil
 }

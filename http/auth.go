@@ -12,13 +12,13 @@ import (
 var emailRegex = regexp.MustCompile(`(?i)^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$`)
 
 func (s *Server) registerAuthRoutes() {
-	s.mux.Handle("/auth.sendPhoneCode", post(s.handleSendPhoneCode()))
-	s.mux.Handle("/auth.sendEmailCode", post(s.handleSendEmailCode()))
-	s.mux.Handle("/auth.signInWithEmail", post(s.handleSignInWithEmail()))
-	s.mux.Handle("/auth.signInWithPhone", post(s.handleSignInWithPhone()))
-	s.mux.Handle("/auth.signUpWithEmail", post(s.handleSignUpWithEmail()))
-	s.mux.Handle("/auth.signUpWithPhone", post(s.handleSignUpWithPhone()))
-	s.mux.Handle("/auth.logOut", post(s.handleLogOut()))
+	s.mux.Handle("/auth.sendPhoneCode", post(s.clientOnly(s.handleSendPhoneCode())))
+	s.mux.Handle("/auth.sendEmailCode", post(s.clientOnly(s.handleSendEmailCode())))
+	s.mux.Handle("/auth.signInWithEmail", post(s.clientOnly(s.handleSignInWithEmail())))
+	s.mux.Handle("/auth.signInWithPhone", post(s.clientOnly(s.handleSignInWithPhone())))
+	s.mux.Handle("/auth.signUpWithEmail", post(s.clientOnly(s.handleSignUpWithEmail())))
+	s.mux.Handle("/auth.signUpWithPhone", post(s.clientOnly(s.handleSignUpWithPhone())))
+	s.mux.Handle("/auth.logOut", post(s.userOnly(s.handleLogOut())))
 }
 
 type sentCodeData struct {
