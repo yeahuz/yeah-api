@@ -15,9 +15,10 @@ type ClientService struct {
 	ArgonHasher yeahapi.ArgonHasher
 }
 
-func NewClientService(pool *pgxpool.Pool) *ClientService {
+func NewClientService(pool *pgxpool.Pool, hasher yeahapi.ArgonHasher) *ClientService {
 	return &ClientService{
-		pool: pool,
+		pool:        pool,
+		ArgonHasher: hasher,
 	}
 }
 
@@ -50,10 +51,15 @@ func (c *ClientService) CreateClient(ctx context.Context, client *yeahapi.Client
 		return nil, yeahapi.E(op, yeahapi.EInvalid, "Client secret is required for non-public clients")
 	}
 
+	hash, err := c.ArgonHasher.Hash([]byte(client.Secret))
+	if err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
 	client.ID = yeahapi.ClientID(id.String())
 	_, err = c.pool.Exec(ctx,
 		"insert into clients (id, name, secret, type) values ($1, $2, $3, $4)",
-		client.ID, client.Name, client.Secret, client.Type,
+		client.ID, client.Name, hash, client.Type,
 	)
 
 	if err != nil {

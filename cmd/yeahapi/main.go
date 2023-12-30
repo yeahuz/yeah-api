@@ -87,9 +87,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 
 	highwayHasher := inmem.NewHighwayHasher(m.Config.HighwayHash.Key)
 
-	authService := postgres.NewAuthService(m.Pool)
-	authService.ArgonHasher = argonHasher
-	authService.HighwayHasher = highwayHasher
+	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher)
 	userService := postgres.NewUserService(m.Pool)
 	listingService := postgres.NewListingService(m.Pool)
 	kvService := postgres.NewKVService(m.Pool)

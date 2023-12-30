@@ -2,7 +2,6 @@ package postgres_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -27,18 +26,15 @@ func TestMain(m *testing.M) {
 		),
 	)
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	connStr, err := pgContainer.ConnectionString(context.Background(), "sslmode=disable")
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	if pool, err = pgxpool.New(context.Background(), connStr); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 

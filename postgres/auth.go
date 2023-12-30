@@ -14,13 +14,15 @@ import (
 
 type AuthService struct {
 	pool          *pgxpool.Pool
-	ArgonHasher   yeahapi.ArgonHasher
-	HighwayHasher yeahapi.HighwayHasher
+	argonHasher   yeahapi.ArgonHasher
+	highwayHasher yeahapi.HighwayHasher
 }
 
-func NewAuthService(pool *pgxpool.Pool) *AuthService {
+func NewAuthService(pool *pgxpool.Pool, argonHasher yeahapi.ArgonHasher, highwayHasher yeahapi.HighwayHasher) *AuthService {
 	return &AuthService{
-		pool: pool,
+		pool:          pool,
+		argonHasher:   argonHasher,
+		highwayHasher: highwayHasher,
 	}
 }
 
@@ -36,7 +38,7 @@ func (a *AuthService) CreateOtp(ctx context.Context, otp *yeahapi.Otp) (*yeahapi
 	otp.ID = id
 	otp.Code = code
 
-	hash, err := a.HighwayHasher.Hash([]byte(otp.Identifier + code))
+	hash, err := a.highwayHasher.Hash([]byte(otp.Identifier + code))
 
 	if err != nil {
 		return nil, yeahapi.E(op, err)
@@ -44,7 +46,7 @@ func (a *AuthService) CreateOtp(ctx context.Context, otp *yeahapi.Otp) (*yeahapi
 
 	otp.Hash = hash
 
-	hashedCode, err := a.ArgonHasher.Hash([]byte(code))
+	hashedCode, err := a.argonHasher.Hash([]byte(code))
 	if err != nil {
 		return nil, yeahapi.E(op, "unable to hash otp code")
 	}
@@ -63,7 +65,7 @@ func (a *AuthService) CreateOtp(ctx context.Context, otp *yeahapi.Otp) (*yeahapi
 
 func (a *AuthService) VerifyOtp(ctx context.Context, otp *yeahapi.Otp) error {
 	const op yeahapi.Op = "postgres/AuthService.VerifyOtp"
-	hash, err := a.HighwayHasher.Hash([]byte(otp.Identifier + otp.Code))
+	hash, err := a.highwayHasher.Hash([]byte(otp.Identifier + otp.Code))
 	if err != nil {
 		return yeahapi.E(op, err)
 	}
@@ -78,7 +80,7 @@ func (a *AuthService) VerifyOtp(ctx context.Context, otp *yeahapi.Otp) error {
 		return yeahapi.E(op, err)
 	}
 
-	if err := a.ArgonHasher.Verify(otp.Code, savedOtp.Code); err != nil {
+	if err := a.argonHasher.Verify(otp.Code, savedOtp.Code); err != nil {
 		return yeahapi.E(op, err)
 	}
 
