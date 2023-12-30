@@ -28,6 +28,7 @@ type Server struct {
 	LocalizerService  yeahapi.LocalizerService
 	ClientService     yeahapi.ClientService
 	ListingService    yeahapi.ListingService
+	KVService         yeahapi.KVService
 }
 
 type errorResponse struct {

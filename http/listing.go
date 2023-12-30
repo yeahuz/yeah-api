@@ -45,6 +45,7 @@ func (s *Server) handleCreateListing() Handler {
 			Title:      req.Title,
 			OwnerID:    session.UserID,
 		})
+
 		if err != nil {
 			return yeahapi.E(op, err, "Couldn't create listing. Please, try again")
 		}

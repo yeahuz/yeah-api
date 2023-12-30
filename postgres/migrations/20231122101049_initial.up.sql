@@ -164,6 +164,14 @@ CREATE TABLE IF NOT EXISTS listing_sku_prices (
   PRIMARY KEY (sku_id, start_date)
 );
 
+CREATE TABLE IF NOT EXISTS kv_store (
+  key varchar(255) NOT NULL,
+  value text,
+  client_id uuid NOT NULL,
+  FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+  PRIMARY KEY (key, client_id)
+);
+
 CREATE INDEX idx_categories_parent_id ON categories (parent_id);
 
 CREATE INDEX idx_listings_owner_id ON listings (owner_id);

@@ -23,4 +23,5 @@ type Client struct {
 type ClientService interface {
 	Client(ctx context.Context, id ClientID) (*Client, error)
 	VerifySecret(client *Client, secret string) error
+	CreateClient(ctx context.Context, client *Client) (*Client, error)
 }

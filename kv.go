@@ -1,0 +1,15 @@
+package yeahapi
+
+import "context"
+
+type KVItem struct {
+	Key      string
+	Value    string
+	ClientID ClientID
+}
+
+type KVService interface {
+	Set(ctx context.Context, item *KVItem) (*KVItem, error)
+	Get(ctx context.Context, clientID ClientID, key string) (*KVItem, error)
+	Remove(ctx context.Context, clientID ClientID, key string) error
+}

@@ -13,7 +13,6 @@ import (
 	awsconf "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/pelletier/go-toml/v2"
 	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/aws"
@@ -93,6 +92,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	authService.HighwayHasher = highwayHasher
 	userService := postgres.NewUserService(m.Pool)
 	listingService := postgres.NewListingService(m.Pool)
+	kvService := postgres.NewKVService(m.Pool)
 	localizerService := yeahapi.NewLocalizerService("en")
 
 	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
@@ -123,6 +123,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	m.Server.LocalizerService = localizerService
 	m.Server.ListingService = listingService
 	m.Server.CQRSService = cqrsService
+	m.Server.KVService = kvService
 
 	if err := m.Server.Open(); err != nil {
 		return err
