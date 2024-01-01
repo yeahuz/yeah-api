@@ -108,7 +108,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 		}
 
 		u, err := s.UserService.ByPhone(ctx, req.PhoneNumber)
-		if yeahapi.EIs(yeahapi.ENotExist, err) {
+		if yeahapi.EIs(yeahapi.ENotFound, err) {
 			return JSON(w, r, http.StatusOK, authSignUpRequired{
 				TermsOfService: termsOfService{
 					Text: "terms of service",
@@ -175,7 +175,7 @@ func (s *Server) handleSignInWithEmail() Handler {
 		}
 
 		u, err := s.UserService.ByEmail(ctx, req.Email)
-		if yeahapi.EIs(yeahapi.ENotExist, err) {
+		if yeahapi.EIs(yeahapi.ENotFound, err) {
 			return JSON(w, r, http.StatusOK, authSignUpRequired{
 				TermsOfService: termsOfService{
 					Text: "terms of service",

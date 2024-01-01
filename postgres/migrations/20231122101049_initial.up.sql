@@ -243,4 +243,18 @@ CREATE TRIGGER trigger_replace_email_phone_empty_string
   FOR EACH ROW
   EXECUTE PROCEDURE nullify_email_phone ();
 
+-- Initial data
+INSERT INTO languages (code)
+  VALUES ('en'),
+  ('ru'),
+  ('uz');
+
+INSERT INTO currencies (code, symbol)
+  VALUES ('USD', '$'),
+  ('UZS', 'UZS');
+
+INSERT INTO auth_providers (name, active)
+  VALUES ('google', TRUE),
+  ('telegram', TRUE);
+
 COMMIT;

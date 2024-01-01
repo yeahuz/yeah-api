@@ -25,6 +25,7 @@ func TestMain(m *testing.M) {
 			wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second),
 		),
 	)
+
 	if err != nil {
 		os.Exit(1)
 	}

@@ -48,7 +48,7 @@ func TestUserService_User(t *testing.T) {
 	t.Run("ErrUserNotFound", func(t *testing.T) {
 		id, _ := uuid.NewV7()
 		_, err := s.User(context.Background(), yeahapi.UserID(id.String()))
-		if !yeahapi.EIs(yeahapi.ENotExist, err) {
+		if !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unexpected error: %#v", err)
 		}
 	})
@@ -94,7 +94,7 @@ func TestUserService_ByPhone(t *testing.T) {
 
 	t.Run("ErrUserNotFoundByPhone", func(t *testing.T) {
 		_, err := s.ByPhone(context.Background(), "00000000000")
-		if !yeahapi.EIs(yeahapi.ENotExist, err) {
+		if !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unexpected error: %#v", err)
 		}
 	})
@@ -119,6 +119,61 @@ func TestUserService_CreateUser(t *testing.T) {
 			t.Fatal(err)
 		} else if !reflect.DeepEqual(other, u) {
 			t.Fatalf("mismatch: %#v != %#v", u, other)
+		}
+	})
+}
+
+func TestUserService_LinkAccount(t *testing.T) {
+	s := postgres.NewUserService(pool)
+	t.Run("OK", func(t *testing.T) {
+		ctx := context.Background()
+		user := MustCreateUser(t, ctx, pool, &yeahapi.User{
+			FirstName: "John",
+			LastName:  "Doe",
+		})
+
+		if err := s.LinkAccount(ctx, &yeahapi.Account{
+			UserID:            user.ID,
+			Provider:          "google",
+			ProviderAccountID: randStr(20),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func TestUserService_Account(t *testing.T) {
+	s := postgres.NewUserService(pool)
+
+	t.Run("OK", func(t *testing.T) {
+		ctx := context.Background()
+		user := MustCreateUser(t, ctx, pool, &yeahapi.User{
+			FirstName: "John",
+			LastName:  "Doe",
+		})
+
+		account := &yeahapi.Account{
+			UserID:            user.ID,
+			Provider:          "google",
+			ProviderAccountID: randStr(20),
+		}
+
+		if err := s.LinkAccount(ctx, account); err != nil {
+			t.Fatal(err)
+		}
+
+		if other, err := s.Account(ctx, account.ID); err != nil {
+			t.Fatal(err)
+		} else if !reflect.DeepEqual(other, account) {
+			t.Fatalf("mismatch: %#v != %#v", account, other)
+		}
+	})
+
+	t.Run("ErrAccountNotFound", func(t *testing.T) {
+		id, _ := uuid.NewV7()
+		_, err := s.Account(context.Background(), id.String())
+		if !yeahapi.EIs(yeahapi.ENotFound, err) {
+			t.Fatalf("unexpected error: %#v", err)
 		}
 	})
 }

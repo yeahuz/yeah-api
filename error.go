@@ -23,11 +23,13 @@ const (
 	EOther Kind = iota
 	EInvalid
 	EPermission
-	ENotExist
-	EExist
+	ENotFound
+	EFound
 	ENotImplemented
 	EUnathorized
 	EMethodNotAllowed
+	EOtpCodeExpired
+	EOtpHashNotMatched
 	EInternal
 )
 
@@ -37,9 +39,9 @@ func (k Kind) String() string {
 		return "internal error"
 	case EOther:
 		return "other error"
-	case ENotExist:
+	case ENotFound:
 		return "item does not exit"
-	case EExist:
+	case EFound:
 		return "item already exists"
 	case EPermission:
 		return "permission denied"

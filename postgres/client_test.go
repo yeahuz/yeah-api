@@ -78,7 +78,7 @@ func TestClientService_Client(t *testing.T) {
 	t.Run("ErrClientNotFound", func(t *testing.T) {
 		id, _ := uuid.NewV7()
 		_, err := s.Client(context.Background(), yeahapi.ClientID(id.String()))
-		if !yeahapi.EIs(yeahapi.ENotExist, err) {
+		if !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unexpected error: %#v", err)
 		}
 	})

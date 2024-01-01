@@ -31,7 +31,7 @@ func (c *ClientService) Client(ctx context.Context, id yeahapi.ClientID) (*yeaha
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 
 		return nil, yeahapi.E(op, err)

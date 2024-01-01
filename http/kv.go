@@ -78,7 +78,7 @@ func (s *Server) handleKVGet() Handler {
 		client := yeahapi.ClientFromContext(ctx)
 		item, err := s.KVService.Get(ctx, client.ID, req.Key)
 		if err != nil {
-			if yeahapi.EIs(yeahapi.ENotExist, err) {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, fmt.Sprintf("Value with key %s not found", req.Key))
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")

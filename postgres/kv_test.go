@@ -82,7 +82,7 @@ func TestKVService_Get(t *testing.T) {
 
 	t.Run("ErrKeyNotFound", func(t *testing.T) {
 		_, err := s.Get(ctx, client.ID, "non-existing-key")
-		if !yeahapi.EIs(yeahapi.ENotExist, err) {
+		if !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unexpected error: %#v", err)
 		}
 	})
@@ -113,7 +113,7 @@ func TestKVService_Remove(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if _, err := s.Get(ctx, client.ID, item.Key); err != nil && !yeahapi.EIs(yeahapi.ENotExist, err) {
+		if _, err := s.Get(ctx, client.ID, item.Key); err != nil && !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unxpected error: %#v", err)
 		}
 	})

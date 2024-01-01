@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/rand"
 	"strconv"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
@@ -71,13 +72,17 @@ func (a *AuthService) VerifyOtp(ctx context.Context, otp *yeahapi.Otp) error {
 	}
 
 	if hash != otp.Hash {
-		return yeahapi.E(op, yeahapi.EInvalid, "hashes don't match")
+		return yeahapi.E(op, yeahapi.EOtpHashNotMatched)
 	}
 
 	savedOtp, err := a.Otp(ctx, otp.Hash, false)
 
 	if err != nil {
 		return yeahapi.E(op, err)
+	}
+
+	if time.Now().After(savedOtp.ExpiresAt) {
+		return yeahapi.E(op, yeahapi.EOtpCodeExpired)
 	}
 
 	if err := a.argonHasher.Verify(otp.Code, savedOtp.Code); err != nil {
@@ -143,7 +148,7 @@ func (a *AuthService) Session(ctx context.Context, sessionID string) (*yeahapi.S
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 		return nil, yeahapi.E(op, err)
 	}

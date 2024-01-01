@@ -28,7 +28,7 @@ func (l *ListingService) Listing(ctx context.Context, id uuid.UUID) (*yeahapi.Li
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 		return nil, yeahapi.E(op, err)
 	}

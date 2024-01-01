@@ -123,7 +123,7 @@ func (s *Server) clientOnly(next Handler) Handler {
 		}
 		client, err := s.ClientService.Client(ctx, yeahapi.ClientID(clientId))
 		if err != nil {
-			if yeahapi.EIs(yeahapi.ENotExist, err) {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, fmt.Sprintf("Client with id %s not found", clientId))
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
@@ -152,7 +152,7 @@ func (s *Server) userOnly(next Handler) Handler {
 
 		session, err := s.AuthService.Session(ctx, sessionId)
 		if err != nil {
-			if yeahapi.EIs(yeahapi.ENotExist, err) {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, fmt.Sprintf("Session with id %s not found", sessionId))
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
@@ -172,8 +172,8 @@ var statusCodes = map[yeahapi.Kind]int{
 	yeahapi.EInvalid:          http.StatusBadRequest,
 	yeahapi.EPermission:       http.StatusForbidden,
 	yeahapi.EUnathorized:      http.StatusUnauthorized,
-	yeahapi.ENotExist:         http.StatusNotFound,
-	yeahapi.EExist:            http.StatusConflict,
+	yeahapi.ENotFound:         http.StatusNotFound,
+	yeahapi.EFound:            http.StatusConflict,
 	yeahapi.ENotImplemented:   http.StatusNotImplemented,
 	yeahapi.EMethodNotAllowed: http.StatusMethodNotAllowed,
 	yeahapi.EOther:            http.StatusInternalServerError,

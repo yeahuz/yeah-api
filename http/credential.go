@@ -75,7 +75,7 @@ func (s *Server) handleCreatePubKey() Handler {
 
 		credRequest, err := s.CredentialService.Request(ctx, req.ReqID)
 		if err != nil {
-			if yeahapi.EIs(yeahapi.ENotExist, err) {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, fmt.Sprintf("Credential request with id %s not found", req.ReqID))
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
@@ -128,7 +128,7 @@ func (s *Server) handleVerifyPubKey() Handler {
 
 		credRequest, err := s.CredentialService.Request(ctx, req.ReqID)
 		if err != nil {
-			if yeahapi.EIs(yeahapi.ENotExist, err) {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, fmt.Sprintf("Credential request with id %s not found", req.ReqID))
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
@@ -147,7 +147,7 @@ func (s *Server) handleVerifyPubKey() Handler {
 		credential, err := s.CredentialService.Credential(ctx, req.Credential.ID)
 
 		if err != nil {
-			if yeahapi.EIs(yeahapi.ENotExist, err) {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, "Credential with not found")
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")

@@ -6,3 +6,4 @@ tmp/
 .env*
 natsdata/
 yeahapi*conf
+bin/

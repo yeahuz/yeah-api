@@ -31,7 +31,7 @@ func (s *UserService) User(ctx context.Context, id yeahapi.UserID) (*yeahapi.Use
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 
 		return nil, yeahapi.E(op, err)
@@ -50,7 +50,7 @@ func (s *UserService) ByEmail(ctx context.Context, email string) (*yeahapi.User,
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 
 		return nil, yeahapi.E(op, err)
@@ -69,7 +69,7 @@ func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeahapi.User,
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 
 		return nil, yeahapi.E(op, err)
@@ -89,7 +89,7 @@ func (s *UserService) Account(ctx context.Context, id string) (*yeahapi.Account,
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, yeahapi.E(op, yeahapi.ENotExist)
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
 		}
 
 		return nil, yeahapi.E(op, err)
