@@ -235,5 +235,6 @@ func expand(path string) (string, error) {
 	if path == "~" {
 		return u.HomeDir, nil
 	}
+
 	return filepath.Join(u.HomeDir, strings.TrimPrefix(path, "~"+string(os.PathSeparator))), nil
 }

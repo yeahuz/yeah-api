@@ -101,6 +101,10 @@ func (a *AuthService) Otp(ctx context.Context, hash string, confirmed bool) (*ye
 		hash, confirmed).Scan(&otp.ID, &otp.Hash, &otp.Code, &otp.ExpiresAt, &otp.Confirmed)
 
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
+		}
+
 		return nil, yeahapi.E(op, err)
 	}
 
@@ -118,7 +122,7 @@ func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeah
 	auth.Session.ID = id.String()
 
 	_, err = a.pool.Exec(ctx,
-		"insert into seessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5)",
+		"insert into sessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5)",
 		auth.Session.ID, auth.Session.UserID, auth.Session.ClientID, auth.Session.UserAgent, auth.Session.IP,
 	)
 
