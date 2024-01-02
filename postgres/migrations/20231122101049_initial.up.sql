@@ -4,6 +4,11 @@ CREATE TABLE IF NOT EXISTS languages (
   code varchar(2) PRIMARY KEY
 );
 
+CREATE TABLE IF NOT EXISTS currencies (
+  code varchar(10) PRIMARY KEY,
+  symbol varchar(10) DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY,
   phone varchar(15) UNIQUE,
@@ -109,6 +114,16 @@ CREATE TABLE IF NOT EXISTS categories (
   FOREIGN KEY (parent_id) REFERENCES categories (id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS category_tr (
+  category_id int NOT NULL,
+  lang_code varchar(255) NOT NULL,
+  title varchar(255) DEFAULT '',
+  description varchar(255) DEFAULT '',
+  FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE,
+  FOREIGN KEY (lang_code) REFERENCES languages (code) ON DELETE CASCADE,
+  PRIMARY KEY (category_id, lang_code)
+);
+
 CREATE TABLE IF NOT EXISTS listing_statuses (
   code varchar(255) CHECK (code IN ('ACTIVE', 'MODERATION', 'INDEXING', 'ARCHIVED', 'DRAFT', 'DELETED')) PRIMARY KEY,
   active boolean DEFAULT TRUE,
@@ -138,11 +153,6 @@ CREATE TABLE IF NOT EXISTS listings (
   FOREIGN KEY (status) REFERENCES listing_statuses (code) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS currencies (
-  code varchar(10) PRIMARY KEY,
-  symbol varchar(10) DEFAULT ''
-);
-
 CREATE TABLE IF NOT EXISTS listing_skus (
   id uuid PRIMARY KEY,
   custom_sku varchar(255) DEFAULT '',
@@ -164,6 +174,25 @@ CREATE TABLE IF NOT EXISTS listing_sku_prices (
   PRIMARY KEY (sku_id, start_date)
 );
 
+CREATE TABLE IF NOT EXISTS category_reference (
+  table_name varchar(255) NOT NULL,
+  category_id int NOT NULL,
+  columns varchar[] DEFAULT '{}',
+  FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS phone_sku_attributes (
+  sku_id uuid NOT NULL,
+  brand varchar(255) DEFAULT '',
+  model varchar(255) DEFAULT '',
+  storage_capacity varchar(255) DEFAULT '',
+  color varchar(255) DEFAULT '',
+  ram varchar(255) DEFAULT '',
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone,
+  FOREIGN KEY (sku_id) REFERENCES listing_skus (id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS kv_store (
   key varchar(255) NOT NULL,
   value text,
@@ -171,6 +200,10 @@ CREATE TABLE IF NOT EXISTS kv_store (
   FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
   PRIMARY KEY (key, client_id)
 );
+
+CREATE INDEX idx_listing_sku_prices_currency ON listing_sku_prices (currency);
+
+CREATE INDEX idx_listing_skus_listing_id ON listing_skus (listing_id);
 
 CREATE INDEX idx_categories_parent_id ON categories (parent_id);
 
