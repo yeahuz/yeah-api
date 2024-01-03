@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS categories (
   FOREIGN KEY (parent_id) REFERENCES categories (id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS category_tr (
+CREATE TABLE IF NOT EXISTS categories_tr (
   category_id int NOT NULL,
   lang_code varchar(255) NOT NULL,
   title varchar(255) DEFAULT '',
@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS listing_skus (
   listing_id uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone,
+  attrs jsonb,
   FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
 );
 
@@ -174,23 +175,57 @@ CREATE TABLE IF NOT EXISTS listing_sku_prices (
   PRIMARY KEY (sku_id, start_date)
 );
 
-CREATE TABLE IF NOT EXISTS category_reference (
-  table_name varchar(255) NOT NULL,
+-- CREATE TABLE IF NOT EXISTS category_reference (
+--   table_name varchar(255) NOT NULL,
+--   category_id int NOT NULL,
+--   columns varchar[] DEFAULT '{}',
+--   FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
+-- );
+-- CREATE TABLE IF NOT EXISTS phone_sku_attributes (
+--   sku_id uuid NOT NULL,
+--   brand varchar(255) DEFAULT '',
+--   model varchar(255) DEFAULT '',
+--   storage_capacity varchar(255) DEFAULT '',
+--   color varchar(255) DEFAULT '',
+--   ram varchar(255) DEFAULT '',
+--   created_at timestamp with time zone DEFAULT now() NOT NULL,
+--   updated_at timestamp with time zone,
+--   FOREIGN KEY (sku_id) REFERENCES listing_skus (id) ON DELETE CASCADE
+-- );
+
+CREATE TABLE IF NOT EXISTS attributes (
+  id serial PRIMARY KEY,
+  required boolean DEFAULT FALSE,
+  enabled_for_variations boolean DEFAULT FALSE,
+  key varchar(255) DEFAULT '',
   category_id int NOT NULL,
-  columns varchar[] DEFAULT '{}',
   FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS phone_sku_attributes (
-  sku_id uuid NOT NULL,
-  brand varchar(255) DEFAULT '',
-  model varchar(255) DEFAULT '',
-  storage_capacity varchar(255) DEFAULT '',
-  color varchar(255) DEFAULT '',
-  ram varchar(255) DEFAULT '',
-  created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone,
-  FOREIGN KEY (sku_id) REFERENCES listing_skus (id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS attribute_options (
+  id serial PRIMARY KEY,
+  value varchar(255) DEFAULT '',
+  unit varchar(255) DEFAULT '',
+  attribute_id int NOT NULL,
+  FOREIGN KEY (attribute_id) REFERENCES attributes (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS attribute_options_tr (
+  attribute_option_id int NOT NULL,
+  lang_code varchar(255) NOT NULL,
+  name varchar(255) DEFAULT '',
+  FOREIGN KEY (attribute_option_id) REFERENCES attribute_options (id) ON DELETE CASCADE,
+  FOREIGN KEY (lang_code) REFERENCES languages (code) ON DELETE CASCADE,
+  PRIMARY KEY (attribute_option_id, lang_code)
+);
+
+CREATE TABLE IF NOT EXISTS attributes_tr (
+  attribute_id int NOT NULL,
+  lang_code varchar(255) NOT NULL,
+  name varchar(255) DEFAULT '',
+  FOREIGN KEY (attribute_id) REFERENCES attributes (id) ON DELETE CASCADE,
+  FOREIGN KEY (lang_code) REFERENCES languages (code) ON DELETE CASCADE,
+  PRIMARY KEY (attribute_id, lang_code)
 );
 
 CREATE TABLE IF NOT EXISTS kv_store (
@@ -200,6 +235,9 @@ CREATE TABLE IF NOT EXISTS kv_store (
   FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
   PRIMARY KEY (key, client_id)
 );
+
+create index idx_attributes_category_id on attributes(category_id);
+create index idx_attribute_options_attribute_id on attribute_options(attribute_id);
 
 CREATE INDEX idx_listing_sku_prices_currency ON listing_sku_prices (currency);
 
@@ -212,19 +250,14 @@ CREATE INDEX idx_listings_owner_id ON listings (owner_id);
 CREATE INDEX idx_listings_category_id ON listings (category_id);
 
 CREATE INDEX idx_sessions_user_id ON sessions (user_id);
-
 CREATE INDEX idx_sessions_client_id ON sessions (client_id);
 
 CREATE INDEX idx_credential_requests_user_id ON credential_requests (user_id);
-
 CREATE INDEX idx_credentials_user_id ON credentials (user_id);
-
 CREATE INDEX idx_credentials_credential_id ON credentials (credential_id);
-
 CREATE INDEX idx_credentials_credential_request_id ON credentials (credential_request_id);
 
 CREATE INDEX idx_accounts_user_id ON accounts (user_id);
-
 CREATE INDEX idx_accounts_provider_account_id ON accounts (provider_account_id);
 
 CREATE INDEX idx_otps_hash ON otps (hash);

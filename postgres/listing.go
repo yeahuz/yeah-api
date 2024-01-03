@@ -20,10 +20,10 @@ func NewListingService(pool *pgxpool.Pool) *ListingService {
 	}
 }
 
-func (l *ListingService) Listing(ctx context.Context, id uuid.UUID) (*yeahapi.Listing, error) {
+func (s *ListingService) Listing(ctx context.Context, id uuid.UUID) (*yeahapi.Listing, error) {
 	const op yeahapi.Op = "postgres/ListingService.CreateListing"
 	var listing yeahapi.Listing
-	err := l.pool.QueryRow(ctx,
+	err := s.pool.QueryRow(ctx,
 		"select id, title, owner_id, category_id from listings where id = $1", id).Scan(&listing.ID, &listing.Title, &listing.OwnerID, &listing.CategoryID)
 
 	if err != nil {
@@ -36,7 +36,7 @@ func (l *ListingService) Listing(ctx context.Context, id uuid.UUID) (*yeahapi.Li
 	return &listing, nil
 }
 
-func (l *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Listing) (*yeahapi.Listing, error) {
+func (s *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Listing) (*yeahapi.Listing, error) {
 	const op yeahapi.Op = "postgres/ListingService.CreateListing"
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -44,7 +44,7 @@ func (l *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Lis
 	}
 
 	listing.ID = id
-	_, err = l.pool.Exec(ctx,
+	_, err = s.pool.Exec(ctx,
 		"insert into listings (id, title, owner_id, category_id) values ($1, $2, $3, $4)",
 		listing.ID, listing.Title, listing.OwnerID, listing.CategoryID)
 
@@ -55,7 +55,65 @@ func (l *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Lis
 	return listing, nil
 }
 
-func (l *ListingService) DeleteListing(ctx context.Context, id uuid.UUID) error {
+func (s *ListingService) DeleteListing(ctx context.Context, id uuid.UUID) error {
 	const op yeahapi.Op = "postgres/ListingService.DeleteListing"
 	return yeahapi.E(op, yeahapi.ENotImplemented)
+}
+
+func (s *ListingService) CreateSku(ctx context.Context, sku *yeahapi.ListingSku) (*yeahapi.ListingSku, error) {
+	const op yeahapi.Op = "postgres/ListingService.CreateSku"
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	sku.ID = id
+
+	_, err = s.pool.Exec(ctx, "insert into listing_skus (id, custom_sku, listing_id, attrs) values ($1, $2, $3, $4)",
+		sku.ID, sku.CustomSku, sku.ListingID, sku.ListingAttrs,
+	)
+
+	if err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	return sku, nil
+}
+
+func (s *ListingService) DeleteSku(ctx context.Context, id uuid.UUID) error {
+	const op yeahapi.Op = "postgres/ListingService.DeleteSku"
+
+	_, err := s.pool.Exec(ctx, "delete from listing_skus where id = $1", id)
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	return nil
+}
+
+func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeahapi.ListingSku, error) {
+	const op yeahapi.Op = "postgres/ListingService.Skus"
+	skus := make([]yeahapi.ListingSku, 0)
+
+	rows, err := s.pool.Query(ctx, "select id, custom_sku, listing_id, attrs from listing_skus")
+
+	defer rows.Close()
+	if err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	for rows.Next() {
+		var s yeahapi.ListingSku
+		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.ListingAttrs); err != nil {
+			return nil, yeahapi.E(op, err)
+		}
+
+		skus = append(skus, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	return skus, nil
 }
