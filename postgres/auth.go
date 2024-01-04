@@ -119,7 +119,7 @@ func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeah
 		return nil, yeahapi.E(op, err, "unable to generate uuid")
 	}
 
-	auth.Session.ID = id.String()
+	auth.Session.ID = id
 
 	_, err = a.pool.Exec(ctx,
 		"insert into sessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5)",
@@ -133,7 +133,7 @@ func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeah
 	return auth, nil
 }
 
-func (a *AuthService) DeleteAuth(ctx context.Context, sessionID string) error {
+func (a *AuthService) DeleteAuth(ctx context.Context, sessionID uuid.UUID) error {
 	const op yeahapi.Op = "postgres/AuthService.DeleteAuth"
 	if _, err := a.pool.Exec(ctx, "delete from sessions where id = $1", sessionID); err != nil {
 		return yeahapi.E(op, err)
@@ -141,7 +141,7 @@ func (a *AuthService) DeleteAuth(ctx context.Context, sessionID string) error {
 	return nil
 }
 
-func (a *AuthService) Session(ctx context.Context, sessionID string) (*yeahapi.Session, error) {
+func (a *AuthService) Session(ctx context.Context, sessionID uuid.UUID) (*yeahapi.Session, error) {
 	const op yeahapi.Op = "postgres/AuthService.Session"
 	var session yeahapi.Session
 

@@ -50,7 +50,7 @@ func (c *CredentialService) CreatePubKeyRequest(ctx context.Context, user *yeaha
 			},
 			User: yeahapi.PubKeyCredentialUserEntity{
 				ID:          user.ID,
-				EncodedID:   base64.RawURLEncoding.EncodeToString([]byte(user.ID)),
+				EncodedID:   base64.RawURLEncoding.EncodeToString(user.ID.Bytes()),
 				DisplayName: user.FirstName,
 			},
 			Timeout: 60000,

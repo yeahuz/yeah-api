@@ -104,7 +104,8 @@ func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeah
 	if err != nil {
 		return nil, yeahapi.E(op, err)
 	}
-	user.ID = yeahapi.UserID(id.String())
+
+	user.ID = yeahapi.UserID{id}
 
 	_, err = s.pool.Exec(ctx,
 		"insert into users (id, first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6, $7)",

@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"time"
@@ -87,6 +88,10 @@ func (d signInPhoneData) Ok() error {
 	return nil
 }
 
+type authorization struct {
+	*yeahapi.Auth
+}
+
 func (s *Server) handleSignInWithPhone() Handler {
 	const op yeahapi.Op = "http/auth.handleSignInWithPhone"
 	return func(w http.ResponseWriter, r *http.Request) error {
@@ -134,7 +139,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, auth)
+		return JSON(w, r, http.StatusOK, authorization{auth})
 	}
 }
 
@@ -201,7 +206,7 @@ func (s *Server) handleSignInWithEmail() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, auth)
+		return JSON(w, r, http.StatusOK, authorization{auth})
 	}
 }
 
@@ -287,7 +292,7 @@ func (s *Server) handleSignUpWithEmail() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, auth)
+		return JSON(w, r, http.StatusOK, authorization{auth})
 	}
 }
 
@@ -354,7 +359,7 @@ func (s *Server) handleSignUpWithPhone() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, auth)
+		return JSON(w, r, http.StatusOK, authorization{auth})
 	}
 }
 
@@ -447,4 +452,59 @@ func (s *Server) handleLogOut() Handler {
 
 		return JSON(w, r, http.StatusOK, nil)
 	}
+}
+
+func (s sentCode) MarshalJSON() ([]byte, error) {
+	type Alias sentCode
+	return json.Marshal(&struct {
+		Type string `json:"_"`
+		*Alias
+	}{
+		Type:  "auth.sentCode",
+		Alias: (*Alias)(&s),
+	})
+}
+
+func (s sentCodeSms) MarshalJSON() ([]byte, error) {
+	type Alias sentCodeSms
+	return json.Marshal(&struct {
+		Type string `json:"_"`
+		*Alias
+	}{
+		Type:  "auth.sentCodeSms",
+		Alias: (*Alias)(&s),
+	})
+}
+
+func (s sentCodeEmail) MarshalJSON() ([]byte, error) {
+	type Alias sentCodeEmail
+	return json.Marshal(&struct {
+		Type string `json:"_"`
+		*Alias
+	}{
+		Type:  "auth.sentCodeEmail",
+		Alias: (*Alias)(&s),
+	})
+}
+
+func (a authorization) MarshalJSON() ([]byte, error) {
+	type Alias authorization
+	return json.Marshal(&struct {
+		Type string `json:"_"`
+		*Alias
+	}{
+		Type:  "auth.authorization",
+		Alias: (*Alias)(&a),
+	})
+}
+
+func (a authSignUpRequired) MarshalJSON() ([]byte, error) {
+	type Alias authSignUpRequired
+	return json.Marshal(&struct {
+		Type string `json:"_"`
+		*Alias
+	}{
+		Type:  "auth.authorizationSignUpRequired",
+		Alias: (*Alias)(&a),
+	})
 }

@@ -40,7 +40,7 @@ type PubKeyCredential struct {
 }
 
 type CredentialRequest struct {
-	ID        string
+	ID        uuid.UUID
 	Type      string
 	Challenge string
 	Used      bool
@@ -161,13 +161,13 @@ type RawPubKeyCredentialAssertion struct {
 }
 
 type CreatePubKeyData struct {
-	ReqID      string                         `json:"req_id"`
+	ReqID      uuid.UUID                      `json:"req_id"`
 	Credential RawPubKeyCredentialAttestation `json:"credential"`
 	Title      string
 }
 
 type AssertPubKeyData struct {
-	ReqID      string                       `json:"req_id"`
+	ReqID      uuid.UUID                    `json:"req_id"`
 	Credential RawPubKeyCredentialAssertion `json:"credential"`
 }
 
@@ -191,7 +191,7 @@ type AuthenticatorSelectionCriteria struct {
 
 type PubKeyCredentialDescriptor struct {
 	Type       string                   `json:"type"`
-	ID         string                   `json:"id"`
+	ID         uuid.UUID                `json:"id"`
 	Transports []AuthenticatorTransport `json:"transports"`
 }
 

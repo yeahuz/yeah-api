@@ -92,6 +92,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	listingService := postgres.NewListingService(m.Pool)
 	kvService := postgres.NewKVService(m.Pool)
 	localizerService := yeahapi.NewLocalizerService("en")
+	clientService := postgres.NewClientService(m.Pool, argonHasher)
 
 	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
 		NatsURL:       m.Config.Nats.URL,
@@ -105,7 +106,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 
 	awsconfig, err := awsconf.LoadDefaultConfig(ctx,
 		awsconf.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(m.Config.AWS.Key, m.Config.AWS.Secret, "")),
-		awsconf.WithRegion("en-north-1"),
+		awsconf.WithRegion("eu-north-1"),
 	)
 
 	emailService := aws.NewEmailService(awsconfig, cqrsService)
@@ -118,6 +119,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 
 	m.Server.UserService = userService
 	m.Server.AuthService = authService
+	m.Server.ClientService = clientService
 	m.Server.LocalizerService = localizerService
 	m.Server.ListingService = listingService
 	m.Server.CQRSService = cqrsService

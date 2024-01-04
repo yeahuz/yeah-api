@@ -1,8 +1,14 @@
 package yeahapi
 
-import "context"
+import (
+	"context"
 
-type ClientID string
+	"github.com/gofrs/uuid"
+)
+
+type ClientID struct {
+	uuid.UUID
+}
 
 type clientType string
 

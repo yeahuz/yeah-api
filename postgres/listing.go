@@ -95,7 +95,9 @@ func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeaha
 	const op yeahapi.Op = "postgres/ListingService.Skus"
 	skus := make([]yeahapi.ListingSku, 0)
 
-	rows, err := s.pool.Query(ctx, "select id, custom_sku, listing_id, attrs from listing_skus")
+	rows, err := s.pool.Query(ctx,
+		`select ls.id, ls.custom_sku, ls.listing_id, ls.attrs, lsp.amount, lsp.currency, lsp.start_date from listing_skus ls
+		left join listing_sku_prices lsp on lsp.sku_id = (select id from listing_sku_prices where sku_id = ls.id order by start_date desc limit 1)`)
 
 	defer rows.Close()
 	if err != nil {
@@ -104,7 +106,7 @@ func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeaha
 
 	for rows.Next() {
 		var s yeahapi.ListingSku
-		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.ListingAttrs); err != nil {
+		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.ListingAttrs, s.Price.Amount, s.Price.Currency, s.Price.StartDate); err != nil {
 			return nil, yeahapi.E(op, err)
 		}
 

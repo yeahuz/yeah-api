@@ -56,7 +56,7 @@ func (c *ClientService) CreateClient(ctx context.Context, client *yeahapi.Client
 		return nil, yeahapi.E(op, err)
 	}
 
-	client.ID = yeahapi.ClientID(id.String())
+	client.ID = yeahapi.ClientID{id}
 	_, err = c.pool.Exec(ctx,
 		"insert into clients (id, name, secret, type) values ($1, $2, $3, $4)",
 		client.ID, client.Name, hash, client.Type,

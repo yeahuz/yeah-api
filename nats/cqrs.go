@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -61,6 +62,7 @@ func NewCQRSService(ctx context.Context, config yeahapi.CQRSConfig) (*CQRSServic
 			}
 
 			if err := handle(m); err != nil {
+				fmt.Println(err)
 				if err := m.NakWithDelay(time.Second * 5); err != nil {
 					// TODO: something went wrong with nats
 					return

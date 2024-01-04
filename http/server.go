@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gofrs/uuid"
 	yeahapi "github.com/yeahuz/yeah-api"
 )
 
@@ -106,7 +107,7 @@ type ok interface {
 
 func decode(r *http.Request, v ok) error {
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		return err
+		return yeahapi.E("json: parsing error")
 	}
 
 	return v.Ok()
@@ -117,11 +118,13 @@ func (s *Server) clientOnly(next Handler) Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
-		clientId := r.Header.Get("X-Client-Id")
-		if clientId == "" {
-			return yeahapi.E(op, yeahapi.EUnathorized, "X-Client-Id header is missing")
+		clientId, err := uuid.FromString(r.Header.Get("X-Client-Id"))
+		if err != nil {
+			return yeahapi.E(op, yeahapi.EUnathorized, "X-Client-Id header is missing or invalid")
 		}
-		client, err := s.ClientService.Client(ctx, yeahapi.ClientID(clientId))
+
+		client, err := s.ClientService.Client(ctx, yeahapi.ClientID{clientId})
+
 		if err != nil {
 			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				return yeahapi.E(op, err, fmt.Sprintf("Client with id %s not found", clientId))
@@ -130,6 +133,7 @@ func (s *Server) clientOnly(next Handler) Handler {
 		}
 
 		clientSecret := r.Header.Get("X-Client-Secret")
+
 		if err := s.ClientService.VerifySecret(client, clientSecret); err != nil {
 			return yeahapi.E(op, err, "Invalid client secret")
 		}
@@ -145,9 +149,9 @@ func (s *Server) userOnly(next Handler) Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
 		defer cancel()
-		sessionId := r.Header.Get("X-Session-Id")
-		if sessionId == "" {
-			return yeahapi.E(op, yeahapi.EUnathorized, "X-Session-Id header is missing")
+		sessionId, err := uuid.FromString(r.Header.Get("X-Session-Id"))
+		if err != nil {
+			return yeahapi.E(op, yeahapi.EUnathorized, "X-Session-Id header is missing or invalid")
 		}
 
 		session, err := s.AuthService.Session(ctx, sessionId)

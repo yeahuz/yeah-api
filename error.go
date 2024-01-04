@@ -3,6 +3,8 @@ package yeahapi
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/gofrs/uuid"
 )
 
 type Op string
@@ -55,10 +57,10 @@ func (e Error) Error() string {
 	if e.Op != "" {
 		b.WriteString(string(e.Op))
 	}
-	if e.UserID != "" {
+	if !e.UserID.IsNil() {
 		pad(b, ": ")
 		b.WriteString("user ")
-		b.WriteString(string(e.UserID))
+		b.WriteString(e.UserID.String())
 	}
 
 	if e.Kind != 0 {
@@ -144,7 +146,7 @@ func E(args ...interface{}) error {
 	}
 
 	if prev.UserID == e.UserID {
-		prev.UserID = ""
+		prev.UserID.UUID = uuid.Nil
 	}
 
 	if prev.Kind == e.Kind {
@@ -200,5 +202,5 @@ func pad(b *bytes.Buffer, str string) {
 }
 
 func (e *Error) isZero() bool {
-	return (e.UserID == "" || e.ClientID == "") && e.Op == "" && e.Kind == 0 && e.Err == nil
+	return (e.UserID.IsNil() || e.ClientID.IsNil()) && e.Op == "" && e.Kind == 0 && e.Err == nil
 }
