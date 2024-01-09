@@ -69,3 +69,44 @@ func (s *CategoryService) References(ctx context.Context) ([]yeahapi.CategoryRef
 
 	return references, nil
 }
+
+func (s *CategoryService) Attributes(ctx context.Context, categoryID string, lang string) ([]yeahapi.CategoryAttribute, error) {
+	const op yeahapi.Op = "postgres/CategoryService.Attributes"
+	attributes := make([]yeahapi.CategoryAttribute, 0)
+	attributesMap := map[string]yeahapi.CategoryAttribute{}
+
+	rows, err := s.pool.Query(ctx,
+		`select a.id, a.required, a.enabled_for_variations, a.key, a.category_id, at.name,
+		ao.id as option_id, coalesce(aot.name, ao.value) as option_name, ao.value as option_value, ao.unit as option_unit
+		from attributes a
+		left join attributes_tr at on at.attribute_id = a.id and at.lang_code = $1
+		left join attribute_options ao on ao.attribute_id = a.id
+		left join attribute_options_tr aot on aot.attribute_option_id = ao.id and aot.lang_code = $1
+		where a.category_id = $2
+		`,
+		lang, categoryID)
+
+	if err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var atr yeahapi.CategoryAttribute
+		var opt yeahapi.CategoryAttributeOption
+
+		err := rows.Scan(atr.ID, atr.Required, atr.EnabledForVariations, atr.Key, atr.CategoryID, atr.Name, opt.ID, opt.Name, opt.Value, opt.Unit)
+		if err != nil {
+			return nil, yeahapi.E(op, err)
+		}
+
+		existingAtr, ok := attributesMap[atr.ID]
+		if !ok {
+			attributesMap[atr.ID] = atr
+		}
+
+		existingAtr.Options = append(existingAtr.Options, opt)
+	}
+
+	return attributes, nil
+}

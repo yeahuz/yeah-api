@@ -93,6 +93,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	kvService := postgres.NewKVService(m.Pool)
 	localizerService := yeahapi.NewLocalizerService("en")
 	clientService := postgres.NewClientService(m.Pool, argonHasher)
+	categoryService := postgres.NewCategoryService(m.Pool)
 
 	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
 		NatsURL:       m.Config.Nats.URL,
@@ -124,6 +125,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	m.Server.ListingService = listingService
 	m.Server.CQRSService = cqrsService
 	m.Server.KVService = kvService
+	m.Server.CategoryService = categoryService
 
 	if err := m.Server.Open(); err != nil {
 		return err

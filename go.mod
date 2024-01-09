@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.13
 	github.com/aws/aws-sdk-go-v2/service/ses v1.19.1
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/minio/highwayhash v1.0.2
 	github.com/nats-io/nats.go v1.31.0

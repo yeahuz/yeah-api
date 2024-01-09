@@ -319,4 +319,18 @@ INSERT INTO currencies (code, symbol)
 INSERT INTO auth_providers (name, active)
   VALUES ('google', TRUE), ('telegram', TRUE);
 
+CREATE OR REPLACE FUNCTION insert_category(title varchar(255), description varchar(255), parent_id int)
+  RETURNS int
+  AS $$
+DECLARE category_id int;
+BEGIN
+  INSERT INTO categories (id, parent_id) VALUES (DEFAULT, parent_id) RETURNING id into category_id;
+  INSERT INTO categories_tr (category_id, lang_code, title, description) VALUES (category_id, 'en', title, description);
+  RETURN category_id;
+END;
+$$
+LANGUAGE plpgsql;
+
+select insert_category('Phones', 'Phones', insert_category('Electronics', 'Electronics', NULL));
+
 COMMIT;

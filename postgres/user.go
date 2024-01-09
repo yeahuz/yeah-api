@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	yeahapi "github.com/yeahuz/yeah-api"
 )
@@ -174,6 +176,11 @@ func createUser(ctx context.Context, tx pgx.Tx, user *yeahapi.User) error {
 	)
 
 	if err != nil {
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) && pgerrcode.IsIntegrityConstraintViolation(pgerr.Code) {
+			return yeahapi.E(op, yeahapi.EFound)
+		}
+
 		return yeahapi.E(op, err)
 	}
 

@@ -16,6 +16,10 @@ const ShutdownTimeout = 1 * time.Second
 
 type Handler func(w http.ResponseWriter, r *http.Request) error
 
+type StructName struct {
+	Name string `json:"_"`
+}
+
 type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
@@ -30,6 +34,7 @@ type Server struct {
 	ClientService     yeahapi.ClientService
 	ListingService    yeahapi.ListingService
 	KVService         yeahapi.KVService
+	CategoryService   yeahapi.CategoryService
 }
 
 type errorResponse struct {

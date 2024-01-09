@@ -2,8 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -38,10 +36,6 @@ type emailData struct {
 
 type termsOfService struct {
 	Text string `json:"text"`
-}
-
-type authSignUpRequired struct {
-	TermsOfService termsOfService `json:"terms_of_service"`
 }
 
 func (d sentCodeData) Ok() error {
@@ -89,12 +83,18 @@ func (d signInPhoneData) Ok() error {
 	return nil
 }
 
-type authorization struct {
-	*yeahapi.Auth
-}
-
 func (s *Server) handleSignInWithPhone() Handler {
 	const op yeahapi.Op = "http/auth.handleSignInWithPhone"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.Auth
+	}
+
+	type signupRequired struct {
+		T              string `json:"_"`
+		termsOfService `json:"terms_of_service"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req signInPhoneData
 		defer r.Body.Close()
@@ -115,8 +115,9 @@ func (s *Server) handleSignInWithPhone() Handler {
 
 		u, err := s.UserService.ByPhone(ctx, req.PhoneNumber)
 		if yeahapi.EIs(yeahapi.ENotFound, err) {
-			return JSON(w, r, http.StatusOK, authSignUpRequired{
-				TermsOfService: termsOfService{
+			return JSON(w, r, http.StatusOK, signupRequired{
+				T: "auth.authorizationSignUpRequired",
+				termsOfService: termsOfService{
 					Text: "terms of service",
 				},
 			})
@@ -140,7 +141,9 @@ func (s *Server) handleSignInWithPhone() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, authorization{auth})
+		resp := response{"auth.authorization", auth}
+
+		return JSON(w, r, http.StatusOK, resp)
 	}
 }
 
@@ -162,6 +165,16 @@ func (d signInEmailData) Ok() error {
 
 func (s *Server) handleSignInWithEmail() Handler {
 	const op yeahapi.Op = "http/auth.handleSignInWithEmail"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.Auth
+	}
+
+	type signupRequired struct {
+		T              string `json:"_"`
+		termsOfService `json:"terms_of_service"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req signInEmailData
 		defer r.Body.Close()
@@ -182,8 +195,9 @@ func (s *Server) handleSignInWithEmail() Handler {
 
 		u, err := s.UserService.ByEmail(ctx, req.Email)
 		if yeahapi.EIs(yeahapi.ENotFound, err) {
-			return JSON(w, r, http.StatusOK, authSignUpRequired{
-				TermsOfService: termsOfService{
+			return JSON(w, r, http.StatusOK, signupRequired{
+				T: "auth.authorizationSignUpRequired",
+				termsOfService: termsOfService{
 					Text: "terms of service",
 				},
 			})
@@ -207,7 +221,8 @@ func (s *Server) handleSignInWithEmail() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, authorization{auth})
+		resp := response{"auth.authorization", auth}
+		return JSON(w, r, http.StatusOK, resp)
 	}
 }
 
@@ -247,6 +262,11 @@ func (d signUpEmailData) Ok() error {
 
 func (s *Server) handleSignUpWithEmail() Handler {
 	const op yeahapi.Op = "http/auth.handleSignUpWithEmail"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.Auth
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req signUpEmailData
 		defer r.Body.Close()
@@ -282,11 +302,11 @@ func (s *Server) handleSignUpWithEmail() Handler {
 		})
 
 		if err != nil {
-			fmt.Println(err)
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, authorization{auth})
+		resp := response{"auth.authorization", auth}
+		return JSON(w, r, http.StatusOK, resp)
 	}
 }
 
@@ -307,6 +327,10 @@ func (d signUpPhoneData) Ok() error {
 
 func (s *Server) handleSignUpWithPhone() Handler {
 	const op yeahapi.Op = "http/auth.handleSignUpWithPhone"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.Auth
+	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req signUpPhoneData
 		defer r.Body.Close()
@@ -345,23 +369,24 @@ func (s *Server) handleSignUpWithPhone() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, authorization{auth})
+		resp := response{"auth.authorization", auth}
+		return JSON(w, r, http.StatusOK, resp)
 	}
-}
-
-type sentCodeType interface{}
-
-type sentCode struct {
-	Type sentCodeType `json:"type"`
-	Hash string       `json:"hash"`
-}
-
-type sentCodeSms struct {
-	Length int `json:"length"`
 }
 
 func (s *Server) handleSendPhoneCode() Handler {
 	const op yeahapi.Op = "http/auth.handleSendPhoneCode"
+	type sentCodeSms struct {
+		T      string `json:"_"`
+		Length int    `json:"length"`
+	}
+
+	type response struct {
+		T    string      `json:"_"`
+		Type sentCodeSms `json:"type"`
+		Hash string      `json:"hash"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req phoneData
 		defer r.Body.Close()
@@ -385,17 +410,32 @@ func (s *Server) handleSendPhoneCode() Handler {
 			return yeahapi.E(op, err, "Something went wrong on our end. Please try again after some time")
 		}
 
-		sentCode := sentCode{Type: sentCodeSms{Length: len(otp.Code)}, Hash: otp.Hash}
-		return JSON(w, r, http.StatusOK, sentCode)
-	}
-}
+		resp := response{
+			T: "auth.sentCode",
+			Type: sentCodeSms{
+				T:      "auth.sentCodeSms",
+				Length: len(otp.Code),
+			},
+			Hash: otp.Hash,
+		}
 
-type sentCodeEmail struct {
-	Length int `json:"length"`
+		return JSON(w, r, http.StatusOK, resp)
+	}
 }
 
 func (s *Server) handleSendEmailCode() Handler {
 	const op yeahapi.Op = "http/auth.handleSendEmailCode"
+	type sentCodeEmail struct {
+		T      string `json:"_"`
+		Length int    `json:"length"`
+	}
+
+	type response struct {
+		T    string        `json:"_"`
+		Type sentCodeEmail `json:"type"`
+		Hash string        `json:"hash"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req emailData
 		defer r.Body.Close()
@@ -419,8 +459,15 @@ func (s *Server) handleSendEmailCode() Handler {
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again after some time")
 		}
 
-		sentCode := sentCode{Type: sentCodeEmail{Length: len(otp.Code)}, Hash: otp.Hash}
-		return JSON(w, r, http.StatusOK, sentCode)
+		resp := response{
+			T: "auth.sentCode",
+			Type: sentCodeEmail{
+				T:      "auth.sentCodeEmail",
+				Length: len(otp.Code),
+			},
+			Hash: otp.Hash,
+		}
+		return JSON(w, r, http.StatusOK, resp)
 	}
 }
 
@@ -438,59 +485,4 @@ func (s *Server) handleLogOut() Handler {
 
 		return JSON(w, r, http.StatusOK, nil)
 	}
-}
-
-func (s sentCode) MarshalJSON() ([]byte, error) {
-	type Alias sentCode
-	return json.Marshal(&struct {
-		Type string `json:"_"`
-		*Alias
-	}{
-		Type:  "auth.sentCode",
-		Alias: (*Alias)(&s),
-	})
-}
-
-func (s sentCodeSms) MarshalJSON() ([]byte, error) {
-	type Alias sentCodeSms
-	return json.Marshal(&struct {
-		Type string `json:"_"`
-		*Alias
-	}{
-		Type:  "auth.sentCodeSms",
-		Alias: (*Alias)(&s),
-	})
-}
-
-func (s sentCodeEmail) MarshalJSON() ([]byte, error) {
-	type Alias sentCodeEmail
-	return json.Marshal(&struct {
-		Type string `json:"_"`
-		*Alias
-	}{
-		Type:  "auth.sentCodeEmail",
-		Alias: (*Alias)(&s),
-	})
-}
-
-func (a authorization) MarshalJSON() ([]byte, error) {
-	type Alias authorization
-	return json.Marshal(&struct {
-		Type string `json:"_"`
-		*Alias
-	}{
-		Type:  "auth.authorization",
-		Alias: (*Alias)(&a),
-	})
-}
-
-func (a authSignUpRequired) MarshalJSON() ([]byte, error) {
-	type Alias authSignUpRequired
-	return json.Marshal(&struct {
-		Type string `json:"_"`
-		*Alias
-	}{
-		Type:  "auth.authorizationSignUpRequired",
-		Alias: (*Alias)(&a),
-	})
 }

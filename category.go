@@ -20,6 +20,7 @@ type CategoryAttribute struct {
 	Required             bool
 	EnabledForVariations bool
 	Key                  string
+	Name                 string
 	CategoryID           string
 	Options              []CategoryAttributeOption
 }
@@ -29,10 +30,11 @@ type CategoryAttributeOption struct {
 	AttributeID string
 	Value       string
 	Unit        string
+	Name        string
 }
 
 type CategoryService interface {
 	Categories(ctx context.Context, lang string) ([]Category, error)
 	References(ctx context.Context) ([]CategoryReference, error)
-	Attributes(ctx context.Context, categoryID string) ([]CategoryAttribute, error)
+	Attributes(ctx context.Context, categoryID string, lang string) ([]CategoryAttribute, error)
 }
