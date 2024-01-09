@@ -36,6 +36,10 @@ func (d createListingData) Ok() error {
 
 func (s *Server) handleCreateListing() Handler {
 	const op yeahapi.Op = "http/listings.handleCreateListing"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.Listing
+	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req createListingData
 		defer r.Body.Close()
@@ -57,7 +61,7 @@ func (s *Server) handleCreateListing() Handler {
 			return yeahapi.E(op, err, "Couldn't create listing. Please, try again")
 		}
 
-		return JSON(w, r, http.StatusOK, listing)
+		return JSON(w, r, http.StatusOK, response{"listings.listing", listing})
 	}
 }
 
@@ -65,6 +69,10 @@ func (s *Server) handleGetListing() Handler {
 	const op yeahapi.Op = "http/listings.handleGetListing"
 	type request struct {
 		ID uuid.UUID `json:"listing_id"`
+	}
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.Listing
 	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req request
@@ -80,7 +88,8 @@ func (s *Server) handleGetListing() Handler {
 		if err != nil {
 			return yeahapi.E(op, err)
 		}
-		return JSON(w, r, http.StatusOK, listing)
+
+		return JSON(w, r, http.StatusOK, response{"listings.listing", listing})
 	}
 }
 
@@ -128,6 +137,10 @@ func (d createSkuData) Ok() error {
 
 func (s *Server) handleCreateSku() Handler {
 	const op yeahapi.Op = "http/listings.handleCreateSku"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.ListingSku
+	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req createSkuData
 		defer r.Body.Close()
@@ -153,7 +166,7 @@ func (s *Server) handleCreateSku() Handler {
 			return yeahapi.E(op, err)
 		}
 
-		return JSON(w, r, http.StatusOK, sku)
+		return JSON(w, r, http.StatusOK, response{"listings.sku", sku})
 	}
 }
 
@@ -162,6 +175,7 @@ func (s *Server) handleDeleteSku() Handler {
 	type request struct {
 		ID uuid.UUID `json:"sku_id"`
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req request
 		defer r.Body.Close()
@@ -185,6 +199,10 @@ func (s *Server) handleGetSkus() Handler {
 	type request struct {
 		ID uuid.UUID `json:"listing_id"`
 	}
+	type response struct {
+		T    string               `json:"_"`
+		Skus []yeahapi.ListingSku `json:"skus"`
+	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req request
 		defer r.Body.Close()
@@ -200,6 +218,6 @@ func (s *Server) handleGetSkus() Handler {
 			return yeahapi.E(op, err)
 		}
 
-		return JSON(w, r, http.StatusOK, skus)
+		return JSON(w, r, http.StatusOK, response{"listing.skus", skus})
 	}
 }

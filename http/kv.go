@@ -40,6 +40,10 @@ func (d kvData) Ok() error {
 
 func (s *Server) handleKVSet() Handler {
 	const op yeahapi.Op = "http/kv.handleKVSet"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.KVItem
+	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req kvData
 		defer r.Body.Close()
@@ -60,12 +64,16 @@ func (s *Server) handleKVSet() Handler {
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
-		return JSON(w, r, http.StatusOK, item)
+		return JSON(w, r, http.StatusOK, response{"kv.item", item})
 	}
 }
 
 func (s *Server) handleKVGet() Handler {
 	const op yeahapi.Op = "http/kv.handleKVGet"
+	type response struct {
+		T string `json:"_"`
+		*yeahapi.KVItem
+	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req keyData
 		defer r.Body.Close()
@@ -84,7 +92,7 @@ func (s *Server) handleKVGet() Handler {
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
 
-		return JSON(w, r, http.StatusOK, item)
+		return JSON(w, r, http.StatusOK, response{"kv.item", item})
 	}
 }
 

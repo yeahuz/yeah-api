@@ -141,9 +141,7 @@ func (s *Server) handleSignInWithPhone() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		resp := response{"auth.authorization", auth}
-
-		return JSON(w, r, http.StatusOK, resp)
+		return JSON(w, r, http.StatusOK, response{"auth.authorization", auth})
 	}
 }
 
@@ -221,8 +219,7 @@ func (s *Server) handleSignInWithEmail() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		resp := response{"auth.authorization", auth}
-		return JSON(w, r, http.StatusOK, resp)
+		return JSON(w, r, http.StatusOK, response{"auth.authorization", auth})
 	}
 }
 
@@ -305,8 +302,7 @@ func (s *Server) handleSignUpWithEmail() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		resp := response{"auth.authorization", auth}
-		return JSON(w, r, http.StatusOK, resp)
+		return JSON(w, r, http.StatusOK, response{"auth.authorization", auth})
 	}
 }
 
@@ -369,8 +365,7 @@ func (s *Server) handleSignUpWithPhone() Handler {
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
-		resp := response{"auth.authorization", auth}
-		return JSON(w, r, http.StatusOK, resp)
+		return JSON(w, r, http.StatusOK, response{"auth.authorization", auth})
 	}
 }
 

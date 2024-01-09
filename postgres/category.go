@@ -17,11 +17,20 @@ func NewCategoryService(pool *pgxpool.Pool) *CategoryService {
 	}
 }
 
+func (s *CategoryService) CreateCategory(ctx context.Context, category *yeahapi.Category) (*yeahapi.Category, error) {
+	const op yeahapi.Op = "postgres/CategoryService.CreateCategory"
+
+	if _, err := s.pool.Exec(ctx, "insert into category"); err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+	return nil, nil
+}
+
 func (s *CategoryService) Categories(ctx context.Context, lang string) ([]yeahapi.Category, error) {
 	const op yeahapi.Op = "postgres/CategoryService.Categories"
 	categories := make([]yeahapi.Category, 0)
 
-	rows, err := s.pool.Query(ctx, "select c.id, c.parent_id, ct.title, ct.description from categories c left join categories_tr ct on ct.category_id = c.id and ct.lang_code = $1", lang)
+	rows, err := s.pool.Query(ctx, "select c.id, coalesce(c.parent_id, 0), ct.title, ct.description from categories c left join categories_tr ct on ct.category_id = c.id and ct.lang_code = $1", lang)
 
 	defer rows.Close()
 	if err != nil {
@@ -30,7 +39,7 @@ func (s *CategoryService) Categories(ctx context.Context, lang string) ([]yeahap
 
 	for rows.Next() {
 		var c yeahapi.Category
-		if err := rows.Scan(&c.ID, c.ParentID, c.Title, c.Description); err != nil {
+		if err := rows.Scan(&c.ID, &c.ParentID, &c.Title, &c.Description); err != nil {
 			return nil, yeahapi.E(op, err)
 		}
 		categories = append(categories, c)
@@ -56,7 +65,7 @@ func (s *CategoryService) References(ctx context.Context) ([]yeahapi.CategoryRef
 
 	for rows.Next() {
 		var r yeahapi.CategoryReference
-		if err := rows.Scan(r.TableName, r.CategoryID, r.Columns); err != nil {
+		if err := rows.Scan(&r.TableName, &r.CategoryID, &r.Columns); err != nil {
 			return nil, yeahapi.E(op, err)
 		}
 
@@ -70,14 +79,12 @@ func (s *CategoryService) References(ctx context.Context) ([]yeahapi.CategoryRef
 	return references, nil
 }
 
-func (s *CategoryService) Attributes(ctx context.Context, categoryID string, lang string) ([]yeahapi.CategoryAttribute, error) {
+func (s *CategoryService) Attributes(ctx context.Context, categoryID string, lang string) ([]*yeahapi.CategoryAttribute, error) {
 	const op yeahapi.Op = "postgres/CategoryService.Attributes"
-	attributes := make([]yeahapi.CategoryAttribute, 0)
-	attributesMap := map[string]yeahapi.CategoryAttribute{}
 
 	rows, err := s.pool.Query(ctx,
 		`select a.id, a.required, a.enabled_for_variations, a.key, a.category_id, at.name,
-		ao.id as option_id, coalesce(aot.name, ao.value) as option_name, ao.value as option_value, ao.unit as option_unit
+		ao.id as option_id, coalesce(aot.name, ao.value) as option_name, ao.value as option_value, ao.unit as option_unit, ao.attribute_id as option_attribute_id
 		from attributes a
 		left join attributes_tr at on at.attribute_id = a.id and at.lang_code = $1
 		left join attribute_options ao on ao.attribute_id = a.id
@@ -91,21 +98,33 @@ func (s *CategoryService) Attributes(ctx context.Context, categoryID string, lan
 	}
 
 	defer rows.Close()
+	attributes := make([]*yeahapi.CategoryAttribute, 0)
+	var currentAtr *yeahapi.CategoryAttribute
+
 	for rows.Next() {
-		var atr yeahapi.CategoryAttribute
+		var id, name, categoryID, key string
+		var required, enabledForVariations bool
 		var opt yeahapi.CategoryAttributeOption
 
-		err := rows.Scan(atr.ID, atr.Required, atr.EnabledForVariations, atr.Key, atr.CategoryID, atr.Name, opt.ID, opt.Name, opt.Value, opt.Unit)
+		err := rows.Scan(&id, &required, &enabledForVariations, &key, &categoryID, &name, &opt.ID, &opt.Name, &opt.Value, &opt.Unit, &opt.AttributeID)
 		if err != nil {
 			return nil, yeahapi.E(op, err)
 		}
 
-		existingAtr, ok := attributesMap[atr.ID]
-		if !ok {
-			attributesMap[atr.ID] = atr
+		if currentAtr == nil || currentAtr.ID != id {
+			currentAtr = &yeahapi.CategoryAttribute{
+				ID:                   id,
+				Name:                 name,
+				CategoryID:           categoryID,
+				Key:                  key,
+				Required:             required,
+				EnabledForVariations: enabledForVariations,
+			}
+
+			attributes = append(attributes, currentAtr)
 		}
 
-		existingAtr.Options = append(existingAtr.Options, opt)
+		currentAtr.Options = append(currentAtr.Options, opt)
 	}
 
 	return attributes, nil

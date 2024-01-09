@@ -52,6 +52,7 @@ func NewServer() *Server {
 
 	s.registerAuthRoutes()
 	s.registerCredentialRoutes()
+	s.registerCategoryRoutes()
 	return s
 }
 
@@ -166,6 +167,7 @@ func (s *Server) userOnly(next Handler) Handler {
 			}
 			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
 		}
+
 		if !session.Active {
 			return yeahapi.E(op, yeahapi.EUnathorized, "Session is not active or expired")
 		}
