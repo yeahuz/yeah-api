@@ -135,7 +135,7 @@ func (s *Server) clientOnly(next Handler) Handler {
 		clientSecret := r.Header.Get("X-Client-Secret")
 
 		if err := s.ClientService.VerifySecret(client, clientSecret); err != nil {
-			return yeahapi.E(op, err, "Invalid client secret")
+			return yeahapi.E(op, yeahapi.EInvalid, "Invalid client secret")
 		}
 
 		r = r.WithContext(yeahapi.NewContextWithClient(r.Context(), client))
@@ -212,13 +212,16 @@ func errStatusCode(kind yeahapi.Kind) int {
 }
 
 func getIP(r *http.Request) string {
-	ip := r.Header.Get("X-Forwarded-For")
-	if len(ip) == 0 {
-		ip = r.Header.Get("X-Real-Ip")
-	}
-	if len(ip) == 0 {
-		ip = r.RemoteAddr
+	addr := r.Header.Get("X-Forwarded-For")
+	if len(addr) == 0 {
+		addr = r.Header.Get("X-Real-Ip")
 	}
 
-	return ip
+	if len(addr) == 0 {
+		addr = r.RemoteAddr
+	}
+
+	host, _, _ := net.SplitHostPort(addr)
+
+	return host
 }

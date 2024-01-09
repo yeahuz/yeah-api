@@ -47,7 +47,7 @@ func TestUserService_User(t *testing.T) {
 
 	t.Run("ErrUserNotFound", func(t *testing.T) {
 		id, _ := uuid.NewV7()
-		_, err := s.User(context.Background(), yeahapi.UserID(id.String()))
+		_, err := s.User(context.Background(), yeahapi.UserID{id})
 		if !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unexpected error: %#v", err)
 		}
@@ -171,7 +171,7 @@ func TestUserService_Account(t *testing.T) {
 
 	t.Run("ErrAccountNotFound", func(t *testing.T) {
 		id, _ := uuid.NewV7()
-		_, err := s.Account(context.Background(), id.String())
+		_, err := s.Account(context.Background(), id)
 		if !yeahapi.EIs(yeahapi.ENotFound, err) {
 			t.Fatalf("unexpected error: %#v", err)
 		}

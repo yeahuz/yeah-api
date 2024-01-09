@@ -145,8 +145,8 @@ func (s *Server) handleCreateSku() Handler {
 				Currency:  req.Currency,
 				StartDate: time.Now(),
 			},
-			CustomSku:    req.CustomSku,
-			ListingAttrs: req.Attrs,
+			CustomSku: req.CustomSku,
+			Attrs:     req.Attrs,
 		})
 
 		if err != nil {

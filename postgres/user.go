@@ -78,7 +78,7 @@ func (s *UserService) ByPhone(ctx context.Context, phone string) (*yeahapi.User,
 	return &user, nil
 }
 
-func (s *UserService) Account(ctx context.Context, id string) (*yeahapi.Account, error) {
+func (s *UserService) Account(ctx context.Context, id uuid.UUID) (*yeahapi.Account, error) {
 	const op yeahapi.Op = "postgres/UserService.Account"
 	var account yeahapi.Account
 	err := s.pool.QueryRow(
@@ -100,19 +100,18 @@ func (s *UserService) Account(ctx context.Context, id string) (*yeahapi.Account,
 
 func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeahapi.User, error) {
 	const op yeahapi.Op = "postgres/UserService.CreateUser"
-	id, err := uuid.NewV7()
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, yeahapi.E(op, err)
 	}
 
-	user.ID = yeahapi.UserID{id}
+	defer tx.Rollback(ctx)
 
-	_, err = s.pool.Exec(ctx,
-		"insert into users (id, first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6, $7)",
-		id, user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.EmailVerified, user.PhoneVerified,
-	)
+	if err := createUser(ctx, tx, user); err != nil {
+		return nil, yeahapi.E(op, err)
+	}
 
-	if err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return nil, yeahapi.E(op, err)
 	}
 
@@ -121,16 +120,57 @@ func (s *UserService) CreateUser(ctx context.Context, user *yeahapi.User) (*yeah
 
 func (s *UserService) LinkAccount(ctx context.Context, account *yeahapi.Account) error {
 	const op yeahapi.Op = "postgres/UserService.LinkAccount"
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	if err := linkAccount(ctx, tx, account); err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	return nil
+}
+
+func linkAccount(ctx context.Context, tx pgx.Tx, account *yeahapi.Account) error {
+	const op yeahapi.Op = "postgres/UserService.linkAccount"
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
 	}
 
-	account.ID = id.String()
-
-	_, err = s.pool.Exec(ctx,
+	account.ID = id
+	_, err = tx.Exec(ctx,
 		"insert into accounts (id, user_id, provider, provider_account_id) values ($1, $2, $3, $4) returning id",
 		account.ID, account.UserID, account.Provider, account.ProviderAccountID,
+	)
+
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	return nil
+}
+
+func createUser(ctx context.Context, tx pgx.Tx, user *yeahapi.User) error {
+	const op yeahapi.Op = "postgres/UserService.createUser"
+	id, err := uuid.NewV7()
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	user.ID = yeahapi.UserID{id}
+
+	_, err = tx.Exec(ctx,
+		"insert into users (id, first_name, last_name, email, phone, email_verified, phone_verified) values ($1, $2, $3, $4, $5, $6, $7)",
+		user.ID, user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.EmailVerified, user.PhoneVerified,
 	)
 
 	if err != nil {

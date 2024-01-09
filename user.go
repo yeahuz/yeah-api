@@ -22,7 +22,7 @@ type User struct {
 }
 
 type Account struct {
-	ID                string
+	ID                uuid.UUID
 	Provider          string
 	UserID            UserID
 	ProviderAccountID string
@@ -33,6 +33,6 @@ type UserService interface {
 	ByPhone(ctx context.Context, phone string) (*User, error)
 	ByEmail(ctx context.Context, email string) (*User, error)
 	User(ctx context.Context, id UserID) (*User, error)
-	Account(ctx context.Context, id string) (*Account, error)
+	Account(ctx context.Context, id uuid.UUID) (*Account, error)
 	LinkAccount(ctx context.Context, account *Account) error
 }

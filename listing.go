@@ -50,11 +50,11 @@ type ListingSkuPrice struct {
 type ListingAttrs map[string]interface{}
 
 type ListingSku struct {
-	ID           uuid.UUID       `json:"id"`
-	CustomSku    string          `json:"custom_sku"`
-	ListingID    uuid.UUID       `json:"listing_id"`
-	Price        ListingSkuPrice `json:"price"`
-	ListingAttrs `json:"attrs"`
+	ID        uuid.UUID       `json:"id"`
+	CustomSku string          `json:"custom_sku"`
+	ListingID uuid.UUID       `json:"listing_id"`
+	Price     ListingSkuPrice `json:"price"`
+	Attrs     ListingAttrs    `json:"attrs"`
 }
 
 type Listing struct {

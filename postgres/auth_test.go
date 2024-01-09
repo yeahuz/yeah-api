@@ -228,25 +228,22 @@ func TestAuthService_Session(t *testing.T) {
 func MustCreateAuth(t testing.TB, ctx context.Context, authService yeahapi.AuthService) *yeahapi.Auth {
 	t.Helper()
 
-	user := MustCreateUser(t, ctx, pool, &yeahapi.User{
-		FirstName: "John",
-		LastName:  "Doe",
-		Email:     randEmail(),
-	})
-
 	client, _ := MustCreateClient(t, ctx, pool, &yeahapi.Client{
 		Name: "Client",
 		Type: yeahapi.ClientPublic,
 	})
 
 	auth, err := authService.CreateAuth(ctx, &yeahapi.Auth{
+		User: &yeahapi.User{
+			FirstName: "John",
+			LastName:  "Doe",
+			Email:     randEmail(),
+		},
 		Session: &yeahapi.Session{
-			UserID:    user.ID,
 			ClientID:  client.ID,
 			IP:        "::1",
 			UserAgent: "Golang",
 		},
-		User: user,
 	})
 
 	if err != nil {

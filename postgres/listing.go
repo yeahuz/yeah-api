@@ -70,7 +70,7 @@ func (s *ListingService) CreateSku(ctx context.Context, sku *yeahapi.ListingSku)
 	sku.ID = id
 
 	_, err = s.pool.Exec(ctx, "insert into listing_skus (id, custom_sku, listing_id, attrs) values ($1, $2, $3, $4)",
-		sku.ID, sku.CustomSku, sku.ListingID, sku.ListingAttrs,
+		sku.ID, sku.CustomSku, sku.ListingID, sku.Attrs,
 	)
 
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeaha
 
 	for rows.Next() {
 		var s yeahapi.ListingSku
-		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.ListingAttrs, s.Price.Amount, s.Price.Currency, s.Price.StartDate); err != nil {
+		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.Attrs, s.Price.Amount, s.Price.Currency, s.Price.StartDate); err != nil {
 			return nil, yeahapi.E(op, err)
 		}
 

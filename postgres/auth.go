@@ -114,19 +114,24 @@ func (a *AuthService) Otp(ctx context.Context, hash string, confirmed bool) (*ye
 func (a *AuthService) CreateAuth(ctx context.Context, auth *yeahapi.Auth) (*yeahapi.Auth, error) {
 	const op yeahapi.Op = "postgres/AuthService.CreateAuth"
 
-	id, err := uuid.NewV7()
+	tx, err := a.pool.Begin(ctx)
 	if err != nil {
-		return nil, yeahapi.E(op, err, "unable to generate uuid")
+		return nil, yeahapi.E(op, err)
 	}
 
-	auth.Session.ID = id
+	if auth.Session.UserID.IsNil() {
+		if err := createUser(ctx, tx, auth.User); err != nil {
+			return nil, yeahapi.E(op, err)
+		}
 
-	_, err = a.pool.Exec(ctx,
-		"insert into sessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5)",
-		auth.Session.ID, auth.Session.UserID, auth.Session.ClientID, auth.Session.UserAgent, auth.Session.IP,
-	)
+		auth.Session.UserID = auth.User.ID
+	}
 
-	if err != nil {
+	if err := createSession(ctx, tx, auth); err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return nil, yeahapi.E(op, err)
 	}
 
@@ -158,4 +163,26 @@ func (a *AuthService) Session(ctx context.Context, sessionID uuid.UUID) (*yeahap
 	}
 
 	return &session, nil
+}
+
+func createSession(ctx context.Context, tx pgx.Tx, auth *yeahapi.Auth) error {
+	const op yeahapi.Op = "postgres/AuthService.createSession"
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return yeahapi.E(op, err, "unable to generate uuid")
+	}
+
+	auth.Session.ID = id
+
+	_, err = tx.Exec(ctx,
+		"insert into sessions (id, user_id, client_id, user_agent, ip) values ($1, $2, $3, $4, $5)",
+		auth.Session.ID, auth.Session.UserID, auth.Session.ClientID, auth.Session.UserAgent, auth.Session.IP,
+	)
+
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+
+	return nil
 }

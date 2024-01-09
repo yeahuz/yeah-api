@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -264,24 +265,16 @@ func (s *Server) handleSignUpWithEmail() Handler {
 			return yeahapi.E(op, err, "Unable to verify otp code. Make sure code and hash is correct")
 		}
 
-		u, err := s.UserService.CreateUser(ctx, &yeahapi.User{
-			FirstName:     req.FirstName,
-			LastName:      req.LastName,
-			Email:         req.Email,
-			EmailVerified: true,
-		})
-
-		if err != nil {
-			// TODO: check if there is constraint violation with phone number
-			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
-		}
-
 		client := yeahapi.ClientFromContext(r.Context())
 
 		auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
-			User: u,
+			User: &yeahapi.User{
+				FirstName:     req.FirstName,
+				LastName:      req.LastName,
+				Email:         req.Email,
+				EmailVerified: true,
+			},
 			Session: &yeahapi.Session{
-				UserID:    u.ID,
 				ClientID:  client.ID,
 				UserAgent: r.UserAgent(),
 				IP:        getIP(r),
@@ -289,6 +282,7 @@ func (s *Server) handleSignUpWithEmail() Handler {
 		})
 
 		if err != nil {
+			fmt.Println(err)
 			return yeahapi.E(op, err, "Couldn't create a session. Please, try again")
 		}
 
@@ -331,24 +325,16 @@ func (s *Server) handleSignUpWithPhone() Handler {
 			return yeahapi.E(op, err, "Unable to verify otp code. Make sure code and hash is correct")
 		}
 
-		u, err := s.UserService.CreateUser(ctx, &yeahapi.User{
-			FirstName:     req.FirstName,
-			LastName:      req.LastName,
-			PhoneNumber:   req.PhoneNumber,
-			PhoneVerified: true,
-		})
-
-		if err != nil {
-			// TODO: check if there is constraint violation with phone number
-			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
-		}
-
 		client := yeahapi.ClientFromContext(r.Context())
 
 		auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
-			User: u,
+			User: &yeahapi.User{
+				FirstName:     req.FirstName,
+				LastName:      req.LastName,
+				PhoneNumber:   req.PhoneNumber,
+				PhoneVerified: true,
+			},
 			Session: &yeahapi.Session{
-				UserID:    u.ID,
 				ClientID:  client.ID,
 				UserAgent: r.UserAgent(),
 				IP:        getIP(r),
