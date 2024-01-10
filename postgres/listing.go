@@ -21,10 +21,10 @@ func NewListingService(pool *pgxpool.Pool) *ListingService {
 }
 
 func (s *ListingService) Listing(ctx context.Context, id uuid.UUID) (*yeahapi.Listing, error) {
-	const op yeahapi.Op = "postgres/ListingService.CreateListing"
+	const op yeahapi.Op = "postgres/ListingService.Listing"
 	var listing yeahapi.Listing
 	err := s.pool.QueryRow(ctx,
-		"select id, title, owner_id, category_id from listings where id = $1", id).Scan(&listing.ID, &listing.Title, &listing.OwnerID, &listing.CategoryID)
+		"select id, title, owner_id, category_id, status from listings where id = $1", id).Scan(&listing.ID, &listing.Title, &listing.OwnerID, &listing.CategoryID, &listing.Status)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -38,6 +38,11 @@ func (s *ListingService) Listing(ctx context.Context, id uuid.UUID) (*yeahapi.Li
 
 func (s *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Listing) (*yeahapi.Listing, error) {
 	const op yeahapi.Op = "postgres/ListingService.CreateListing"
+
+	if err := listing.Ok(); err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, yeahapi.E(op, err)
@@ -45,8 +50,8 @@ func (s *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Lis
 
 	listing.ID = id
 	_, err = s.pool.Exec(ctx,
-		"insert into listings (id, title, owner_id, category_id) values ($1, $2, $3, $4)",
-		listing.ID, listing.Title, listing.OwnerID, listing.CategoryID)
+		"insert into listings (id, title, owner_id, category_id, status) values ($1, $2, $3, $4, $5)",
+		listing.ID, listing.Title, listing.OwnerID, listing.CategoryID, listing.Status)
 
 	if err != nil {
 		return nil, yeahapi.E(op, err)
@@ -57,7 +62,11 @@ func (s *ListingService) CreateListing(ctx context.Context, listing *yeahapi.Lis
 
 func (s *ListingService) DeleteListing(ctx context.Context, id uuid.UUID) error {
 	const op yeahapi.Op = "postgres/ListingService.DeleteListing"
-	return yeahapi.E(op, yeahapi.ENotImplemented)
+	_, err := s.pool.Exec(ctx, "delete from listings where id = $1", id)
+	if err != nil {
+		return yeahapi.E(op, err)
+	}
+	return nil
 }
 
 func (s *ListingService) CreateSku(ctx context.Context, sku *yeahapi.ListingSku) (*yeahapi.ListingSku, error) {

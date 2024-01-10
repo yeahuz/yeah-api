@@ -35,18 +35,6 @@ type ListingSkuPrice struct {
 	StartDate time.Time `json:"start_date"`
 }
 
-// type ElectronicAttrs struct {
-// 	Brand string
-// }
-
-// type PhoneAttrs struct {
-// 	ElectronicAttrs
-// 	Model           string
-// 	StorageCapacity string
-// 	Color           string
-// 	Ram             string
-// }
-
 type ListingAttrs map[string]interface{}
 
 type ListingSku struct {
@@ -60,10 +48,9 @@ type ListingSku struct {
 type Listing struct {
 	ID         uuid.UUID     `json:"id"`
 	Title      string        `json:"title"`
-	CategoryID string        `json:"category_id"`
+	CategoryID int           `json:"category_id"`
 	OwnerID    UserID        `json:"owner_id"`
 	Status     ListingStatus `json:"status"`
-	Skus       []ListingSku  `json:"skus"`
 }
 
 type ListingService interface {
@@ -73,6 +60,19 @@ type ListingService interface {
 	CreateSku(ctx context.Context, sku *ListingSku) (*ListingSku, error)
 	DeleteSku(ctx context.Context, id uuid.UUID) error
 	Skus(ctx context.Context, listingID uuid.UUID) ([]ListingSku, error)
+}
+
+func (l *Listing) Ok() error {
+	if l.OwnerID.IsNil() {
+		return E(EInvalid, "Owner id is required")
+	} else if l.CategoryID == 0 {
+		return E(EInvalid, "Category id is required")
+	} else if l.Title == "" {
+		return E(EInvalid, "Title is required")
+	} else if l.Status == "" {
+		return E(EInvalid, "Listing status is required")
+	}
+	return nil
 }
 
 func (a ListingAttrs) Value() (driver.Value, error) {

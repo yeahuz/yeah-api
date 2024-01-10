@@ -42,13 +42,13 @@ func (c *ClientService) Client(ctx context.Context, id yeahapi.ClientID) (*yeaha
 
 func (c *ClientService) CreateClient(ctx context.Context, client *yeahapi.Client) (*yeahapi.Client, error) {
 	const op yeahapi.Op = "postgres/ClientService.Client"
-	id, err := uuid.NewV7()
-	if err != nil {
+	if err := client.Ok(); err != nil {
 		return nil, yeahapi.E(op, err)
 	}
 
-	if client.Type != yeahapi.ClientPublic && client.Secret == "" {
-		return nil, yeahapi.E(op, yeahapi.EInvalid, "Client secret is required for non-public clients")
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, yeahapi.E(op, err)
 	}
 
 	hash, err := c.ArgonHasher.Hash([]byte(client.Secret))
@@ -71,6 +71,10 @@ func (c *ClientService) CreateClient(ctx context.Context, client *yeahapi.Client
 
 func (c *ClientService) VerifySecret(client *yeahapi.Client, secret string) error {
 	const op yeahapi.Op = "postgres/ClientService.VerifySecret"
+	if err := client.Ok(); err != nil {
+		return yeahapi.E(op, err)
+	}
+
 	if client.Type == yeahapi.ClientPublic {
 		return nil
 	}

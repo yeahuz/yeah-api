@@ -38,3 +38,15 @@ type AuthService interface {
 	DeleteAuth(ctx context.Context, sessionID uuid.UUID) error
 	Session(ctx context.Context, sessionID uuid.UUID) (*Session, error)
 }
+
+func (a *Auth) Ok() error {
+	if a.Session.ClientID.IsNil() {
+		return E(EInvalid, "Session client id is required")
+	}
+
+	if a.Session.UserID.IsNil() && a.User == nil {
+		return E(EInvalid, "Session user id is required if user not passed")
+	}
+
+	return nil
+}

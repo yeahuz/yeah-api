@@ -21,14 +21,14 @@ func (s *Server) registerListingRoutes() {
 
 type createListingData struct {
 	Title      string `json:"title"`
-	CategoryID string `json:"category_id"`
+	CategoryID int    `json:"category_id"`
 }
 
 func (d createListingData) Ok() error {
 	if d.Title == "" {
 		return yeahapi.E(yeahapi.EInvalid, "Title is required")
 	}
-	if d.CategoryID == "" {
+	if d.CategoryID == 0 {
 		return yeahapi.E(yeahapi.EInvalid, "Category is required")
 	}
 	return nil

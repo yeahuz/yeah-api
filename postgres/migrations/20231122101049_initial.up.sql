@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   ip inet,
   user_id uuid NOT NULL,
   client_id uuid NOT NULL,
-  user_agent varchar(255),
+  user_agent varchar(255) DEFAULT '',
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone,
   FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
@@ -322,15 +322,41 @@ INSERT INTO auth_providers (name, active)
 CREATE OR REPLACE FUNCTION insert_category(title varchar(255), description varchar(255), parent_id int)
   RETURNS int
   AS $$
-DECLARE category_id int;
+DECLARE
+  category_id int;
+  lang record;
 BEGIN
   INSERT INTO categories (id, parent_id) VALUES (DEFAULT, parent_id) RETURNING id into category_id;
-  INSERT INTO categories_tr (category_id, lang_code, title, description) VALUES (category_id, 'en', title, description);
+  FOR lang in SELECT l.code from languages l
+  LOOP
+    INSERT INTO categories_tr (category_id, lang_code, title, description) VALUES (category_id, lang.code, title, description);
+  END LOOP;
   RETURN category_id;
 END;
 $$
 LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION insert_listing_status(code varchar(255), name varchar(255))
+RETURNS varchar(255)
+AS $$
+DECLARE lang record;
+BEGIN
+  INSERT INTO listing_statuses (code) values (code);
+  FOR lang in SELECT l.code from languages l
+  LOOP
+    INSERT INTO listing_statuses_tr (status_code, lang_code, name) VALUES (code, lang.code, name);
+  END LOOP;
+  RETURN code;
+END;
+$$
+LANGUAGE plpgsql;
+
 select insert_category('Phones', 'Phones', insert_category('Electronics', 'Electronics', NULL));
+select insert_listing_status('ACTIVE', 'Active');
+select insert_listing_status('MODERATION', 'Moderation');
+select insert_listing_status('INDEXING', 'Indexing');
+select insert_listing_status('ARCHIVED', 'Archived');
+select insert_listing_status('DRAFT', 'Draft');
+select insert_listing_status('DELETED', 'Deleted');
 
 COMMIT;

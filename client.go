@@ -31,3 +31,17 @@ type ClientService interface {
 	VerifySecret(client *Client, secret string) error
 	CreateClient(ctx context.Context, client *Client) (*Client, error)
 }
+
+func (c *Client) Ok() error {
+	if c.Name == "" {
+		return E(EInvalid, "Client name is required")
+	} else if c.Type == "" {
+		return E(EInvalid, "Client type is required")
+	} else if c.Type != ClientInternal && c.Type != ClientConfidential && c.Type != ClientPublic {
+		return E(EInvalid, "Unsupported client type")
+	} else if c.Type != ClientPublic && c.Secret == "" {
+		return E(EInvalid, "Client secret is required for non-public clients")
+	}
+
+	return nil
+}

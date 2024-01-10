@@ -168,6 +168,10 @@ func (a *AuthService) Session(ctx context.Context, sessionID uuid.UUID) (*yeahap
 func createSession(ctx context.Context, tx pgx.Tx, auth *yeahapi.Auth) error {
 	const op yeahapi.Op = "postgres/AuthService.createSession"
 
+	if err := auth.Ok(); err != nil {
+		return yeahapi.E(op, err)
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return yeahapi.E(op, err, "unable to generate uuid")

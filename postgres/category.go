@@ -20,10 +20,10 @@ func NewCategoryService(pool *pgxpool.Pool) *CategoryService {
 func (s *CategoryService) CreateCategory(ctx context.Context, category *yeahapi.Category) (*yeahapi.Category, error) {
 	const op yeahapi.Op = "postgres/CategoryService.CreateCategory"
 
-	if _, err := s.pool.Exec(ctx, "insert into category"); err != nil {
+	if err := s.pool.QueryRow(ctx, "insert into categories (parent_id) values ($1) returning id", category.ParentID).Scan(&category.ID); err != nil {
 		return nil, yeahapi.E(op, err)
 	}
-	return nil, nil
+	return category, nil
 }
 
 func (s *CategoryService) Categories(ctx context.Context, lang string) ([]yeahapi.Category, error) {
@@ -102,7 +102,8 @@ func (s *CategoryService) Attributes(ctx context.Context, categoryID string, lan
 	var currentAtr *yeahapi.CategoryAttribute
 
 	for rows.Next() {
-		var id, name, categoryID, key string
+		var id, categoryID int
+		var name, key string
 		var required, enabledForVariations bool
 		var opt yeahapi.CategoryAttributeOption
 

@@ -45,6 +45,18 @@ func (k Kind) String() string {
 		return "item does not exit"
 	case EFound:
 		return "item already exists"
+	case EInvalid:
+		return "invalid error"
+	case ENotImplemented:
+		return "not implemented"
+	case EUnathorized:
+		return "unauthorized"
+	case EMethodNotAllowed:
+		return "method not allowed"
+	case EOtpCodeExpired:
+		return "otp code expired"
+	case EOtpHashNotMatched:
+		return "otp hash not matched"
 	case EPermission:
 		return "permission denied"
 	}

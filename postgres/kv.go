@@ -22,6 +22,10 @@ func NewKVService(pool *pgxpool.Pool) *KVService {
 
 func (kv *KVService) Set(ctx context.Context, item *yeahapi.KVItem) (*yeahapi.KVItem, error) {
 	const op yeahapi.Op = "postgres/KVService.Set"
+	if err := item.Ok(); err != nil {
+		return nil, yeahapi.E(op, err)
+	}
+
 	if item.Key == "" {
 		id, err := uuid.NewV7()
 		if err != nil {
@@ -29,6 +33,7 @@ func (kv *KVService) Set(ctx context.Context, item *yeahapi.KVItem) (*yeahapi.KV
 		}
 		item.Key = id.String()
 	}
+
 	_, err := kv.pool.Exec(ctx,
 		"insert into kv_store (key, client_id, value) values ($1, $2, $3) on conflict (client_id, key) do update set value = $3",
 		item.Key, item.ClientID, item.Value,

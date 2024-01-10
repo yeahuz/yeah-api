@@ -142,6 +142,9 @@ func (s *UserService) LinkAccount(ctx context.Context, account *yeahapi.Account)
 
 func linkAccount(ctx context.Context, tx pgx.Tx, account *yeahapi.Account) error {
 	const op yeahapi.Op = "postgres/UserService.linkAccount"
+	if err := account.Ok(); err != nil {
+		return yeahapi.E(op, err)
+	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -163,6 +166,10 @@ func linkAccount(ctx context.Context, tx pgx.Tx, account *yeahapi.Account) error
 
 func createUser(ctx context.Context, tx pgx.Tx, user *yeahapi.User) error {
 	const op yeahapi.Op = "postgres/UserService.createUser"
+	if err := user.Ok(); err != nil {
+		return yeahapi.E(op, err)
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return yeahapi.E(op, err)

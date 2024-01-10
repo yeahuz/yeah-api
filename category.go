@@ -3,31 +3,31 @@ package yeahapi
 import "context"
 
 type Category struct {
-	ID          string `json:"id"`
-	ParentID    string `json:"parent_id"`
+	ID          int    `json:"id"`
+	ParentID    *int   `json:"parent_id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
 
 type CategoryReference struct {
 	TableName  string
-	CategoryID string
+	CategoryID int
 	Columns    []string
 }
 
 type CategoryAttribute struct {
-	ID                   string                    `json:"id"`
+	ID                   int                       `json:"id"`
 	Required             bool                      `json:"required"`
 	EnabledForVariations bool                      `json:"enabled_for_variations"`
 	Key                  string                    `json:"key"`
 	Name                 string                    `json:"name"`
-	CategoryID           string                    `json:"category_id"`
+	CategoryID           int                       `json:"category_id"`
 	Options              []CategoryAttributeOption `json:"options"`
 }
 
 type CategoryAttributeOption struct {
-	ID          string `json:"id"`
-	AttributeID string `json:"attribute_id"`
+	ID          int    `json:"id"`
+	AttributeID int    `json:"attribute_id"`
 	Value       string `json:"value"`
 	Unit        string `json:"unit"`
 	Name        string `json:"name"`

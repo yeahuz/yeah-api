@@ -28,6 +28,13 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
+	// us := yeahapi.User{
+	// 	FirstName: "jimmy",
+	// 	LastName:  "Jis",
+	// }
+	// if err := us.Ok(); err != nil {
+	// 	fmt.Println(yeahapi.ErrorMessage(err))
+	// }
 	go func() { <-c; cancel() }()
 
 	m := NewMain()

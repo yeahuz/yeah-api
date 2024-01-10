@@ -130,6 +130,7 @@ func TestUserService_LinkAccount(t *testing.T) {
 		user := MustCreateUser(t, ctx, pool, &yeahapi.User{
 			FirstName: "John",
 			LastName:  "Doe",
+			Email:     randEmail(),
 		})
 
 		if err := s.LinkAccount(ctx, &yeahapi.Account{
@@ -150,6 +151,7 @@ func TestUserService_Account(t *testing.T) {
 		user := MustCreateUser(t, ctx, pool, &yeahapi.User{
 			FirstName: "John",
 			LastName:  "Doe",
+			Email:     randEmail(),
 		})
 
 		account := &yeahapi.Account{
