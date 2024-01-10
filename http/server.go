@@ -53,6 +53,7 @@ func NewServer() *Server {
 	s.registerAuthRoutes()
 	s.registerCredentialRoutes()
 	s.registerCategoryRoutes()
+	s.registerListingRoutes()
 	return s
 }
 

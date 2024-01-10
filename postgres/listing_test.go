@@ -39,6 +39,35 @@ func TestListingService_DeleteListing(t *testing.T) {
 	})
 }
 
+func TestListingService_CreateSku(t *testing.T) {
+	s := postgres.NewListingService(pool)
+
+	t.Run("OK", func(t *testing.T) {
+		ctx := context.Background()
+		listing := MustCreateListing(t, ctx, pool)
+
+		sku, err := s.CreateSku(ctx, &yeahapi.ListingSku{
+			ListingID:     listing.ID,
+			Price:         299,
+			PriceCurrency: yeahapi.CurrencyUSD,
+			Attrs: yeahapi.ListingAttrs{
+				"ram":   "8 GB",
+				"model": "Iphone 14 Pro Max",
+			},
+		})
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if other, err := s.Sku(ctx, sku.ID); err != nil {
+			t.Fatal(err)
+		} else if !reflect.DeepEqual(other, sku) {
+			t.Fatalf("mismatch: %#v != %#v", other, sku)
+		}
+	})
+}
+
 func MustCreateListing(tb testing.TB, ctx context.Context, pool *pgxpool.Pool) *yeahapi.Listing {
 	tb.Helper()
 	user := MustCreateUser(tb, ctx, pool, &yeahapi.User{

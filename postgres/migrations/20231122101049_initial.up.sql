@@ -159,6 +159,8 @@ CREATE TABLE IF NOT EXISTS listing_skus (
   listing_id uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone,
+  price bigint DEFAULT 0,
+  price_currency varchar(255) NOT NULL,
   attrs jsonb,
   FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
 );

@@ -78,8 +78,8 @@ func (s *ListingService) CreateSku(ctx context.Context, sku *yeahapi.ListingSku)
 
 	sku.ID = id
 
-	_, err = s.pool.Exec(ctx, "insert into listing_skus (id, custom_sku, listing_id, attrs) values ($1, $2, $3, $4)",
-		sku.ID, sku.CustomSku, sku.ListingID, sku.Attrs,
+	_, err = s.pool.Exec(ctx, "insert into listing_skus (id, custom_sku, listing_id, attrs, price, price_currency) values ($1, $2, $3, $4, $5, $6)",
+		sku.ID, sku.CustomSku, sku.ListingID, sku.Attrs, sku.Price, sku.PriceCurrency,
 	)
 
 	if err != nil {
@@ -105,8 +105,7 @@ func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeaha
 	skus := make([]yeahapi.ListingSku, 0)
 
 	rows, err := s.pool.Query(ctx,
-		`select ls.id, ls.custom_sku, ls.listing_id, ls.attrs, lsp.amount, lsp.currency, lsp.start_date from listing_skus ls
-		left join listing_sku_prices lsp on lsp.sku_id = (select id from listing_sku_prices where sku_id = ls.id order by start_date desc limit 1)`)
+		`select id, custom_sku, listing_id, attrs, price, price_currency from listing_skus`)
 
 	defer rows.Close()
 	if err != nil {
@@ -115,7 +114,7 @@ func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeaha
 
 	for rows.Next() {
 		var s yeahapi.ListingSku
-		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.Attrs, s.Price.Amount, s.Price.Currency, s.Price.StartDate); err != nil {
+		if err := rows.Scan(s.ID, s.CustomSku, s.ListingID, s.Attrs, s.Price, s.PriceCurrency); err != nil {
 			return nil, yeahapi.E(op, err)
 		}
 
@@ -127,4 +126,24 @@ func (s *ListingService) Skus(ctx context.Context, listingID uuid.UUID) ([]yeaha
 	}
 
 	return skus, nil
+}
+
+func (s *ListingService) Sku(ctx context.Context, skuID uuid.UUID) (*yeahapi.ListingSku, error) {
+	const op yeahapi.Op = "postgres/ListingService.Sku"
+
+	var sku yeahapi.ListingSku
+	err := s.pool.QueryRow(ctx,
+		"select id, custom_sku, listing_id, attrs, price, price_currency from listing_skus where id = $1",
+		skuID,
+	).Scan(&sku.ID, &sku.CustomSku, &sku.ListingID, &sku.Attrs, &sku.Price, &sku.PriceCurrency)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, yeahapi.E(op, yeahapi.ENotFound)
+		}
+
+		return nil, yeahapi.E(op, err)
+	}
+
+	return &sku, nil
 }

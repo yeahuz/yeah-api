@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -17,6 +18,7 @@ func (s *Server) registerListingRoutes() {
 	s.mux.Handle("/listings.createSku", post(s.userOnly(s.handleCreateSku())))
 	s.mux.Handle("/listings.deleteSku", post(s.userOnly(s.handleDeleteSku())))
 	s.mux.Handle("/listings.getSkus", post(s.userOnly(s.handleGetSkus())))
+	s.mux.Handle("/listings.getSku", post(s.userOnly(s.handleGetSku())))
 }
 
 type createListingData struct {
@@ -152,14 +154,11 @@ func (s *Server) handleCreateSku() Handler {
 		defer cancel()
 
 		sku, err := s.ListingService.CreateSku(ctx, &yeahapi.ListingSku{
-			ListingID: req.ListingID,
-			Price: yeahapi.ListingSkuPrice{
-				Amount:    req.UnitPrice,
-				Currency:  req.Currency,
-				StartDate: time.Now(),
-			},
-			CustomSku: req.CustomSku,
-			Attrs:     req.Attrs,
+			ListingID:     req.ListingID,
+			Price:         req.UnitPrice,
+			PriceCurrency: req.Currency,
+			CustomSku:     req.CustomSku,
+			Attrs:         req.Attrs,
 		})
 
 		if err != nil {
@@ -219,5 +218,37 @@ func (s *Server) handleGetSkus() Handler {
 		}
 
 		return JSON(w, r, http.StatusOK, response{"listing.skus", skus})
+	}
+}
+
+func (s *Server) handleGetSku() Handler {
+	const op yeahapi.Op = "http/listings.handleGetSku"
+	type request struct {
+		ID uuid.UUID `json:"sku_id"`
+	}
+	type response struct {
+		T   string              `json:"_"`
+		Sku *yeahapi.ListingSku `json:"sku"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		var req request
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return yeahapi.E(op, err)
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+
+		sku, err := s.ListingService.Sku(ctx, req.ID)
+		if err != nil {
+			if yeahapi.EIs(yeahapi.ENotFound, err) {
+				return yeahapi.E(op, err, fmt.Sprintf("SKU with id %s not found", req.ID))
+			}
+			return yeahapi.E(op, err, "Something went wrong on our end. Please, try again later")
+		}
+
+		return JSON(w, r, http.StatusOK, response{"listings.sku", sku})
 	}
 }
