@@ -162,7 +162,8 @@ CREATE TABLE IF NOT EXISTS listing_skus (
   price bigint DEFAULT 0,
   price_currency varchar(255) NOT NULL,
   attrs jsonb,
-  FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
+  FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE,
+  FOREIGN KEY (price_currency) REFERENCES currencies (code) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS listing_sku_prices (
