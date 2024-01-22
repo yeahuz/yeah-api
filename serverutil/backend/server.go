@@ -16,10 +16,6 @@ const ShutdownTimeout = 1 * time.Second
 
 type Handler func(w http.ResponseWriter, r *http.Request) error
 
-type StructName struct {
-	Name string `json:"_"`
-}
-
 type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
@@ -76,8 +72,7 @@ func (s *Server) Close() (err error) {
 		err = s.CQRSService.Close()
 	}
 
-	err = s.server.Shutdown(ctx)
-	return err
+	return s.server.Shutdown(ctx)
 }
 
 func JSON(w http.ResponseWriter, r *http.Request, status int, v any) error {

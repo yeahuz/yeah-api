@@ -17,7 +17,6 @@ import (
 	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/aws"
 	"github.com/yeahuz/yeah-api/eskiz"
-	"github.com/yeahuz/yeah-api/http"
 	"github.com/yeahuz/yeah-api/inmem"
 	"github.com/yeahuz/yeah-api/nats"
 	"github.com/yeahuz/yeah-api/postgres"
@@ -54,7 +53,7 @@ type Main struct {
 	Config     *Config
 	ConfigPath string
 	Pool       *pgxpool.Pool
-	Server     *http.Server
+	Server     *Server
 }
 
 const (
@@ -64,7 +63,7 @@ const (
 func NewMain() *Main {
 	return &Main{
 		Config:     &Config{},
-		Server:     http.NewServer(),
+		Server:     NewServer(),
 		ConfigPath: defaultConfigPath,
 	}
 }
@@ -124,11 +123,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	m.Server.KVService = kvService
 	m.Server.CategoryService = categoryService
 
-	if err := m.Server.Open(); err != nil {
-		return err
-	}
-
-	return nil
+	return m.Server.Open()
 }
 
 func (m *Main) Close() error {
