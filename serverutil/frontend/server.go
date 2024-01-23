@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/benbjohnson/hashfs"
 	yeahapi "github.com/yeahuz/yeah-api"
+	"github.com/yeahuz/yeah-api/serverutil/frontend/assets"
 )
 
 const ShutdownTimeout = 1 * time.Second
@@ -32,6 +34,7 @@ func NewServer() *Server {
 	}
 
 	s.server.Handler = http.HandlerFunc(s.serveHTTP)
+	s.mux.Handle("/assets/", http.StripPrefix("/assets/", hashfs.FileServer(assets.FS)))
 
 	s.registerAuthRoutes()
 
@@ -66,7 +69,18 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 func get(next Handler) Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
+			return nil
 		}
+		return next(w, r)
+	}
+}
+
+func post(next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodPost {
+			return nil
+		}
+
 		return next(w, r)
 	}
 }

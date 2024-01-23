@@ -1,5 +1,11 @@
 package layout
 
+import "github.com/yeahuz/yeah-api/serverutil/frontend/assets"
+
+var (
+	mainCSS = "/assets/" + assets.FS.HashName("css/main.min.css")
+)
+
 templ Base() {
 	<!DOCTYPE html>
 	<html lang="en" class="system">
@@ -10,7 +16,7 @@ templ Base() {
 			<link rel="icon" type="image/png" href="/public/images/favicon.png"/>
 			<link rel="apple-touch-icon" href="/public/images/needs-logo-192-bg.png"/>
 			<title>Needs</title>
-			<link rel="stylesheet" href="/public/css/main.min.css"/>
+			<link rel="stylesheet" href={ mainCSS }/>
 			<link rel="manifest" href="/public/app.webmanifest"/>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
