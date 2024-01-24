@@ -10,10 +10,15 @@ import "context"
 import "io"
 import "bytes"
 
-import "github.com/yeahuz/yeah-api/serverutil/frontend/assets"
+import (
+	"github.com/yeahuz/yeah-api/serverutil/frontend/assets"
+)
 
 var (
-	mainCSS = "/assets/" + assets.FS.HashName("css/main.min.css")
+	mainCSS      = "/assets/" + assets.FS.HashName("css/main.min.css")
+	faviconPng   = "/assets/" + assets.FS.HashName("images/favicon.png")
+	faviconSvg   = "/assets/" + assets.FS.HashName("images/favicon.svg")
+	faviconApple = "/assets/" + assets.FS.HashName("images/needs-logo-192-bg.png")
 )
 
 func Base() templ.Component {
@@ -29,7 +34,31 @@ func Base() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype html><html lang=\"en\" class=\"system\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><link rel=\"icon\" type=\"image/svg+xml\" href=\"/public/images/favicon.svg\"><link rel=\"icon\" type=\"image/png\" href=\"/public/images/favicon.png\"><link rel=\"apple-touch-icon\" href=\"/public/images/needs-logo-192-bg.png\"><title>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype html><html lang=\"en\" class=\"system\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><link rel=\"icon\" type=\"image/svg+xml\" href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(faviconSvg))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\"><link rel=\"icon\" type=\"image/png\" href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(faviconPng))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\"><link rel=\"apple-touch-icon\" href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(faviconApple))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\"><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -46,25 +75,11 @@ func Base() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\"><link rel=\"manifest\" href=\"/public/app.webmanifest\"><link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap\" rel=\"preload\" as=\"style\" onload=\"this.onload = null;this.rel=&#39;stylesheet&#39;\"><!--")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\"><link rel=\"manifest\" href=\"/assets/app.webmanifest\"><link rel=\"preload\" href=\"/assets/fonts/Inter.var.woff2\" as=\"font\" type=\"font/woff2\" crossorigin><meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\"><meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"#fff\"><meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"#18181b\"></head><body class=\"bg-gray-25 dark:bg-zinc-900 antialiased\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var3 := `  Shared element transitions origin trial `
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("--><meta http-equiv=\"origin-trial\" content=\"Aqweaq3dM8+Qm46hxdvkT1Ht2bG0Vk6vQz8gromNFhzIzWl57OjZnLJpF+SfKySMqAvmKG6y4PnkveHiOWEWpAsAAABXeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJmZWF0dXJlIjoiRG9jdW1lbnRUcmFuc2l0aW9uVjIiLCJleHBpcnkiOjE2NjYxMzc1OTl9\"><!--")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Var4 := ` `
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("--><meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\"><noscript><link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap\" rel=\"stylesheet\"></noscript><meta name=\"google-signin-scope\" content=\"profile email\"><meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"#fff\"><meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"#18181b\"></head><body class=\"bg-gray-25 dark:bg-zinc-900 antialiased\">")
+		templ_7745c5c3_Err = Header().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

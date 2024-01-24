@@ -66,6 +66,17 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
+func routes(routeMap map[string]Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		handler := routeMap[r.Method]
+		if handler != nil {
+			return handler(w, r)
+		}
+
+		return nil
+	}
+}
+
 func get(next Handler) Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {

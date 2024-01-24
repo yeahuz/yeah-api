@@ -1,9 +1,14 @@
 package layout
 
-import "github.com/yeahuz/yeah-api/serverutil/frontend/assets"
+import (
+	"github.com/yeahuz/yeah-api/serverutil/frontend/assets"
+)
 
 var (
-	mainCSS = "/assets/" + assets.FS.HashName("css/main.min.css")
+	mainCSS      = "/assets/" + assets.FS.HashName("css/main.min.css")
+	faviconPng   = "/assets/" + assets.FS.HashName("images/favicon.png")
+	faviconSvg   = "/assets/" + assets.FS.HashName("images/favicon.svg")
+	faviconApple = "/assets/" + assets.FS.HashName("images/needs-logo-192-bg.png")
 )
 
 templ Base() {
@@ -12,27 +17,19 @@ templ Base() {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<link rel="icon" type="image/svg+xml" href="/public/images/favicon.svg"/>
-			<link rel="icon" type="image/png" href="/public/images/favicon.png"/>
-			<link rel="apple-touch-icon" href="/public/images/needs-logo-192-bg.png"/>
+			<link rel="icon" type="image/svg+xml" href={ faviconSvg }/>
+			<link rel="icon" type="image/png" href={ faviconPng }/>
+			<link rel="apple-touch-icon" href={ faviconApple }/>
 			<title>Needs</title>
 			<link rel="stylesheet" href={ mainCSS }/>
-			<link rel="manifest" href="/public/app.webmanifest"/>
-			<link rel="preconnect" href="https://fonts.googleapis.com"/>
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-			<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload = null;this.rel='stylesheet'"/>
-			<!--  Shared element transitions origin trial -->
-			<meta http-equiv="origin-trial" content="Aqweaq3dM8+Qm46hxdvkT1Ht2bG0Vk6vQz8gromNFhzIzWl57OjZnLJpF+SfKySMqAvmKG6y4PnkveHiOWEWpAsAAABXeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJmZWF0dXJlIjoiRG9jdW1lbnRUcmFuc2l0aW9uVjIiLCJleHBpcnkiOjE2NjYxMzc1OTl9"/>
-			<!-- -->
+			<link rel="manifest" href="/assets/app.webmanifest"/>
+			<link rel="preload" href="/assets/fonts/Inter.var.woff2" as="font" type="font/woff2" crossorigin/>
 			<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-			<noscript>
-				<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-			</noscript>
-			<meta name="google-signin-scope" content="profile email"/>
 			<meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff"/>
 			<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18181b"/>
 		</head>
 		<body class="bg-gray-25 dark:bg-zinc-900 antialiased">
+			@Header()
 			{ children... }
 		</body>
 	</html>

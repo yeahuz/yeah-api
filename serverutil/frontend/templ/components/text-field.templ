@@ -1,0 +1,13 @@
+package components
+
+templ TextField(name, label string) {
+	<div class="relative">
+		<label for={ name } class="block absolute -top-3.5 left-3.5 z-10 left-0 p-0 text-sm whitespace-nowrap overflow-hidden">{ label }</label>
+		<div class="relative rounded-sm">
+			<input id={ name } name={ name } type="text" class="border-0 outline-none p-2.5 w-full"/>
+			<fieldset class="px-2 absolute m-0 pointer-events-none border-inherit border border-red-600 min-w-0 inset-x-0 bottom-0 -top-3">
+				<legend class="whitespace-nowrap invisible text-sm overflow-hidden px-2">{ label }</legend>
+			</fieldset>
+		</div>
+	</div>
+}

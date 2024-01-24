@@ -1,9 +1,19 @@
 package auth
 
-import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/layout"
+import (
+	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/layout"
+	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/components"
+)
 
 templ Login() {
 	@layout.Base() {
-		<h1>Hello world!</h1>
+		<div class="max-w-3xl mx-auto space-y-8 mt-20 px-4">
+			<h1 class="font-semibold text-4xl text-gray-900 dark:text-white">Login</h1>
+			<div class="flex">
+				<form class="w-full md:max-w-sm">
+					@components.TextField("email", "Email")
+				</form>
+			</div>
+		</div>
 	}
 }

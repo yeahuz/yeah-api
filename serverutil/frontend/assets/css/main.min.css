@@ -1,12 +1,844 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+! tailwindcss v3.4.1 | MIT License | https://tailwindcss.com
+*/
+
+/*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  /* 1 */
+  border-width: 0;
+  /* 2 */
+  border-style: solid;
+  /* 2 */
+  border-color: rgb(var(--gray-200));
+  /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5;
+  /* 1 */
+  -webkit-text-size-adjust: 100%;
+  /* 2 */
+  -moz-tab-size: 4;
+  /* 3 */
+  -o-tab-size: 4;
+     tab-size: 4;
+  /* 3 */
+  font-family: Inter;
+  /* 4 */
+  font-feature-settings: normal;
+  /* 5 */
+  font-variation-settings: normal;
+  /* 6 */
+  -webkit-tap-highlight-color: transparent;
+  /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0;
+  /* 1 */
+  line-height: inherit;
+  /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0;
+  /* 1 */
+  color: inherit;
+  /* 2 */
+  border-top-width: 1px;
+  /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+          text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* 1 */
+  font-feature-settings: normal;
+  /* 2 */
+  font-variation-settings: normal;
+  /* 3 */
+  font-size: 1em;
+  /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0;
+  /* 1 */
+  border-color: inherit;
+  /* 2 */
+  border-collapse: collapse;
+  /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  /* 1 */
+  font-feature-settings: inherit;
+  /* 1 */
+  font-variation-settings: inherit;
+  /* 1 */
+  font-size: 100%;
+  /* 1 */
+  font-weight: inherit;
+  /* 1 */
+  line-height: inherit;
+  /* 1 */
+  color: inherit;
+  /* 1 */
+  margin: 0;
+  /* 2 */
+  padding: 0;
+  /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+  -webkit-appearance: button;
+  /* 1 */
+  background-color: transparent;
+  /* 2 */
+  background-image: none;
+  /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield;
+  /* 1 */
+  outline-offset: -2px;
+  /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  /* 1 */
+  font: inherit;
+  /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::-moz-placeholder, textarea::-moz-placeholder {
+  opacity: 1;
+  /* 1 */
+  color: rgb(var(--gray-400));
+  /* 2 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  /* 1 */
+  color: rgb(var(--gray-400));
+  /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  /* 1 */
+  vertical-align: middle;
+  /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+
+[hidden] {
+  display: none;
+}
+
+*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.relative {
+  position: relative;
+}
+
+.inset-x-0 {
+  left: 0px;
+  right: 0px;
+}
+
+.top-0 {
+  top: 0px;
+}
+
+.left-0 {
+  left: 0px;
+}
+
+.-top-3 {
+  top: -0.75rem;
+}
+
+.bottom-0 {
+  bottom: 0px;
+}
+
+.-top-4 {
+  top: -1rem;
+}
+
+.-top-2 {
+  top: -0.5rem;
+}
+
+.left-2 {
+  left: 0.5rem;
+}
+
+.left-3 {
+  left: 0.75rem;
+}
+
+.left-4 {
+  left: 1rem;
+}
+
+.-top-3\.5 {
+  top: -0.875rem;
+}
+
+.left-3\.5 {
+  left: 0.875rem;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.-m-3 {
+  margin: -0.75rem;
+}
+
+.m-0 {
+  margin: 0px;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.ml-auto {
+  margin-left: auto;
+}
+
+.mt-20 {
+  margin-top: 5rem;
+}
+
+.block {
+  display: block;
+}
+
+.flex {
+  display: flex;
+}
+
+.hidden {
+  display: none;
+}
+
+.h-6 {
+  height: 1.5rem;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.w-14 {
+  width: 3.5rem;
+}
+
+.w-6 {
+  width: 1.5rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.min-w-0 {
+  min-width: 0px;
+}
+
+.max-w-7xl {
+  max-width: 80rem;
+}
+
+.max-w-3xl {
+  max-width: 48rem;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.space-x-5 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 0;
+  margin-right: calc(1.25rem * var(--tw-space-x-reverse));
+  margin-left: calc(1.25rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(2rem * var(--tw-space-y-reverse));
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.rounded-sm {
+  border-radius: 0.125rem;
+}
+
+.border {
+  border-width: 1px;
+}
+
+.border-0 {
+  border-width: 0px;
+}
+
+.border-gray-200 {
+  border-color: rgb(var(--gray-200));
+}
+
+.border-inherit {
+  border-color: inherit;
+}
+
+.border-red-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(254 202 202 / var(--tw-border-opacity));
+}
+
+.border-red-600 {
+  --tw-border-opacity: 1;
+  border-color: rgb(220 38 38 / var(--tw-border-opacity));
+}
+
+.border-b-gray-200 {
+  border-bottom-color: rgb(var(--gray-200));
+}
+
+.bg-gray-25 {
+  background-color: rgb(var(--gray-25));
+}
+
+.bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity));
+}
+
+.p-3 {
+  padding: 0.75rem;
+}
+
+.p-2 {
+  padding: 0.5rem;
+}
+
+.p-2\.5 {
+  padding: 0.625rem;
+}
+
+.p-0 {
+  padding: 0px;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.text-primary-600 {
+  color: rgb(var(--primary-600));
+}
+
+.text-gray-900 {
+  color: rgb(var(--gray-900));
+}
+
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.outline-none {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.duration-300 {
+  transition-duration: 300ms;
+}
 
 @font-face {
   font-family: "Inter";
+
   font-style: normal;
+
   font-display: swap;
+
   src: url(/assets/fonts/Inter.var.woff2) format('woff2-variations');
+
   font-weight: 1 1000;
 }
 
@@ -15,7 +847,6 @@ html {
   --white: 255, 255, 255;
   --black: 0, 0, 0;
   --transparent: 0, 0, 0, 0;
-
   /* Zinc */
   --zinc-50: 250, 250, 250;
   --zinc-100: 244, 244, 245;
@@ -27,7 +858,6 @@ html {
   --zinc-700: 63, 63, 70;
   --zinc-800: 39, 39, 42;
   --zinc-900: 24, 24, 27;
-
   /* Gray */
   --gray-25: 252, 252, 253;
   --gray-50: 249, 250, 251;
@@ -40,7 +870,6 @@ html {
   --gray-700: 52, 64, 84;
   --gray-800: 29, 41, 57;
   --gray-900: 16, 24, 40;
-
   /* Primary */
   --primary-25: 245, 248, 255;
   --primary-50: 239, 244, 255;
@@ -55,7 +884,6 @@ html {
   --primary-700: 0, 102, 233;
   --primary-800: 0, 64, 193;
   --primary-900: 0, 53, 158;
-
   /* Red */
   --error-25: 255, 251, 250;
   --error-50: 254, 243, 242;
@@ -65,7 +893,6 @@ html {
   --error-600: 217, 45, 32;
   --error-700: 180, 35, 24;
   --error-800: 144, 32, 24;
-
   /* Green */
   --success-25: 246, 254, 249;
   --success-50: 236, 253, 243;
@@ -73,7 +900,6 @@ html {
   --success-600: 3, 152, 85;
   --success-700: 2, 122, 72;
   --success-800: 8, 93, 58;
-
   /* Yellow */
   --yellow-25: 255, 252, 245;
   --yellow-50: 255, 250, 235;
@@ -82,7 +908,6 @@ html {
   --yellow-600: 220, 104, 3;
   --yellow-700: 181, 71, 8;
   --yellow-800: 147, 55, 13;
-
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(var(--gray-900), 0.05);
   --shadow-sm: 0 1px 3px rgba(var(--gray-900), 0.1), 0 1px 2px rgba(var(--gray-900), 0.06);
@@ -93,12 +918,10 @@ html {
     0 8px 8px -4px rgba(var(--gray-900), 0.03);
   --shadow-2xl: 0 24px 48px -12px rgba(var(--gray-900), 0.18);
   --shadow-3xl: 0 32px 64px -12px rgba(var(--gray-900), 0.14);
-
   /* Dialog */
   --color-dialog-bg: var(--white);
   --color-dialog-text: var(--gray-700);
   --shadow-dialog: var(--shadow-xs);
-
   /* Default button */
   --color-btn-bg: var(--white);
   --color-btn-text: var(--gray-500);
@@ -108,7 +931,6 @@ html {
   --color-btn-ring: var(--gray-100);
   --color-btn-ripple-bg: var(--gray-400);
   --shadow-btn: none;
-
   /* Text button */
   --color-text-btn-bg: var(--transparent);
   --color-text-btn-text: var(--primary-600);
@@ -117,7 +939,6 @@ html {
   --color-text-btn-text-hover: var(--primary-700);
   --color-text-btn-ripple-bg: var(--white);
   --color-text-btn-ring: var(--primary-100);
-
   /* Primary button */
   --color-primary-btn-bg: var(--primary-600);
   --color-primary-btn-text: var(--white);
@@ -126,7 +947,6 @@ html {
   --color-primary-btn-ripple-bg: var(--white);
   --color-primary-btn-ring: var(--primary-100);
   --shadow-primary-btn: var(--shadow-xs);
-
   /* Secondary button */
   --color-secondary-btn-bg: var(--white);
   --color-secondary-btn-text: var(--gray-700);
@@ -136,7 +956,6 @@ html {
   --color-secondary-btn-ripple-bg: var(--gray-400);
   --color-secondary-btn-hover: var(--gray-50);
   --shadow-secondary-btn: var(--shadow-xs);
-
   /* Tertiary button color */
   --color-tertiary-cr-btn-bg: var(--transparent);
   --color-tertiary-cr-btn-text: var(--gray-500);
@@ -145,7 +964,6 @@ html {
   --color-tertiary-cr-btn-ring: var(--primary-100);
   --color-tertiary-cr-btn-ripple-bg: var(--primary-400);
   --shadow-tertiary-cr-btn: var(--transparent);
-
   /* Tertiary button danger */
   --color-tertiary-danger-btn-bg: var(--transparent);
   --color-tertiary-danger-btn-text: var(--error-700);
@@ -154,7 +972,6 @@ html {
   --color-tertiary-danger-btn-ring: var(--error-50);
   --color-tertiary-danger-btn-ripple-bg: var(--error-400);
   --shadow-tertiary-danger-btn: var(--transparent);
-
   /* Secondary button color */
   --color-secondary-cr-btn-bg: var(--primary-50);
   --color-secondary-cr-btn-text: var(--primary-700);
@@ -164,7 +981,6 @@ html {
   --color-secondary-cr-btn-ring: var(--primary-100);
   --color-secondary-cr-btn-ripple-bg: var(--primary-400);
   --shadow-secondary-cr-btn: var(shadow-xs);
-
   /* Form control */
   --color-form-control-placeholder: var(--gray-500);
   --color-form-control-text: var(--gray-900);
@@ -176,34 +992,27 @@ html {
   --color-form-control-border-focused: var(--primary-300);
   --shadow-form-control-focused: 0 0 0 4px rgb(var(--color-form-control-ring));
   --shadow-form-control: var(--shadow-xs);
-
   /* Badge */
   --color-badge-text: var(--gray-700);
   --color-badge-bg: var(--gray-100);
-
   /* Badge success */
   --color-success-badge-bg: var(--success-50);
   --color-success-badge-text: var(--success-700);
-
   /* Tooltip */
   --tooltip-bg: var(--gray-900);
   --tooltip-text: var(--white);
-
   /* Toast */
   --color-toast-bg: var(--gray-25);
   --color-toast-border: var(--gray-300);
   --color-toast-text: var(--gray-700);
-
   /* Toast error */
   --color-toast-err-bg: var(--error-25);
   --color-toast-err-border: var(--error-300);
   --color-toast-err-text: var(--error-700);
-
   /* Toast error */
   --color-toast-info-bg: var(--yellow-25);
   --color-toast-info-border: var(--yellow-300);
   --color-toast-info-text: var(--yellow-700);
-
   /* Toast success */
   --color-toast-success-bg: var(--success-25);
   --color-toast-success-border: var(--success-300);
@@ -216,19 +1025,15 @@ html.light {
 
 html.dark {
   color-scheme: dark;
-
   /* Dialog */
   --color-dialog-bg: var(--zinc-900);
   --color-dialog-text: var(--gray-200);
   --shadow-dialog: var(--shadow-md);
-
   /* Text button */
   --color-text-btn-text-hover: var(--primary-500);
   --color-text-btn-ring: var(--primary-600);
-
   /* Primary button */
   --color-primary-btn-ring: var(--primary-400);
-
   /* Secondary button */
   --color-secondary-btn-bg: var(--zinc-900);
   --color-secondary-btn-border: var(--zinc-700);
@@ -237,24 +1042,20 @@ html.dark {
   --color-secondary-btn-text-hover: var(--white);
   --color-secondary-btn-ring: var(--zinc-800);
   --color-secondary-btn-ripple-bg: var(--zinc-400);
-
   /* Tertiary button color */
   --color-tertiary-cr-btn-text: var(--gray-300);
   --color-tertiary-cr-btn-hover: var(--zinc-800);
   --color-tertiary-cr-btn-ring: var(--zinc-800);
   --color-tertiary-cr-btn-ripple-bg: var(--zinc-600);
-
   /* Secondary button color */
   --color-secondary-cr-btn-bg: var(--zinc-800);
   --color-secondary-cr-btn-hover: var(--zinc-700);
   --color-secondary-cr-btn-ring: var(--zinc-800);
   --color-secondary-cr-btn-ripple-bg: var(--zinc-600);
-
   /* Tertiary button danger */
   --color-tertiary-danger-btn-hover: var(--zinc-800);
   --color-tertiary-danger-btn-text-hover: var(--error-600);
   --color-tertiary-danger-btn-ring: var(--zinc-800);
-
   /* Form control */
   --color-form-control-placeholder: var(--gray-400);
   --color-form-control-text: var(--white);
@@ -263,34 +1064,27 @@ html.dark {
   --color-form-control-ring: var(--zinc-800);
   --color-form-control-bg-disabled: var(--zinc-800);
   --color-form-control-border-focused: var(--zinc-600);
-
   /* Badge */
   --color-badge-text: var(--gray-300);
   --color-badge-bg: var(--zinc-800);
-
   /* Badge success */
   --color-success-badge-bg: var(--zinc-800);
   --color-success-badge-text: var(--success-600);
-
   /* Tooltip */
   --tooltip-bg: var(--primary-600);
   --tooltip-text: var(--white);
-
   /* Toast */
   --color-toast-bg: var(--zinc-900);
   --color-toast-border: var(--zinc-800);
   --color-toast-text: var(--white);
-
   /* Toast error */
   --color-toast-err-bg: var(--zinc-900);
   --color-toast-err-border: var(--error-800);
   --color-toast-err-text: var(--error-700);
-
   /* Toast info */
   --color-toast-info-bg: var(--zinc-900);
   --color-toast-info-border: var(--yellow-700);
   --color-toast-info-text: var(--yellow-600);
-
   /* Toast success */
   --color-toast-success-bg: var(--zinc-900);
   --color-toast-success-border: var(--success-800);
@@ -305,6 +1099,11 @@ a.link {
 a.link:hover {
   text-decoration: underline;
   text-decoration-color: rgb(var(--primary-500));
+}
+
+::-moz-selection {
+  background: rgb(var(--primary-600));
+  color: rgb(var(--white));
 }
 
 ::selection {
@@ -517,7 +1316,6 @@ button:disabled {
   --border-color: var(--transparent);
 }
 
-
 .form-control {
   --placeholder-color: var(--color-form-control-placeholder);
   --text-color: var(--color-form-control-text);
@@ -537,7 +1335,9 @@ button:disabled {
   width: 100%;
   font-size: var(--font-size);
   line-height: 1.5;
-  appearance: none;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
   font-weight: 400;
 }
 
@@ -549,6 +1349,10 @@ button:disabled {
 .form-control:disabled {
   --bg-color: var(--color-form-control-bg-disabled);
   --text-color: var(--color-form-control-text-disabled);
+}
+
+.form-control::-moz-placeholder {
+  color: rgb(var(--placeholder-color));
 }
 
 .form-control::placeholder {
@@ -699,6 +1503,7 @@ checkbox-control {
 }
 
 /* https://github.com/nzbin/three-dots/blob/master/dist/three-dots.css */
+
 .dot-pulse {
   --size: 0.625rem;
   --bg-color: var(--white);
@@ -962,21 +1767,6 @@ j [data-tooltip][data-flow="right"]::before {
   }
 }
 
-@-webkit-keyframes dot-pulse-before {
-  0% {
-    box-shadow: 9984px 0 0 -5px;
-  }
-
-  30% {
-    box-shadow: 9984px 0 0 2px;
-  }
-
-  60%,
-  100% {
-    box-shadow: 9984px 0 0 -5px;
-  }
-}
-
 @keyframes dot-pulse-before {
   0% {
     box-shadow: 9984px 0 0 -5px;
@@ -992,21 +1782,6 @@ j [data-tooltip][data-flow="right"]::before {
   }
 }
 
-@-webkit-keyframes dot-pulse {
-  0% {
-    box-shadow: 9999px 0 0 -5px;
-  }
-
-  30% {
-    box-shadow: 9999px 0 0 2px;
-  }
-
-  60%,
-  100% {
-    box-shadow: 9999px 0 0 -5px;
-  }
-}
-
 @keyframes dot-pulse {
   0% {
     box-shadow: 9999px 0 0 -5px;
@@ -1019,21 +1794,6 @@ j [data-tooltip][data-flow="right"]::before {
   60%,
   100% {
     box-shadow: 9999px 0 0 -5px;
-  }
-}
-
-@-webkit-keyframes dot-pulse-after {
-  0% {
-    box-shadow: 10014px 0 0 -5px;
-  }
-
-  30% {
-    box-shadow: 10014px 0 0 2px;
-  }
-
-  60%,
-  100% {
-    box-shadow: 10014px 0 0 -5px;
   }
 }
 
@@ -1099,5 +1859,41 @@ j [data-tooltip][data-flow="right"]::before {
     margin-block-end: 0;
     padding: 0;
     width: 100%;
+  }
+}
+
+:is(.dark .dark\:border-b-zinc-800) {
+  --tw-border-opacity: 1;
+  border-bottom-color: rgb(39 39 42 / var(--tw-border-opacity));
+}
+
+:is(.dark .dark\:bg-zinc-900) {
+  --tw-bg-opacity: 1;
+  background-color: rgb(24 24 27 / var(--tw-bg-opacity));
+}
+
+:is(.dark .dark\:text-white) {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+
+@media (min-width: 768px) {
+  .md\:flex {
+    display: flex;
+  }
+
+  .md\:hidden {
+    display: none;
+  }
+
+  .md\:max-w-sm {
+    max-width: 24rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .xl\:px-0 {
+    padding-left: 0px;
+    padding-right: 0px;
   }
 }

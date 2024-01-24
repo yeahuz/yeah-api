@@ -1,0 +1,46 @@
+{
+  "name": "needs",
+  "short_name": "needs",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/public/images/needs-logo-512-bg.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/public/images/needs-logo-1024-bg.png",
+      "type": "image/png",
+      "sizes": "1024x1024"
+    },
+    {
+      "src": "/public/images/needs-logo-512-bg.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "background_color": "#0070f3",
+  "lang": "en",
+  "orientation": "any",
+  "description": "Search and create listings with ease.",
+  "categories": [
+    "business",
+    "shopping"
+  ],
+  "shortcuts": [
+    {
+      "name": "Create new listing",
+      "short_name": "New listing",
+      "description": "Quickly create an amazing listing for free.",
+      "url": "/listings/wizard"
+    },
+    {
+      "name": "Browse listings",
+      "short_name": "Browse",
+      "description": "Looking for something? Browse our listings",
+      "url": "/listings"
+    }
+  ]
+}
