@@ -101,7 +101,8 @@ func (s *Server) registerAuthRoutes() {
 
 func (s *Server) handleGetLogin() Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		return auth.Login().Render(r.Context(), w)
+		method := r.URL.Query().Get("method")
+		return auth.Login(auth.LoginProps{Method: method}).Render(r.Context(), w)
 	}
 }
 

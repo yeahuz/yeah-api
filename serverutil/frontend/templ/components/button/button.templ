@@ -21,7 +21,7 @@ templ Base(props Props) {
 }
 
 templ Primary(props Props) {
-	@Base(Props{variant: "primary", Size: props.Size, Class: props.Class}) {
+	@Base(Props{variant: "primary", Size: props.Size, Class: props.Class, Href: props.Href}) {
 		{ children... }
 	}
 }

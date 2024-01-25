@@ -5,4 +5,5 @@ type Props struct {
 	Label       string
 	Type        string
 	Placeholder string
+	Prefix      string
 }
