@@ -1,0 +1,39 @@
+package button
+
+type Props struct {
+	variant string
+	Size    string
+	Class   string
+	Href    string
+	Type    string
+}
+
+templ Base(props Props) {
+	if len(props.Href) > 0 {
+		<a class={ "btn", "btn-" + props.variant, "btn-" + props.Size, props.Class } href={ templ.SafeURL(props.Href) }>
+			{ children... }
+		</a>
+	} else {
+		<button class={ "btn", "btn-" + props.variant, "btn-" + props.Size, props.Class }>
+			{ children... }
+		</button>
+	}
+}
+
+templ Primary(props Props) {
+	@Base(Props{variant: "primary", Size: props.Size, Class: props.Class}) {
+		{ children... }
+	}
+}
+
+templ TertiaryColor(props Props) {
+	@Base(Props{variant: "tertiary-color", Size: props.Size, Class: props.Class, Href: props.Href}) {
+		{ children... }
+	}
+}
+
+templ Secondary(props Props) {
+	@Base(Props{variant: "secondary", Size: props.Size, Class: props.Class, Href: props.Href}) {
+		{ children... }
+	}
+}

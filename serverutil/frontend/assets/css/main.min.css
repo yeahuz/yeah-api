@@ -544,89 +544,8 @@ video {
   --tw-backdrop-sepia:  ;
 }
 
-.pointer-events-none {
-  pointer-events: none;
-}
-
-.invisible {
-  visibility: hidden;
-}
-
-.absolute {
-  position: absolute;
-}
-
-.relative {
-  position: relative;
-}
-
-.inset-x-0 {
-  left: 0px;
-  right: 0px;
-}
-
-.top-0 {
-  top: 0px;
-}
-
-.left-0 {
-  left: 0px;
-}
-
-.-top-3 {
-  top: -0.75rem;
-}
-
-.bottom-0 {
-  bottom: 0px;
-}
-
-.-top-4 {
-  top: -1rem;
-}
-
-.-top-2 {
-  top: -0.5rem;
-}
-
-.left-2 {
-  left: 0.5rem;
-}
-
-.left-3 {
-  left: 0.75rem;
-}
-
-.left-4 {
-  left: 1rem;
-}
-
-.-top-3\.5 {
-  top: -0.875rem;
-}
-
-.left-3\.5 {
-  left: 0.875rem;
-}
-
-.-top-2\.5 {
-  top: -0.625rem;
-}
-
-.left-2\.5 {
-  left: 0.625rem;
-}
-
-.z-10 {
-  z-index: 10;
-}
-
 .-m-3 {
   margin: -0.75rem;
-}
-
-.m-0 {
-  margin: 0px;
 }
 
 .mx-auto {
@@ -638,16 +557,48 @@ video {
   margin-bottom: 0.25rem;
 }
 
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
 .ml-auto {
   margin-left: auto;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+.mt-1\.5 {
+  margin-top: 0.375rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
 }
 
 .mt-20 {
   margin-top: 5rem;
 }
 
+.mt-5 {
+  margin-top: 1.25rem;
+}
+
+.mt-6 {
+  margin-top: 1.5rem;
+}
+
 .block {
   display: block;
+}
+
+.inline-block {
+  display: inline-block;
 }
 
 .flex {
@@ -662,14 +613,6 @@ video {
   height: 1.5rem;
 }
 
-.h-full {
-  height: 100%;
-}
-
-.h-8 {
-  height: 2rem;
-}
-
 .w-14 {
   width: 3.5rem;
 }
@@ -682,16 +625,16 @@ video {
   width: 100%;
 }
 
-.min-w-0 {
-  min-width: 0px;
+.max-w-3xl {
+  max-width: 48rem;
 }
 
 .max-w-7xl {
   max-width: 80rem;
 }
 
-.max-w-3xl {
-  max-width: 48rem;
+.flex-col {
+  flex-direction: column;
 }
 
 .items-center {
@@ -714,55 +657,8 @@ video {
   margin-bottom: calc(2rem * var(--tw-space-y-reverse));
 }
 
-.overflow-hidden {
-  overflow: hidden;
-}
-
-.whitespace-nowrap {
-  white-space: nowrap;
-}
-
-.rounded-sm {
-  border-radius: 0.125rem;
-}
-
-.rounded-\[inherit\] {
-  border-radius: inherit;
-}
-
-.rounded-md {
-  border-radius: 0.375rem;
-}
-
-.border {
-  border-width: 1px;
-}
-
-.border-0 {
-  border-width: 0px;
-}
-
-.border-gray-200 {
-  border-color: rgb(var(--gray-200));
-}
-
-.border-inherit {
-  border-color: inherit;
-}
-
-.border-red-200 {
-  --tw-border-opacity: 1;
-  border-color: rgb(254 202 202 / var(--tw-border-opacity));
-}
-
-.border-red-600 {
-  --tw-border-opacity: 1;
-  border-color: rgb(220 38 38 / var(--tw-border-opacity));
-}
-
-.border-red-500 {
-  --tw-border-opacity: 1;
-  border-color: rgb(239 68 68 / var(--tw-border-opacity));
+.self-end {
+  align-self: flex-end;
 }
 
 .border-b-gray-200 {
@@ -778,25 +674,8 @@ video {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
 }
 
-.bg-red-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(239 68 68 / var(--tw-bg-opacity));
-}
-
 .p-3 {
   padding: 0.75rem;
-}
-
-.p-2 {
-  padding: 0.5rem;
-}
-
-.p-2\.5 {
-  padding: 0.625rem;
-}
-
-.p-0 {
-  padding: 0px;
 }
 
 .px-4 {
@@ -814,14 +693,9 @@ video {
   padding-bottom: 1rem;
 }
 
-.px-2 {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
-
-.px-3 {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
 }
 
 .text-lg {
@@ -829,30 +703,29 @@ video {
   line-height: 1.75rem;
 }
 
-.text-4xl {
-  font-size: 2.25rem;
-  line-height: 2.5rem;
-}
-
 .text-sm {
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+.font-medium {
+  font-weight: 500;
 }
 
 .font-semibold {
   font-weight: 600;
 }
 
-.text-primary-600 {
-  color: rgb(var(--primary-600));
+.text-gray-700 {
+  color: rgb(var(--gray-700));
 }
 
 .text-gray-900 {
   color: rgb(var(--gray-900));
 }
 
-.text-gray-700 {
-  color: rgb(var(--gray-700));
+.text-primary-600 {
+  color: rgb(var(--primary-600));
 }
 
 .antialiased {
@@ -860,17 +733,8 @@ video {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.outline-none {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-}
-
 .duration-300 {
   transition-duration: 300ms;
-}
-
-.duration-200 {
-  transition-duration: 200ms;
 }
 
 @font-face {
@@ -971,7 +835,6 @@ html {
   --color-btn-border: var(--transparent);
   --color-btn-hover: var(--gray-50);
   --color-btn-text-hover: var(--gray-600);
-  --color-btn-ring: var(--gray-100);
   --color-btn-ripple-bg: var(--gray-400);
   --shadow-btn: none;
   /* Text button */
@@ -981,21 +844,18 @@ html {
   --color-text-btn-hover: var(--transparent);
   --color-text-btn-text-hover: var(--primary-700);
   --color-text-btn-ripple-bg: var(--white);
-  --color-text-btn-ring: var(--primary-100);
   /* Primary button */
   --color-primary-btn-bg: var(--primary-600);
   --color-primary-btn-text: var(--white);
   --color-primary-btn-hover: var(--primary-700);
   --color-primary-btn-text-hover: var(--white);
   --color-primary-btn-ripple-bg: var(--white);
-  --color-primary-btn-ring: var(--primary-100);
   --shadow-primary-btn: var(--shadow-xs);
   /* Secondary button */
   --color-secondary-btn-bg: var(--white);
   --color-secondary-btn-text: var(--gray-700);
   --color-secondary-btn-border: var(--gray-300);
   --color-secondary-btn-text-hover: var(--gray-800);
-  --color-secondary-btn-ring: var(--gray-100);
   --color-secondary-btn-ripple-bg: var(--gray-400);
   --color-secondary-btn-hover: var(--gray-50);
   --shadow-secondary-btn: var(--shadow-xs);
@@ -1004,7 +864,6 @@ html {
   --color-tertiary-cr-btn-text: var(--gray-500);
   --color-tertiary-cr-btn-text-hover: var(--primary-700);
   --color-tertiary-cr-btn-hover: var(--primary-50);
-  --color-tertiary-cr-btn-ring: var(--primary-100);
   --color-tertiary-cr-btn-ripple-bg: var(--primary-400);
   --shadow-tertiary-cr-btn: var(--transparent);
   /* Tertiary button danger */
@@ -1012,7 +871,6 @@ html {
   --color-tertiary-danger-btn-text: var(--error-700);
   --color-tertiary-danger-btn-hover: var(--error-50);
   --color-tertiary-danger-btn-text-hover: var(--error-800);
-  --color-tertiary-danger-btn-ring: var(--error-50);
   --color-tertiary-danger-btn-ripple-bg: var(--error-400);
   --shadow-tertiary-danger-btn: var(--transparent);
   /* Secondary button color */
@@ -1021,19 +879,16 @@ html {
   --color-secondary-cr-btn-border: var(--transparent);
   --color-secondary-cr-btn-hover: var(--primary-100);
   --color-secondary-cr-btn-text-hover: var(--primary-700);
-  --color-secondary-cr-btn-ring: var(--primary-100);
   --color-secondary-cr-btn-ripple-bg: var(--primary-400);
   --shadow-secondary-cr-btn: var(shadow-xs);
   /* Form control */
   --color-form-control-placeholder: var(--gray-500);
   --color-form-control-text: var(--gray-900);
   --color-form-control-border: var(--gray-300);
-  --color-form-control-bg: var(--white);
-  --color-form-control-ring: var(--primary-100);
+  --color-form-control-bg: var(--gray-100);
   --color-form-control-bg-disabled: var(--gray-50);
   --color-form-control-text-disabled: var(--gray-500);
-  --color-form-control-border-focused: var(--primary-300);
-  --shadow-form-control-focused: 0 0 0 4px rgb(var(--color-form-control-ring));
+  --color-form-control-border-focused: var(--primary-500);
   --shadow-form-control: var(--shadow-xs);
   /* Badge */
   --color-badge-text: var(--gray-700);
@@ -1074,37 +929,29 @@ html.dark {
   --shadow-dialog: var(--shadow-md);
   /* Text button */
   --color-text-btn-text-hover: var(--primary-500);
-  --color-text-btn-ring: var(--primary-600);
-  /* Primary button */
-  --color-primary-btn-ring: var(--primary-400);
   /* Secondary button */
   --color-secondary-btn-bg: var(--zinc-900);
   --color-secondary-btn-border: var(--zinc-700);
   --color-secondary-btn-text: var(--gray-300);
   --color-secondary-btn-hover: var(--zinc-800);
   --color-secondary-btn-text-hover: var(--white);
-  --color-secondary-btn-ring: var(--zinc-800);
   --color-secondary-btn-ripple-bg: var(--zinc-400);
   /* Tertiary button color */
   --color-tertiary-cr-btn-text: var(--gray-300);
   --color-tertiary-cr-btn-hover: var(--zinc-800);
-  --color-tertiary-cr-btn-ring: var(--zinc-800);
   --color-tertiary-cr-btn-ripple-bg: var(--zinc-600);
   /* Secondary button color */
   --color-secondary-cr-btn-bg: var(--zinc-800);
   --color-secondary-cr-btn-hover: var(--zinc-700);
-  --color-secondary-cr-btn-ring: var(--zinc-800);
   --color-secondary-cr-btn-ripple-bg: var(--zinc-600);
   /* Tertiary button danger */
   --color-tertiary-danger-btn-hover: var(--zinc-800);
   --color-tertiary-danger-btn-text-hover: var(--error-600);
-  --color-tertiary-danger-btn-ring: var(--zinc-800);
   /* Form control */
   --color-form-control-placeholder: var(--gray-400);
   --color-form-control-text: var(--white);
   --color-form-control-border: var(--zinc-800);
   --color-form-control-bg: var(--zinc-900);
-  --color-form-control-ring: var(--zinc-800);
   --color-form-control-bg-disabled: var(--zinc-800);
   --color-form-control-border-focused: var(--zinc-600);
   /* Badge */
@@ -1176,11 +1023,6 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-form:invalid .btn:not(.btn-enabled) {
-  --events: none;
-  --opacity: 0.7;
-}
-
 details:not(.no-overlay)[open] summary::before {
   position: fixed;
   top: 0;
@@ -1194,14 +1036,12 @@ details:not(.no-overlay)[open] summary::before {
 .btn {
   --text-color: var(--color-btn-text);
   --bg-color: var(--color-btn-bg);
-  --size-x: 1.25rem;
-  --size-y: 0.75rem;
+  --size-x: 1rem;
   --size: 0.75rem 1.25rem;
   --border-color: var(--color-btn-border);
   --shadow: var(--shadow-btn);
   --bg-hover: var(--color-btn-hover);
   --text-hover: var(--color-btn-text-hover);
-  --ring-color: var(--color-btn-ring);
   --ripple-bg: var(--color-btn-ripple-bg);
   --events: all;
   --opacity: 1;
@@ -1209,17 +1049,20 @@ details:not(.no-overlay)[open] summary::before {
   --align: center;
   --justify: center;
   --radius: 0.5rem;
+  --height: 2.5rem;
+  --outline-color: var(--transparent);
+  height: var(--height);
+  padding: 0 var(--size-x);
   background: rgb(var(--bg-color));
   color: rgb(var(--text-color));
-  padding: var(--size-y) var(--size-x);
   border: 1px solid rgb(var(--border-color));
   box-shadow: var(--shadow);
-  transition-duration: 200ms;
   border-radius: var(--radius);
   display: flex;
   justify-content: var(--justify);
   align-items: var(--align);
-  outline: none;
+  outline: 2px solid rgba(var(--outline-color));
+  outline-offset: 2px;
   pointer-events: var(--events);
   opacity: var(--opacity);
   font-weight: 500;
@@ -1227,6 +1070,7 @@ details:not(.no-overlay)[open] summary::before {
   font-size: var(--font-size);
   position: relative;
   overflow: hidden;
+  transition: background 200ms, color 200ms, outline-color 200ms ease-in-out;
 }
 
 button {
@@ -1249,7 +1093,9 @@ button:disabled {
 }
 
 .btn:focus-visible {
-  --shadow: 0 0 0 4px rgb(var(--ring-color));
+  --outline-color: var(--primary-500);
+  --bg-color: var(--bg-hover);
+  --text-color: var(--text-hover);
 }
 
 .btn-left {
@@ -1262,7 +1108,6 @@ button:disabled {
   --bg-hover: var(--color-text-btn-hover);
   --shadow: none;
   --text-hover: var(--color-text-btn-text-hover);
-  --ring-color: var(--color-text-btn-ring);
   --ripple-bg: var(--color-text-btn-ripple-bg);
 }
 
@@ -1272,7 +1117,6 @@ button:disabled {
   --shadow: var(--shadow-primary-btn);
   --bg-hover: var(--color-primary-btn-hover);
   --text-hover: var(--color-primary-btn-text-hover);
-  --ring-color: var(--color-primary-btn-ring);
   --ripple-bg: var(--color-primary-btn-ripple-bg);
 }
 
@@ -1282,7 +1126,6 @@ button:disabled {
   --border-color: var(--color-secondary-btn-border);
   --shadow: var(--shadow-secondary-btn);
   --text-hover: var(--color-secondary-btn-text-hover);
-  --ring-color: var(--color-secondary-btn-ring);
   --ripple-bg: var(--color-secondary-btn-ripple-bg);
   --bg-hover: var(--color-secondary-btn-hover);
 }
@@ -1292,7 +1135,6 @@ button:disabled {
   --bg-color: var(--color-tertiary-cr-btn-bg);
   --text-hover: var(--color-tertiary-cr-btn-text-hover);
   --bg-hover: var(--color-tertiary-cr-btn-hover);
-  --ring-color: var(--color-tertiary-cr-btn-ring);
   --shadow: var(--shadow-tertiary-cr-btn);
   --ripple-bg: var(--color-tertiary-cr-btn-ripple-bg);
 }
@@ -1302,7 +1144,6 @@ button:disabled {
   --bg-color: var(--color-tertiary-danger-btn-bg);
   --bg-hover: var(--color-tertiary-danger-btn-hover);
   --text-hover: var(--color-tertiary-danger-btn-text-hover);
-  --ring-color: var(--color-tertiary-danger-btn-ring);
   --shadow: var(--shadow-tertiary-danger-btn);
   --ripple-bg: var(--color-tertiary-danger-btn-ripple-bg);
 }
@@ -1314,7 +1155,6 @@ button:disabled {
   --shadow: var(--shadow-secondary-cr-btn);
   --bg-hover: var(--color-secondary-cr-btn-hover);
   --text-hover: var(--color-secondary-cr-btn-text-hover);
-  --ring-color: var(--color-secondary-cr-btn-ring);
   --ripple-bg: var(--color-secondary-cr-btn-ripple-bg);
 }
 
@@ -1332,26 +1172,32 @@ button:disabled {
   --size-x: var(--size-y);
 }
 
-.btn-xl {
-  --size-x: 1.25rem;
-  --size-y: 0.75rem;
-}
-
-.btn-lg {
-  --size-x: 1.25rem;
-  --size-y: 0.625rem;
+.btn-sm {
+  --height: 2.25rem;
+  --font-size: 0.875rem;
+  --size-x: 0.875rem;
 }
 
 .btn-md {
-  --size-x: 0.75rem;
-  --size-y: 0.625rem;
-  --font-size: 0.875rem;
+  --height: 2.5rem;
+  --font-size: 1rem;
+  --size-x: 1rem;
 }
 
-.btn-xs {
-  --size-x: 0.75rem;
-  --size-y: 0.5rem;
-  --font-size: 0.75rem;
+.btn-lg {
+  --height: 2.75rem;
+  --size-x: 1.125rem;
+}
+
+.btn-xl {
+  --height: 2.875rem;
+  --size-x: 1.25rem;
+}
+
+.btn-2xl {
+  --height: 3.75rem;
+  --font-size: 1.125rem;
+  --size-x: 1.75rem;
 }
 
 .btn-menu-item {
@@ -1363,18 +1209,20 @@ button:disabled {
   --placeholder-color: var(--color-form-control-placeholder);
   --text-color: var(--color-form-control-text);
   --border-color: var(--color-form-control-border);
-  --size: 0.5rem 0.875rem;
+  --height: 2.75rem;
+  --size-x: 0.875rem;
   --bg-color: var(--color-form-control-bg);
-  --ring-color: var(--color-form-control-ring);
   --shadow: var(--shadow-form-control);
   --font-size: 1rem;
+  --outline-color: var(--transparent);
+  height: var(--height);
+  padding: 0 var(--size-x);
   background: rgb(var(--bg-color));
   border-radius: 0.5rem;
-  padding: var(--size);
   color: rgb(var(--text-color));
   border: 1px solid rgb(var(--border-color));
   box-shadow: var(--shadow);
-  outline: none;
+  outline: 2px solid rgba(var(--outline-color));
   width: 100%;
   font-size: var(--font-size);
   line-height: 1.5;
@@ -1382,10 +1230,11 @@ button:disabled {
      -moz-appearance: none;
           appearance: none;
   font-weight: 400;
+  transition: border-color 200ms, outline-color 200ms ease-in-out;
 }
 
-.form-control:focus {
-  --shadow: var(--shadow-form-control-focused);
+.form-control:focus-visible {
+  --outline-color: var(--color-form-control-border-focused);
   --border-color: var(--color-form-control-border-focused);
 }
 
@@ -1905,22 +1754,6 @@ j [data-tooltip][data-flow="right"]::before {
   }
 }
 
-.group:hover .group-hover\:border-primary-600 {
-  border-color: rgb(var(--primary-600));
-}
-
-.group:hover .group-hover\:border-gray-400 {
-  border-color: rgb(var(--gray-400));
-}
-
-.group:hover .group-hover\:text-primary-600 {
-  color: rgb(var(--primary-600));
-}
-
-.group:hover .group-hover\:text-gray-900 {
-  color: rgb(var(--gray-900));
-}
-
 :is(.dark .dark\:border-b-zinc-800) {
   --tw-border-opacity: 1;
   border-bottom-color: rgb(39 39 42 / var(--tw-border-opacity));
@@ -1929,6 +1762,10 @@ j [data-tooltip][data-flow="right"]::before {
 :is(.dark .dark\:bg-zinc-900) {
   --tw-bg-opacity: 1;
   background-color: rgb(24 24 27 / var(--tw-bg-opacity));
+}
+
+:is(.dark .dark\:text-gray-200) {
+  color: rgb(var(--gray-200));
 }
 
 :is(.dark .dark\:text-white) {
