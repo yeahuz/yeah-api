@@ -10,7 +10,8 @@ import (
 type loginMethod string
 
 type LoginProps struct {
-	Method string
+	Method    string
+	QRDataUrl string
 }
 
 templ Login(props LoginProps) {
@@ -26,6 +27,7 @@ templ Login(props LoginProps) {
 								Phone-ID
 							}
 						} else {
+							<input type="hidden" name="country_code" value="+998"/>
 							@input.TextField(input.Props{Name: "phone", Label: "Phone", Type: "text", Prefix: "+998"})
 							@button.TertiaryColor(button.Props{Size: "sm", Class: "inline-block mt-1.5 self-end", Href: "?method=email"}) {
 								Email-ID
@@ -37,6 +39,13 @@ templ Login(props LoginProps) {
 					}
 					@SocialLogins()
 				</form>
+				<div class="hidden md:block ml-12 flex flex-col max-w-xs js-qr-container">
+					<div class="p-3 rounded-lg bg-white max-w-max">
+						<img class="w-40 h-40 object-cover js-qr-code" src={ props.QRDataUrl }/>
+					</div>
+					<h2 class="text-gray-900 text-lg font-medium mt-3 dark:text-white">Scan the QR-code</h2>
+					<p class="text-gray-700 dark:text-gray-200">Point any QR code scanner at the image above</p>
+				</div>
 			</div>
 		</div>
 	}

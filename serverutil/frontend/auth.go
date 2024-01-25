@@ -2,11 +2,14 @@ package frontend
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/skip2/go-qrcode"
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/auth"
 )
 
@@ -102,7 +105,15 @@ func (s *Server) registerAuthRoutes() {
 func (s *Server) handleGetLogin() Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		method := r.URL.Query().Get("method")
-		return auth.Login(auth.LoginProps{Method: method}).Render(r.Context(), w)
+		q, err := qrcode.New("https://google.com", qrcode.Highest)
+		q.DisableBorder = true
+		png, err := q.PNG(256)
+		if err != nil {
+			fmt.Fprintf(w, "Unable to generate qr code")
+		}
+		b64 := base64.RawStdEncoding.EncodeToString(png)
+		url := "data:image/png;base64," + b64
+		return auth.Login(auth.LoginProps{Method: method, QRDataUrl: url}).Render(r.Context(), w)
 	}
 }
 
