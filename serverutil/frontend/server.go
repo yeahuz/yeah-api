@@ -25,6 +25,7 @@ type Server struct {
 	AuthService    yeahapi.AuthService
 	ListingService yeahapi.ListingService
 	UserService    yeahapi.UserService
+	CQRSService    yeahapi.CQRSService
 }
 
 func NewServer() *Server {

@@ -1,0 +1,22 @@
+package auth
+
+import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/layout"
+import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/input"
+import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/button"
+
+templ LoginInfo() {
+	@layout.Base() {
+		<div class="max-w-3xl mx-auto space-y-8 mt-20 px-4">
+			<h1 class="text-4xl">Войти</h1>
+			<div class="flex">
+				<form class="w-full md:max-w-sm" method="post">
+					@input.TextField(input.Props{Name: "first_name", Label: "Имя", Type: "text" })
+					@input.TextField(input.Props{Name: "first_name", Label: "Фамилия", Type: "text" })
+					@button.Primary(button.Props{Size: "lg", Class: "w-full mt-6 mb-4"}) {
+						Создать аккаунт
+					}
+				</form>
+			</div>
+		</div>
+	}
+}

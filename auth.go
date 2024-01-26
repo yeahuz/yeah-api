@@ -39,6 +39,16 @@ type AuthService interface {
 	Session(ctx context.Context, sessionID uuid.UUID) (*Session, error)
 }
 
+func (o *Otp) Ok() error {
+	if len(o.Identifier) == 0 {
+		return E(EInvalid, "Otp identifier is required")
+	}
+	if o.ExpiresAt.IsZero() {
+		return E(EInternal, "Otp expiration is required")
+	}
+	return nil
+}
+
 func (a *Auth) Ok() error {
 	if a.Session.ClientID.IsNil() {
 		return E(EInvalid, "Session client id is required")

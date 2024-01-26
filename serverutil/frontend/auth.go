@@ -10,6 +10,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/skip2/go-qrcode"
+	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/auth"
 )
 
@@ -100,6 +101,14 @@ func (s *Server) registerAuthRoutes() {
 		http.MethodGet:  s.handleGetLogin(),
 		http.MethodPost: s.handleLogin(),
 	}))
+	s.mux.Handle("/auth/login/otp", routes(map[string]Handler{
+		http.MethodGet:  s.handleGetLoginCode(),
+		http.MethodPost: s.handleSignin(),
+	}))
+	s.mux.Handle("/auth/login/info", routes(map[string]Handler{
+		http.MethodGet:  s.handleGetLoginInfo(),
+		http.MethodPost: s.handleSignup(),
+	}))
 }
 
 func (s *Server) handleGetLogin() Handler {
@@ -117,7 +126,95 @@ func (s *Server) handleGetLogin() Handler {
 	}
 }
 
+func (s *Server) handleGetLoginCode() Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		return auth.LoginCode().Render(r.Context(), w)
+	}
+}
+
+func (s *Server) handleGetLoginInfo() Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		return auth.LoginInfo().Render(r.Context(), w)
+	}
+}
+
+type loginData struct {
+	method      string
+	email       string
+	phone       string
+	countryCode string
+}
+
+func (d loginData) ok() error {
+	if d.method == "email" && d.email == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Login email is required")
+	}
+	if d.method == "phone" && d.phone == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Login phone is required")
+	}
+	if d.method == "phone" && d.countryCode == "" {
+		return yeahapi.E(yeahapi.EInvalid, "Phone country code is required")
+	}
+	return nil
+}
+
 func (s *Server) handleLogin() Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second*5)
+		defer cancel()
+
+		data := loginData{
+			method:      r.PostFormValue("method"),
+			phone:       r.PostFormValue("phone"),
+			email:       r.PostFormValue("email"),
+			countryCode: r.PostFormValue("country_code"),
+		}
+		if err := data.ok(); err != nil {
+			return err
+		}
+
+		switch data.method {
+		case "phone":
+			otp, err := s.AuthService.CreateOtp(ctx, &yeahapi.Otp{
+				Identifier: data.phone,
+				ExpiresAt:  time.Now().Add(time.Minute * 15),
+			})
+			if err != nil {
+				fmt.Fprintf(w, "unable to create otp")
+			}
+			if err := s.CQRSService.Publish(ctx, yeahapi.NewSendPhoneCodeCmd(data.phone, otp.Code)); err != nil {
+				fmt.Fprintf(w, "Unable to publish")
+			}
+			http.Redirect(w, r, "/auth/login/otp", http.StatusSeeOther)
+			break
+		case "email":
+			otp, err := s.AuthService.CreateOtp(ctx, &yeahapi.Otp{
+				Identifier: data.email,
+				ExpiresAt:  time.Now().Add(time.Minute * 15),
+			})
+			if err != nil {
+				fmt.Fprintf(w, "unable to create otp")
+			}
+
+			if err := s.CQRSService.Publish(ctx, yeahapi.NewSendEmailCodeCmd(data.email, otp.Code)); err != nil {
+				fmt.Fprintf(w, "Unable to publish")
+			}
+			http.Redirect(w, r, "/auth/login/otp", http.StatusSeeOther)
+			break
+		default:
+			break
+		}
+		return nil
+	}
+}
+
+func (s *Server) handleSignin() Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}
+}
+
+func (s *Server) handleSignup() Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}

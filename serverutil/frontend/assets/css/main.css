@@ -94,7 +94,7 @@ html {
   --color-heading: var(--gray-900);
   --color-paragraph: var(--gray-700);
   --font-weight-base: 480;
-  --font-weight-medium: 550;
+  --font-weight-medium: 540;
   --font-weight-semibold: 660;
   --font-weight-bold: 720;
 
@@ -388,7 +388,7 @@ details:not(.no-overlay)[open] summary::before {
   outline-offset: 2px;
   pointer-events: var(--events);
   opacity: var(--opacity);
-  font-weight: var(--font-weight-base);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   font-size: var(--font-size);
   position: relative;

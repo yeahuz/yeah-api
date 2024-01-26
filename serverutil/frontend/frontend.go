@@ -10,10 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	awsconf "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pelletier/go-toml/v2"
 	yeahapi "github.com/yeahuz/yeah-api"
+	"github.com/yeahuz/yeah-api/aws"
 	"github.com/yeahuz/yeah-api/inmem"
+	"github.com/yeahuz/yeah-api/nats"
 	"github.com/yeahuz/yeah-api/postgres"
 )
 
@@ -40,6 +44,23 @@ type Config struct {
 	HighwayHash struct {
 		Key string `toml:"key"`
 	} `toml:"highwayhash"`
+
+	AWS struct {
+		Secret string `toml:"secret"`
+		Key    string `toml:"key"`
+	} `toml:"aws"`
+
+	Nats struct {
+		AuthToken string              `toml:"auth-token"`
+		URL       string              `toml:"url"`
+		Streams   map[string][]string `toml:"streams"`
+	} `toml:"nats"`
+
+	Eskiz struct {
+		Email    string `toml:"email"`
+		Password string `toml:"password"`
+		BaseURL  string `toml:"base-url"`
+	} `toml:"eskiz"`
 }
 
 func Run() error {
@@ -95,12 +116,34 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher)
 	userService := postgres.NewUserService(m.Pool)
 	listingService := postgres.NewListingService(m.Pool)
+	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
+		NatsURL:       m.Config.Nats.URL,
+		NatsAuthToken: m.Config.Nats.AuthToken,
+		Streams:       m.Config.Nats.Streams,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	awsconfig, err := awsconf.LoadDefaultConfig(ctx,
+		awsconf.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(m.Config.AWS.Key, m.Config.AWS.Secret, "")),
+		awsconf.WithRegion("eu-north-1"),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	emailService := aws.NewEmailService(awsconfig, cqrsService)
+	cqrsService.Handle("auth.sendEmailCode", emailService.SendEmailCode)
 
 	m.Server.Addr = m.Config.HTTP.Addr
 
 	m.Server.AuthService = authService
 	m.Server.UserService = userService
 	m.Server.ListingService = listingService
+	m.Server.CQRSService = cqrsService
 
 	return m.Server.Open()
 }
