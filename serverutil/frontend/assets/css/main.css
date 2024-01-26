@@ -3,11 +3,18 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: "Inter";
+  font-family: "Raleway";
   font-style: normal;
   font-display: swap;
-  src: url(/assets/fonts/Inter.var.woff2) format('woff2-variations');
+  src: url(/assets/fonts/Raleway.var.woff2) format('woff2-variations');
   font-weight: 1 1000;
+  font-variant-numeric: lining-nums;
+  -moz-font-feature-settings: "lnum" 1;
+  -moz-font-feature-settings: "lnum=1";
+  -ms-font-feature-settings: "lnum" 1;
+  -o-font-feature-settings: "lnum" 1;
+  -webkit-font-feature-settings: "lnum" 1;
+  font-feature-settings: "lnum" 1;
 }
 
 html {
@@ -82,6 +89,14 @@ html {
   --yellow-600: 220, 104, 3;
   --yellow-700: 181, 71, 8;
   --yellow-800: 147, 55, 13;
+
+  /* Typography */
+  --color-heading: var(--gray-900);
+  --color-paragraph: var(--gray-700);
+  --font-weight-base: 480;
+  --font-weight-medium: 550;
+  --font-weight-semibold: 660;
+  --font-weight-bold: 720;
 
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(var(--gray-900), 0.05);
@@ -279,6 +294,21 @@ html.dark {
   --color-toast-success-text: var(--success-700);
 }
 
+body {
+  font-weight: var(--font-weight-base);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: rgb(var(--color-heading));
+}
+
+p {
+  color: rgb(var(--color-paragraph));
+}
+
 a.link {
   color: rgb(var(--primary-500));
   transition: all 200ms ease;
@@ -358,7 +388,7 @@ details:not(.no-overlay)[open] summary::before {
   outline-offset: 2px;
   pointer-events: var(--events);
   opacity: var(--opacity);
-  font-weight: 500;
+  font-weight: var(--font-weight-base);
   white-space: nowrap;
   font-size: var(--font-size);
   position: relative;
@@ -521,7 +551,7 @@ button:disabled {
   font-size: var(--font-size);
   line-height: 1.5;
   appearance: none;
-  font-weight: 400;
+  font-weight: var(--font-weight-base);
   transition: border-color 200ms, outline-color 200ms ease-in-out;
 }
 
@@ -571,7 +601,7 @@ button:disabled {
   --color: var(--color-badge-text);
   --bg-color: var(--color-badge-bg);
   --size: 0.125rem 0.5rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-base);
   color: rgb(var(--color));
   background-color: rgb(var(--bg-color));
   padding: var(--size);

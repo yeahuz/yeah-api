@@ -1,13 +1,13 @@
 package input
 
 templ TextField(props Props) {
-	<label class="text-sm font-medium text-gray-700 dark:text-gray-200 mt-5 block">
-		{ props.Label }
+	<label class="mt-5 block">
+		<span class="text-sm">{ props.Label }</span>
 		if len(props.Prefix) == 0 {
 			<input class="form-control mt-2" type={ props.Type } name={ props.Name }/>
 		} else {
 			<div class="flex relative mt-2">
-				<span class="absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-500">{ props.Prefix }</span>
+				<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{ props.Prefix }</span>
 				<input class="form-control !pl-[3.75rem]" type={ props.Type } name={ props.Name }/>
 			</div>
 		}

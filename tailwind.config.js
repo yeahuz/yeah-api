@@ -12,7 +12,7 @@ module.exports = {
     groups: ["nested"],
     extend: {
       fontFamily: {
-        sans: ["Inter"],
+        sans: ["Raleway"],
       },
       boxShadow: {
         xs: "0 1px 2px rgb(16 24 40 / 0.05)",
