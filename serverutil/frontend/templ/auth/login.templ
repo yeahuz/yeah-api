@@ -5,6 +5,7 @@ import (
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/input"
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/button"
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/icons"
+	"github.com/yeahuz/yeah-api"
 )
 
 type loginMethod string
@@ -12,12 +13,14 @@ type loginMethod string
 type LoginProps struct {
 	Method    string
 	QRDataUrl string
+	Flash     yeahapi.Flash
 }
 
 templ Login(props LoginProps) {
 	@layout.Base() {
 		<div class="max-w-3xl mx-auto space-y-8 mt-20 px-4">
 			<h1 class="text-4xl">Войти</h1>
+			<span>{ props.Flash.Message }</span>
 			<div class="flex">
 				<form class="w-full md:max-w-sm" method="post">
 					<input type="hidden" name="method" value={ props.Method }/>

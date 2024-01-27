@@ -1,7 +1,10 @@
 package frontend
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/gob"
 	"fmt"
 	"net"
 	"net/http"
@@ -39,6 +42,7 @@ func NewServer() *Server {
 	s.server.Handler = http.HandlerFunc(s.serveHTTP)
 	s.mux.Handle("/assets/", http.StripPrefix("/assets/", hashfs.FileServer(assets.FS)))
 
+	gob.Register(&yeahapi.Flash{})
 	s.registerAuthRoutes()
 
 	return s
@@ -61,7 +65,9 @@ func (s *Server) Close() (err error) {
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h = loadFlash(h)
 	if err := h(w, r); err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -112,4 +118,44 @@ func getIP(r *http.Request) string {
 	host, _, _ := net.SplitHostPort(addr)
 
 	return host
+}
+
+func setFlash(w http.ResponseWriter, flash yeahapi.Flash) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(&flash); err != nil {
+		return err
+	}
+
+	encoded := base64.URLEncoding.EncodeToString(buf.Bytes())
+	http.SetCookie(w, &http.Cookie{
+		Name:     "flash",
+		Value:    encoded,
+		HttpOnly: true,
+	})
+
+	return nil
+}
+
+func errFlash(w http.ResponseWriter, message string) error {
+	return setFlash(w, yeahapi.Flash{Kind: yeahapi.ErrFlashKind, Message: message})
+}
+
+func loadFlash(next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		if cookie, _ := r.Cookie("flash"); cookie != nil {
+			var flash yeahapi.Flash
+			decoded, err := base64.URLEncoding.DecodeString(cookie.Value)
+			if err != nil {
+				return err
+			}
+			if err := gob.NewDecoder(bytes.NewReader(decoded)).Decode(&flash); err != nil {
+				return err
+			}
+			// clean up
+			setFlash(w, yeahapi.Flash{})
+			r = r.WithContext(yeahapi.NewContextWithFlash(r.Context(), flash))
+		}
+
+		return next(w, r)
+	}
 }

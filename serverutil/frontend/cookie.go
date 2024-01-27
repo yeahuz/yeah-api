@@ -4,17 +4,24 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	yeahapi "github.com/yeahuz/yeah-api"
 )
 
+const flashKey = "flash"
+
 type CookieService interface {
 	SetCookie(w http.ResponseWriter, cookie *http.Cookie) error
 	ReadCookie(r *http.Request, name string) (string, error)
+	SetFlash(w http.ResponseWriter, name string, value []byte)
+	GetFlash(w http.ResponseWriter, r *http.Request, name string) ([]byte, error)
 }
 
 type Cookies struct {
@@ -62,7 +69,6 @@ func (c *Cookies) ReadCookie(r *http.Request, name string) (string, error) {
 		return "", err
 	}
 
-	// Wrap the cipher block in Galois Counter Mode.
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", err
@@ -87,4 +93,27 @@ func (c *Cookies) ReadCookie(r *http.Request, name string) (string, error) {
 	}
 
 	return value, nil
+}
+
+func (c *Cookies) SetFlash(w http.ResponseWriter, name string, value []byte) {
+	cookie := &http.Cookie{Name: flashKey + name, Value: base64.URLEncoding.EncodeToString(value)}
+	http.SetCookie(w, cookie)
+}
+
+func (c *Cookies) GetFlash(w http.ResponseWriter, r *http.Request, name string) ([]byte, error) {
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	value, err := base64.URLEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	http.SetCookie(w, &http.Cookie{Name: flashKey + name, MaxAge: -1, Expires: time.Unix(1, 0)})
+	return value, err
 }

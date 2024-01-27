@@ -8,6 +8,7 @@ const (
 	sessionContextKey = contextKey(iota + 1)
 	clientContextKey
 	localizerContextKey
+	flashContextKey
 )
 
 func NewContextWithLocalizer(ctx context.Context, localizer *Localizer) context.Context {
@@ -20,6 +21,10 @@ func NewContextWithClient(ctx context.Context, client *Client) context.Context {
 
 func NewContextWithSession(ctx context.Context, session *Session) context.Context {
 	return context.WithValue(ctx, sessionContextKey, session)
+}
+
+func NewContextWithFlash(ctx context.Context, flash Flash) context.Context {
+	return context.WithValue(ctx, flashContextKey, flash)
 }
 
 func LocalizerFromContext(ctx context.Context) *Localizer {
@@ -35,4 +40,9 @@ func SessionFromContext(ctx context.Context) *Session {
 func ClientFromContext(ctx context.Context) *Client {
 	client, _ := ctx.Value(clientContextKey).(*Client)
 	return client
+}
+
+func FlashFromContext(ctx context.Context) Flash {
+	message, _ := ctx.Value(flashContextKey).(Flash)
+	return message
 }

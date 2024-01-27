@@ -4,98 +4,14 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/a-h/templ"
 	"github.com/skip2/go-qrcode"
 	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/auth"
 )
-
-func Loading() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		_, err := io.WriteString(w, "<div id='loading'>Loading</div>")
-		w.(http.Flusher).Flush()
-		return err
-	})
-}
-
-func Header() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		_, err := io.WriteString(w, "<div>This is the header</div>")
-		w.(http.Flusher).Flush()
-		return err
-	})
-}
-
-func Footer() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		_, err := io.WriteString(w, "<div>This is the footer</div>")
-		w.(http.Flusher).Flush()
-		return err
-	})
-}
-
-func Content(ch chan struct{}) templ.Component {
-	go func() {
-		time.Sleep(time.Second * 2)
-		ch <- struct{}{}
-	}()
-
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		_, err := io.WriteString(w, `<div id='content'>Content</div>
-    <script>
-      let content = document.getElementById('content');
-      let loading = document.getElementById('loading');
-      loading.replaceWith(content);
-    </script>`)
-		return err
-	})
-}
-
-type SuspendibleComponentFunc func(ch chan struct{}) templ.Component
-
-type suspense struct {
-	ch       chan struct{}
-	fallback templ.Component
-	content  templ.Component
-}
-
-func (s suspense) Suspend() <-chan struct{} {
-	return s.ch
-}
-
-func Suspense(fallback templ.Component, content SuspendibleComponentFunc) *suspense {
-	ch := make(chan struct{})
-	return &suspense{
-		ch:       ch,
-		fallback: fallback,
-		content:  content(ch),
-	}
-}
-
-func Page() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		if err := Header().Render(ctx, w); err != nil {
-			return err
-		}
-
-		sus := Suspense(Loading(), Content)
-		if err := sus.fallback.Render(ctx, w); err != nil {
-			return err
-		}
-
-		if err := Footer().Render(ctx, w); err != nil {
-			return err
-		}
-
-		<-sus.Suspend()
-		return sus.content.Render(ctx, w)
-	})
-}
 
 func (s *Server) registerAuthRoutes() {
 	s.mux.Handle("/auth/login", routes(map[string]Handler{
@@ -121,6 +37,7 @@ func fallbackStr(str, fallback string) string {
 
 func (s *Server) handleGetLogin() Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
+		flash := yeahapi.FlashFromContext(r.Context())
 		method := r.URL.Query().Get("method")
 		q, err := qrcode.New("https://google.com", qrcode.Highest)
 		q.DisableBorder = true
@@ -130,7 +47,7 @@ func (s *Server) handleGetLogin() Handler {
 		}
 		b64 := base64.RawStdEncoding.EncodeToString(png)
 		url := "data:image/png;base64," + b64
-		return auth.Login(auth.LoginProps{Method: fallbackStr(method, "phone"), QRDataUrl: url}).Render(r.Context(), w)
+		return auth.Login(auth.LoginProps{Method: fallbackStr(method, "phone"), QRDataUrl: url, Flash: flash}).Render(r.Context(), w)
 	}
 }
 
@@ -185,6 +102,7 @@ func (s *Server) handleLogin() Handler {
 			email:       r.PostFormValue("email"),
 			countryCode: r.PostFormValue("country_code"),
 		}
+
 		if err := data.ok(); err != nil {
 			return err
 		}
@@ -196,10 +114,14 @@ func (s *Server) handleLogin() Handler {
 				ExpiresAt:  time.Now().Add(time.Minute * 15),
 			})
 			if err != nil {
-				fmt.Fprintf(w, "unable to create otp")
+				errFlash(w, "Unable to create otp")
+				//TODO: redirect
+				return nil
 			}
 			if err := s.CQRSService.Publish(ctx, yeahapi.NewSendPhoneCodeCmd(data.phone, otp.Code)); err != nil {
-				fmt.Fprintf(w, "Unable to publish")
+				errFlash(w, "Unable to publish")
+				//TODO: redirect
+				return nil
 			}
 			s.CookieService.SetCookie(w, &http.Cookie{
 				Name:     "login-data",
@@ -214,12 +136,17 @@ func (s *Server) handleLogin() Handler {
 				Identifier: data.email,
 				ExpiresAt:  time.Now().Add(time.Minute * 60),
 			})
+
 			if err != nil {
-				fmt.Fprintf(w, "unable to create otp")
+				errFlash(w, "Unable to create otp")
+				//TODO: redirect
+				return nil
 			}
 
 			if err := s.CQRSService.Publish(ctx, yeahapi.NewSendEmailCodeCmd(data.email, otp.Code)); err != nil {
-				fmt.Fprintf(w, "Unable to publish")
+				errFlash(w, "Unable to publish")
+				//TODO: redirect
+				return nil
 			}
 			s.CookieService.SetCookie(w, &http.Cookie{
 				Name:     "login-data",
