@@ -4,12 +4,19 @@ import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/layout"
 import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/button"
 import "github.com/yeahuz/yeah-api/serverutil/frontend/templ/components/input"
 
-templ LoginCode() {
+templ LoginCode(method, identifier, hash string) {
 	@layout.Base() {
 		<div class="max-w-3xl mx-auto space-y-8 mt-20 px-4">
 			<h1 class="text-4xl">Войти</h1>
 			<div class="flex">
 				<form class="w-full md:max-w-sm" method="post">
+					<input type="hidden" name="method" value={ method }/>
+					<input type="hidden" name="hash" value={ hash }/>
+					if method == "email" {
+						<input type="hidden" name="email" value={ identifier }/>
+					} else {
+						<input type="hidden" name="phone" value={ identifier }/>
+					}
 					@input.TextField(input.Props{Name: "otp", Label: "Код", Type: "text" })
 					@button.Primary(button.Props{Size: "lg", Class: "w-full mt-6 mb-4"}) {
 						Продолжить

@@ -12,6 +12,7 @@ import (
 
 	awsconf "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pelletier/go-toml/v2"
 	yeahapi "github.com/yeahuz/yeah-api"
@@ -61,6 +62,14 @@ type Config struct {
 		Password string `toml:"password"`
 		BaseURL  string `toml:"base-url"`
 	} `toml:"eskiz"`
+
+	Cookie struct {
+		Secret string `toml:"secret"`
+	} `toml:"cookie"`
+
+	Client struct {
+		ID uuid.UUID `toml:"id"`
+	} `toml:"client"`
 }
 
 func Run() error {
@@ -116,6 +125,7 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher)
 	userService := postgres.NewUserService(m.Pool)
 	listingService := postgres.NewListingService(m.Pool)
+	cookieService := NewCookieService(m.Config.Cookie.Secret)
 	cqrsService, err := nats.NewCQRSService(ctx, yeahapi.CQRSConfig{
 		NatsURL:       m.Config.Nats.URL,
 		NatsAuthToken: m.Config.Nats.AuthToken,
@@ -139,11 +149,13 @@ func (m *Main) Run(ctx context.Context) (err error) {
 	cqrsService.Handle("auth.sendEmailCode", emailService.SendEmailCode)
 
 	m.Server.Addr = m.Config.HTTP.Addr
+	m.Server.ClientID = yeahapi.ClientID{m.Config.Client.ID}
 
 	m.Server.AuthService = authService
 	m.Server.UserService = userService
 	m.Server.ListingService = listingService
 	m.Server.CQRSService = cqrsService
+	m.Server.CookieService = cookieService
 
 	return m.Server.Open()
 }

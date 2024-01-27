@@ -62,7 +62,7 @@ func TextField(props Props) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"flex relative mt-2\"><span class=\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-500\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"flex relative mt-2\"><span class=\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-600\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -75,7 +75,7 @@ func TextField(props Props) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</span> <input class=\"form-control !pl-[3.75rem]\" type=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</span> <input class=\"form-control !pl-14\" type=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

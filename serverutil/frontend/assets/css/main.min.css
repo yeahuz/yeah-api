@@ -748,8 +748,8 @@ video {
   padding-bottom: 1rem;
 }
 
-.\!pl-\[3\.75rem\] {
-  padding-left: 3.75rem !important;
+.\!pl-14 {
+  padding-left: 3.5rem !important;
 }
 
 .text-4xl {
@@ -771,8 +771,8 @@ video {
   font-weight: 600;
 }
 
-.text-gray-500 {
-  color: rgb(var(--gray-500));
+.text-gray-600 {
+  color: rgb(var(--gray-600));
 }
 
 .text-primary-600 {
@@ -1146,7 +1146,7 @@ details:not(.no-overlay)[open] summary::before {
   outline-offset: 2px;
   pointer-events: var(--events);
   opacity: var(--opacity);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-base);
   white-space: nowrap;
   font-size: var(--font-size);
   position: relative;

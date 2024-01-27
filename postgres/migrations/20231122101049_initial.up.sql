@@ -1,5 +1,7 @@
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
+
 CREATE TABLE IF NOT EXISTS languages (
   code varchar(2) PRIMARY KEY
 );
@@ -84,7 +86,7 @@ CREATE TABLE IF NOT EXISTS credentials (
 );
 
 CREATE TABLE IF NOT EXISTS clients (
-  id uuid PRIMARY KEY,
+  id uuid DEFAULT uuid_generate_v7() PRIMARY KEY,
   name varchar(255) NOT NULL,
   secret varchar(255) DEFAULT '',
   type varchar(255) NOT NULL CHECK (type IN ('confidential', 'public', 'internal')) DEFAULT 'confidential',
@@ -94,7 +96,7 @@ CREATE TABLE IF NOT EXISTS clients (
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
-  id uuid DEFAULT gen_random_uuid () PRIMARY KEY,
+  id uuid PRIMARY KEY,
   active boolean DEFAULT TRUE,
   ip inet,
   user_id uuid NOT NULL,
@@ -313,6 +315,9 @@ CREATE TRIGGER trigger_replace_email_phone_empty_string
   EXECUTE PROCEDURE nullify_email_phone ();
 
 -- Initial data
+INSERT INTO  clients(name, type) 
+values ('Yeah Web', 'internal');
+
 INSERT INTO languages (code)
   VALUES ('en'), ('ru'), ('uz');
 

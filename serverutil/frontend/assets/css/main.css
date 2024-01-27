@@ -388,7 +388,7 @@ details:not(.no-overlay)[open] summary::before {
   outline-offset: 2px;
   pointer-events: var(--events);
   opacity: var(--opacity);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-base);
   white-space: nowrap;
   font-size: var(--font-size);
   position: relative;

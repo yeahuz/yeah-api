@@ -22,10 +22,12 @@ type Server struct {
 	ln     net.Listener
 	Addr   string
 
+	ClientID       yeahapi.ClientID
 	AuthService    yeahapi.AuthService
 	ListingService yeahapi.ListingService
 	UserService    yeahapi.UserService
 	CQRSService    yeahapi.CQRSService
+	CookieService  CookieService
 }
 
 func NewServer() *Server {
@@ -95,4 +97,19 @@ func post(next Handler) Handler {
 
 		return next(w, r)
 	}
+}
+
+func getIP(r *http.Request) string {
+	addr := r.Header.Get("X-Forwarded-For")
+	if len(addr) == 0 {
+		addr = r.Header.Get("X-Real-Ip")
+	}
+
+	if len(addr) == 0 {
+		addr = r.RemoteAddr
+	}
+
+	host, _, _ := net.SplitHostPort(addr)
+
+	return host
 }
