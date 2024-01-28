@@ -2,13 +2,11 @@ package frontend
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/skip2/go-qrcode"
 	yeahapi "github.com/yeahuz/yeah-api"
 	"github.com/yeahuz/yeah-api/serverutil/frontend/templ/auth"
 )
@@ -28,25 +26,18 @@ func (s *Server) registerAuthRoutes() {
 	}))
 }
 
-func fallbackStr(str, fallback string) string {
-	if str == "" {
-		return fallback
-	}
-	return str
-}
-
 func (s *Server) handleGetLogin() Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		flash := yeahapi.FlashFromContext(r.Context())
 		method := r.URL.Query().Get("method")
-		q, err := qrcode.New("https://google.com", qrcode.Highest)
-		q.DisableBorder = true
-		png, err := q.PNG(256)
+		loginToken, err := s.AuthService.CreateLoginToken(time.Now().Add(time.Second * 45))
 		if err != nil {
-			fmt.Fprintf(w, "Unable to generate qr code")
+			fmt.Fprintf(w, "unable to create login token")
 		}
-		b64 := base64.RawStdEncoding.EncodeToString(png)
-		url := "data:image/png;base64," + b64
+		url, err := generateQRDataURL(loginToken.Token)
+		if err != nil {
+			fmt.Fprintf(w, "unable to generate qr data url")
+		}
 		return auth.Login(auth.LoginProps{Method: fallbackStr(method, "phone"), QRDataUrl: url, Flash: flash}).Render(r.Context(), w)
 	}
 }

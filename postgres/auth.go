@@ -1,10 +1,17 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -17,13 +24,15 @@ type AuthService struct {
 	pool          *pgxpool.Pool
 	argonHasher   yeahapi.ArgonHasher
 	highwayHasher yeahapi.HighwayHasher
+	signingKey    []byte
 }
 
-func NewAuthService(pool *pgxpool.Pool, argonHasher yeahapi.ArgonHasher, highwayHasher yeahapi.HighwayHasher) *AuthService {
+func NewAuthService(pool *pgxpool.Pool, argonHasher yeahapi.ArgonHasher, highwayHasher yeahapi.HighwayHasher, signingKey string) *AuthService {
 	return &AuthService{
 		pool:          pool,
 		argonHasher:   argonHasher,
 		highwayHasher: highwayHasher,
+		signingKey:    []byte(signingKey),
 	}
 }
 
@@ -163,6 +172,75 @@ func (a *AuthService) Session(ctx context.Context, sessionID uuid.UUID) (*yeahap
 	}
 
 	return &session, nil
+}
+
+func (a *AuthService) CreateLoginToken(expiresAt time.Time) (*yeahapi.LoginToken, error) {
+	const op yeahapi.Op = "postgres/AuthService.CreateLoginToken"
+
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		return nil, yeahapi.E(yeahapi.EInternal, "Unable to generate bytes")
+	}
+
+	payload := make([]byte, 24)
+	copy(payload, b)
+	binary.BigEndian.PutUint64(payload[16:], uint64(expiresAt.Unix()))
+	h := hmac.New(sha256.New, a.signingKey)
+	h.Write(payload)
+	sig := h.Sum(nil)
+
+	loginToken := &yeahapi.LoginToken{
+		Token:     fmt.Sprintf("%s.%s", base64.RawURLEncoding.EncodeToString(payload), base64.RawURLEncoding.EncodeToString(sig)),
+		ExpiresAt: expiresAt,
+	}
+
+	return loginToken, nil
+}
+
+func (a *AuthService) VerifyLoginToken(token string) error {
+	const op yeahapi.Op = "postgres/AuthService.VerifyLoginToken"
+	loginToken, err := decodeLoginToken(token)
+	if err != nil {
+		return err
+	}
+
+	h := hmac.New(sha256.New, a.signingKey)
+	h.Write(loginToken.Payload)
+	checksum := h.Sum(nil)
+
+	if time.Now().After(loginToken.ExpiresAt) {
+		return yeahapi.E(yeahapi.EInvalid, "Login token expired")
+	}
+
+	if bytes.Equal(checksum, loginToken.Sig) {
+		return yeahapi.E(yeahapi.EInvalid, "Login token invalid")
+	}
+
+	return nil
+}
+
+func decodeLoginToken(token string) (*yeahapi.LoginToken, error) {
+	parts := strings.Split(token, ".")
+	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, err
+	}
+	sig, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	var expiresAt int64
+	binary.Read(bytes.NewReader(payload[16:]), binary.BigEndian, &expiresAt)
+
+	loginToken := &yeahapi.LoginToken{
+		Payload:   payload,
+		Sig:       sig,
+		ExpiresAt: time.Unix(expiresAt, 0),
+	}
+
+	return loginToken, nil
 }
 
 func createSession(ctx context.Context, tx pgx.Tx, auth *yeahapi.Auth) error {

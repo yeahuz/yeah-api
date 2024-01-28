@@ -42,10 +42,6 @@ type Config struct {
 		Addr string `toml:"addr"`
 	} `toml:"http"`
 
-	HighwayHash struct {
-		Key string `toml:"key"`
-	} `toml:"highwayhash"`
-
 	AWS struct {
 		Secret string `toml:"secret"`
 		Key    string `toml:"key"`
@@ -70,6 +66,10 @@ type Config struct {
 	Client struct {
 		ID uuid.UUID `toml:"id"`
 	} `toml:"client"`
+
+	Signing struct {
+		Key64 string `toml:"key64"`
+	} `toml:"signing"`
 }
 
 func Run() error {
@@ -120,9 +120,9 @@ func (m *Main) Run(ctx context.Context) (err error) {
 		KeyLen:  32,
 	})
 
-	highwayHasher := inmem.NewHighwayHasher(m.Config.HighwayHash.Key)
+	highwayHasher := inmem.NewHighwayHasher(m.Config.Signing.Key64)
 
-	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher)
+	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher, m.Config.Signing.Key64)
 	userService := postgres.NewUserService(m.Pool)
 	listingService := postgres.NewListingService(m.Pool)
 	cookieService := NewCookieService(m.Config.Cookie.Secret)

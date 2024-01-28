@@ -30,6 +30,13 @@ type Otp struct {
 	Identifier string
 }
 
+type LoginToken struct {
+	Sig       []byte
+	Payload   []byte
+	Token     string
+	ExpiresAt time.Time
+}
+
 type AuthService interface {
 	CreateOtp(ctx context.Context, otp *Otp) (*Otp, error)
 	VerifyOtp(ctx context.Context, otp *Otp) error
@@ -37,6 +44,8 @@ type AuthService interface {
 	CreateAuth(ctx context.Context, auth *Auth) (*Auth, error)
 	DeleteAuth(ctx context.Context, sessionID uuid.UUID) error
 	Session(ctx context.Context, sessionID uuid.UUID) (*Session, error)
+	CreateLoginToken(expiresAt time.Time) (*LoginToken, error)
+	VerifyLoginToken(token string) error
 }
 
 func (o *Otp) Ok() error {

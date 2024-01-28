@@ -81,9 +81,9 @@ func (m *Main) Run(ctx context.Context) (err error) {
 		KeyLen:  32,
 	})
 
-	highwayHasher := inmem.NewHighwayHasher(m.Config.HighwayHash.Key)
+	highwayHasher := inmem.NewHighwayHasher(m.Config.Signing.Key64)
 
-	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher)
+	authService := postgres.NewAuthService(m.Pool, argonHasher, highwayHasher, m.Config.Signing.Key64)
 	userService := postgres.NewUserService(m.Pool)
 	listingService := postgres.NewListingService(m.Pool)
 	kvService := postgres.NewKVService(m.Pool)
@@ -186,10 +186,6 @@ type Config struct {
 		BaseURL  string `toml:"base-url"`
 	} `toml:"eskiz"`
 
-	HighwayHash struct {
-		Key string `toml:"key"`
-	} `toml:"highwayhash"`
-
 	Nats struct {
 		AuthToken string              `toml:"auth-token"`
 		URL       string              `toml:"url"`
@@ -201,6 +197,10 @@ type Config struct {
 		ClientSecret string `toml:"client-secret"`
 		RedirectURL  string `toml:"redirect-url"`
 	} `toml:"google"`
+
+	Signing struct {
+		Key64 string `toml:"key64"`
+	} `toml:"signing"`
 }
 
 func ReadConfigFile(filename string) (*Config, error) {
