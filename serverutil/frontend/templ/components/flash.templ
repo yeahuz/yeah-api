@@ -1,0 +1,11 @@
+package components
+
+import "github.com/yeahuz/yeah-api"
+
+templ FlashMessage(flash yeahapi.Flash) {
+	if flash.Kind == yeahapi.ErrFlashKind {
+		<div class="text-sm bg-error-25 p-[11px] border border-error-300 flex items-center space-x-3 rounded-lg">
+			<span class="text-error-700">{ flash.Message }</span>
+		</div>
+	}
+}

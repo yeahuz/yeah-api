@@ -136,7 +136,12 @@ func setFlash(w http.ResponseWriter, flash yeahapi.Flash) error {
 	return nil
 }
 
-func errFlash(w http.ResponseWriter, message string) error {
+func errFlash(w http.ResponseWriter, err error) error {
+	message := "Internal server error"
+	if e, ok := err.(*yeahapi.Error); ok {
+		message = yeahapi.ErrorMessage(e)
+	}
+
 	return setFlash(w, yeahapi.Flash{Kind: yeahapi.ErrFlashKind, Message: message})
 }
 

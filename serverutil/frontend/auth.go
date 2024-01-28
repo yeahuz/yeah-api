@@ -2,7 +2,6 @@ package frontend
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -32,12 +31,15 @@ func (s *Server) handleGetLogin() Handler {
 		method := r.URL.Query().Get("method")
 		loginToken, err := s.AuthService.CreateLoginToken(time.Now().Add(time.Second * 45))
 		if err != nil {
-			fmt.Fprintf(w, "unable to create login token")
+			errFlash(w, yeahapi.E("Unable to create login token"))
+			return nil
 		}
 		url, err := generateQRDataURL(loginToken.Token)
 		if err != nil {
-			fmt.Fprintf(w, "unable to generate qr data url")
+			errFlash(w, yeahapi.E("Unable to generate QR code"))
+			return nil
 		}
+
 		return auth.Login(auth.LoginProps{Method: fallbackStr(method, "phone"), QRDataUrl: url, Flash: flash}).Render(r.Context(), w)
 	}
 }
@@ -95,7 +97,8 @@ func (s *Server) handleLogin() Handler {
 		}
 
 		if err := data.ok(); err != nil {
-			return err
+			errFlash(w, err)
+			return nil
 		}
 
 		switch data.method {
@@ -105,12 +108,12 @@ func (s *Server) handleLogin() Handler {
 				ExpiresAt:  time.Now().Add(time.Minute * 15),
 			})
 			if err != nil {
-				errFlash(w, "Unable to create otp")
+				errFlash(w, yeahapi.E("Unable to create otp"))
 				//TODO: redirect
 				return nil
 			}
 			if err := s.CQRSService.Publish(ctx, yeahapi.NewSendPhoneCodeCmd(data.phone, otp.Code)); err != nil {
-				errFlash(w, "Unable to publish")
+				errFlash(w, yeahapi.E("Unable to publish"))
 				//TODO: redirect
 				return nil
 			}
@@ -129,13 +132,13 @@ func (s *Server) handleLogin() Handler {
 			})
 
 			if err != nil {
-				errFlash(w, "Unable to create otp")
+				errFlash(w, yeahapi.E("Unable to create otp"))
 				//TODO: redirect
 				return nil
 			}
 
 			if err := s.CQRSService.Publish(ctx, yeahapi.NewSendEmailCodeCmd(data.email, otp.Code)); err != nil {
-				errFlash(w, "Unable to publish")
+				errFlash(w, yeahapi.E("Unable to publish"))
 				//TODO: redirect
 				return nil
 			}
@@ -190,7 +193,7 @@ func (s *Server) handleSignin() Handler {
 		}
 
 		if err := data.ok(); err != nil {
-			fmt.Fprintf(w, "unable to validate data")
+			errFlash(w, err)
 			return nil
 		}
 
@@ -199,7 +202,7 @@ func (s *Server) handleSignin() Handler {
 			Code:       data.otp,
 			Identifier: "",
 		}); err != nil {
-			fmt.Fprintf(w, "unable to verify otp")
+			errFlash(w, yeahapi.E("Unable to verify otp code. Make sure code and hash is correct"))
 			return nil
 		}
 
@@ -209,7 +212,10 @@ func (s *Server) handleSignin() Handler {
 			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				http.Redirect(w, r, "/auth/login/info", http.StatusSeeOther)
 				break
+			} else if err != nil {
+				errFlash(w, yeahapi.E("Something went wrong on our end. Please, try again later"))
 			}
+
 			auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
 				User: u,
 				Session: &yeahapi.Session{
@@ -221,20 +227,28 @@ func (s *Server) handleSignin() Handler {
 			})
 
 			if err != nil {
-				fmt.Fprintf(w, "unable to create auth")
+				errFlash(w, yeahapi.E("Couldn't create a session. Please, try again"))
+				return nil
 			}
-			s.CookieService.SetCookie(w, &http.Cookie{
+
+			if err := s.CookieService.SetCookie(w, &http.Cookie{
 				Name:     "session",
 				Value:    auth.Session.ID.String(),
 				HttpOnly: true,
-			})
+			}); err != nil {
+				errFlash(w, yeahapi.E("Something went wrong with saving cookies"))
+			}
 			break
 		case "phone":
 			u, err := s.UserService.ByEmail(ctx, data.loginData.phone)
 			if yeahapi.EIs(yeahapi.ENotFound, err) {
 				http.Redirect(w, r, "/auth/login/info", http.StatusSeeOther)
 				break
+			} else if err != nil {
+				errFlash(w, yeahapi.E("Something went wrong on our end. Please, try again later"))
+				return nil
 			}
+
 			auth, err := s.AuthService.CreateAuth(ctx, &yeahapi.Auth{
 				User: u,
 				Session: &yeahapi.Session{
@@ -246,14 +260,17 @@ func (s *Server) handleSignin() Handler {
 			})
 
 			if err != nil {
-				fmt.Fprintf(w, "unable to create auth")
+				errFlash(w, yeahapi.E("Couldn't create a session. Please, try again"))
+				return nil
 			}
 
-			s.CookieService.SetCookie(w, &http.Cookie{
+			if err := s.CookieService.SetCookie(w, &http.Cookie{
 				Name:     "session",
 				Value:    auth.Session.ID.String(),
 				HttpOnly: true,
-			})
+			}); err != nil {
+				errFlash(w, yeahapi.E("Something went wrong with saving cookies"))
+			}
 			break
 		default:
 			break
